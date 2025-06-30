@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { Circle, Link, Gem } from 'lucide-react'
 
 export default function BespokeSection() {
   return (
@@ -16,21 +17,27 @@ export default function BespokeSection() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           <div className="text-center group cursor-pointer">
             <div className="bg-zinc-50 rounded-lg p-8 mb-4 group-hover:bg-zinc-100 transition-colors">
-              <div className="text-4xl mb-4">💍</div>
+              <div className="flex justify-center mb-4">
+                <Circle className="w-12 h-12 text-zinc-600" strokeWidth={1.5} />
+              </div>
               <h3 className="text-xl font-medium mb-2 tracking-wide">BRACELETS</h3>
               <p className="text-gray-600 text-sm">Elegant chains, charm bracelets, and tennis styles</p>
             </div>
           </div>
           <div className="text-center group cursor-pointer">
             <div className="bg-zinc-50 rounded-lg p-8 mb-4 group-hover:bg-zinc-100 transition-colors">
-              <div className="text-4xl mb-4">📿</div>
+              <div className="flex justify-center mb-4">
+                <Link className="w-12 h-12 text-zinc-600" strokeWidth={1.5} />
+              </div>
               <h3 className="text-xl font-medium mb-2 tracking-wide">NECKLACES</h3>
               <p className="text-gray-600 text-sm">Pendants, chains, and statement pieces</p>
             </div>
           </div>
           <div className="text-center group cursor-pointer">
             <div className="bg-zinc-50 rounded-lg p-8 mb-4 group-hover:bg-zinc-100 transition-colors">
-              <div className="text-4xl mb-4">💎</div>
+              <div className="flex justify-center mb-4">
+                <Gem className="w-12 h-12 text-zinc-600" strokeWidth={1.5} />
+              </div>
               <h3 className="text-xl font-medium mb-2 tracking-wide">EARRINGS</h3>
               <p className="text-gray-600 text-sm">Studs, hoops, and drop earrings</p>
             </div>
