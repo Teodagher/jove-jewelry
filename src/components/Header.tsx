@@ -2,20 +2,19 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Search, ShoppingCart, User, Menu, X } from 'lucide-react'
+import { Search, ShoppingCart, User, Menu, X, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import Navbar from './Navbar'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false)
 
-  const navigation = [
-    { name: 'BRACELETS', href: '#' },
-    { name: 'NECKLACES', href: '#' },
-    { name: 'EARRINGS', href: '#' },
-    { name: 'DESIGN STUDIO', href: '#' },
-    { name: 'COLLECTIONS', href: '#' },
-    { name: 'ABOUT', href: '#' },
-    { name: 'CONTACT', href: '#' },
+  const jewelryCategories = [
+    { name: 'NECKLACES', href: '/customize/necklaces' },
+    { name: 'RINGS', href: '/customize/rings' },
+    { name: 'BRACELETS', href: '/customize/bracelets' },
+    { name: 'EARRINGS', href: '/customize/earrings' },
   ]
 
   return (
@@ -52,17 +51,7 @@ export default function Header() {
             </div>
 
             {/* Desktop navigation */}
-            <nav className="hidden md:flex space-x-8">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="text-sm font-medium text-zinc-700 hover:text-zinc-900 transition-colors"
-                >
-                  {item.name}
-                </Link>
-              ))}
-            </nav>
+            <Navbar />
 
             {/* Right side icons */}
             <div className="flex items-center space-x-4">
@@ -85,16 +74,51 @@ export default function Header() {
         {/* Mobile menu */}
         {isMenuOpen && (
           <div className="md:hidden border-t border-zinc-200 bg-white">
-            <div className="px-4 py-6 space-y-4">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className="block text-base font-medium text-zinc-700 hover:text-zinc-900"
+            <div className="px-4 py-6 space-y-6">
+              {/* Mobile dropdown */}
+              <div>
+                <button
+                  onClick={() => setIsMobileDropdownOpen(!isMobileDropdownOpen)}
+                  className="flex items-center justify-between w-full text-left text-lg font-light text-zinc-800 hover:text-zinc-900 py-3 font-serif tracking-wider transition-all duration-300"
                 >
-                  {item.name}
-                </Link>
-              ))}
+                  <span className="text-lg font-light tracking-wider">CUSTOMIZE YOUR</span>
+                  <ChevronDown 
+                    size={18} 
+                    className={`transition-transform duration-300 ${isMobileDropdownOpen ? 'rotate-180' : ''}`}
+                    strokeWidth={1.5}
+                  />
+                </button>
+                
+                {isMobileDropdownOpen && (
+                  <div className="mt-2 space-y-0.5 bg-zinc-50 rounded-lg overflow-hidden border border-zinc-100">
+                    {jewelryCategories.map((category, index) => (
+                      <Link
+                        key={category.name}
+                        href={category.href}
+                        className="block text-sm font-light text-zinc-800 hover:text-zinc-900 hover:bg-zinc-100 py-4 px-6 tracking-widest transition-all duration-300"
+                        onClick={() => {
+                          setIsMenuOpen(false)
+                          setIsMobileDropdownOpen(false)
+                        }}
+                      >
+                        <div className="flex items-center justify-between group">
+                          <span>{category.name}</span>
+                          <span className="text-zinc-300 group-hover:text-zinc-800 transition-colors duration-300">→</span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile About Us Link */}
+              <Link
+                href="/about"
+                className="block text-lg font-light text-zinc-800 hover:text-zinc-900 py-3 font-serif tracking-wider transition-all duration-300"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                ABOUT US
+              </Link>
             </div>
           </div>
         )}

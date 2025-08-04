@@ -1,82 +1,79 @@
 import { Button } from '@/components/ui/button'
-import { Circle, Link, Gem } from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
 
 export default function BespokeSection() {
+  const jewelryItems = [
+    {
+      name: 'BRACELETS',
+      description: 'Elegant chains and charm bracelets with customizable stones and metals',
+      image: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/bracelet-preview.png',
+      link: '/customize/bracelets'
+    },
+    {
+      name: 'NECKLACES',
+      description: 'Beautiful pendants and chains designed to complement your style',
+      image: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/necklace.png',
+      link: '/customize/necklaces'
+    },
+    {
+      name: 'RINGS',
+      description: 'Stunning rings with precious stones and customizable settings',
+      image: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/ring%20-preview.png',
+      link: '/customize/rings'
+    }
+  ];
+
   return (
-    <section className="py-20 bg-white">
+    <section className="py-24 bg-white">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-light mb-8 tracking-wide">CUSTOMIZE YOUR JEWELRY</h2>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Create unique bracelets, necklaces, and earrings that reflect your personal style.
+        {/* Clean Header */}
+        <div className="text-center mb-20">
+          <h2 className="text-5xl md:text-6xl font-light mb-6 tracking-wide text-gray-900">
+            CUSTOMIZE YOUR JEWELRY
+          </h2>
+          <p className="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
+            Create unique bracelets, necklaces, and rings that reflect your personal style.
             Our online customization tool makes it easy to design the perfect piece.
           </p>
         </div>
 
-        {/* Product Categories */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          <div className="text-center group cursor-pointer">
-            <div className="bg-zinc-50 rounded-lg p-8 mb-4 group-hover:bg-zinc-100 transition-colors">
-              <div className="flex justify-center mb-4">
-                <Circle className="w-12 h-12 text-zinc-600" strokeWidth={1.5} />
+        {/* Minimalist Jewelry Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          {jewelryItems.map((item, index) => (
+            <Link key={item.name} href={item.link} className="group">
+              <div className="relative overflow-hidden bg-white border border-gray-100 hover:border-gray-200 transition-all duration-300 group-hover:shadow-xl">
+                {/* Subtle accent line */}
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-gray-100 via-gray-300 to-gray-100 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
+                
+                {/* Image Container */}
+                <div className="relative h-80 bg-gray-50 overflow-hidden">
+                  <Image
+                    src={item.image}
+                    alt={item.name}
+                    fill
+                    className="object-contain p-8 group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+                
+                {/* Content */}
+                <div className="p-8">
+                  <h3 className="text-2xl font-light mb-4 tracking-wide text-gray-900 group-hover:text-black transition-colors">
+                    {item.name}
+                  </h3>
+                  <p className="text-gray-600 leading-relaxed mb-6">
+                    {item.description}
+                  </p>
+                  <div className="flex items-center text-gray-900 font-medium group-hover:translate-x-1 transition-transform duration-300">
+                    <span className="text-sm tracking-wide">Customize Now</span>
+                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </div>
+                </div>
               </div>
-              <h3 className="text-xl font-medium mb-2 tracking-wide">BRACELETS</h3>
-              <p className="text-gray-600 text-sm">Elegant chains, charm bracelets, and tennis styles</p>
-            </div>
-          </div>
-          <div className="text-center group cursor-pointer">
-            <div className="bg-zinc-50 rounded-lg p-8 mb-4 group-hover:bg-zinc-100 transition-colors">
-              <div className="flex justify-center mb-4">
-                <Link className="w-12 h-12 text-zinc-600" strokeWidth={1.5} />
-              </div>
-              <h3 className="text-xl font-medium mb-2 tracking-wide">NECKLACES</h3>
-              <p className="text-gray-600 text-sm">Pendants, chains, and statement pieces</p>
-            </div>
-          </div>
-          <div className="text-center group cursor-pointer">
-            <div className="bg-zinc-50 rounded-lg p-8 mb-4 group-hover:bg-zinc-100 transition-colors">
-              <div className="flex justify-center mb-4">
-                <Gem className="w-12 h-12 text-zinc-600" strokeWidth={1.5} />
-              </div>
-              <h3 className="text-xl font-medium mb-2 tracking-wide">EARRINGS</h3>
-              <p className="text-gray-600 text-sm">Studs, hoops, and drop earrings</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Customization Process */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-          <div className="text-center p-6">
-            <div className="text-6xl font-light text-zinc-300 mb-4">01</div>
-            <h3 className="text-xl font-medium mb-4 tracking-wide">CHOOSE YOUR STYLE</h3>
-            <p className="text-gray-600 text-sm leading-relaxed">
-              Select from our collection of beautiful bracelet, necklace, and earring designs.
-            </p>
-          </div>
-          <div className="text-center p-6">
-            <div className="text-6xl font-light text-zinc-300 mb-4">02</div>
-            <h3 className="text-xl font-medium mb-4 tracking-wide">CUSTOMIZE DETAILS</h3>
-            <p className="text-gray-600 text-sm leading-relaxed">
-              Pick your metals, gemstones, sizes, and add personal engravings to make it uniquely yours.
-            </p>
-          </div>
-          <div className="text-center p-6">
-            <div className="text-6xl font-light text-zinc-300 mb-4">03</div>
-            <h3 className="text-xl font-medium mb-4 tracking-wide">RECEIVE & ENJOY</h3>
-            <p className="text-gray-600 text-sm leading-relaxed">
-              Your handcrafted piece is made to order and delivered directly to your door with care.
-            </p>
-          </div>
-        </div>
-
-        <div className="text-center">
-          <Button
-            variant="default"
-            size="lg"
-            className="bg-zinc-900 text-white hover:bg-zinc-800 px-8 py-3 text-base tracking-wider"
-          >
-            START DESIGNING NOW
-          </Button>
+            </Link>
+          ))}
         </div>
       </div>
     </section>
