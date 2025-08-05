@@ -204,6 +204,43 @@ export class CustomizationService {
       }
     }
     
+    if (jewelryType === 'ring') {
+      // Map database values to filename format for rings
+      const metalMap: { [key: string]: string } = {
+        'white_gold': 'white gold',
+        'yellow_gold': 'yellow gold'
+      }
+      
+      const stoneMap: { [key: string]: string } = {
+        'blue_sapphire': 'blue sapphire',
+        'pink_sapphire': 'pink sapphire',
+        'emerald': 'emerald',
+        'ruby': 'ruby'
+      }
+      
+      // Get the selections
+      const metal = customizations.metal
+      
+      // For rings: Use second_stone for the variant (first_stone is always diamond)
+      const variantStone = customizations.second_stone
+      
+      if (variantStone && metal && metalMap[metal] && stoneMap[variantStone]) {
+        const stoneFilename = stoneMap[variantStone]
+        const metalFilename = metalMap[metal]
+        
+        // Special case for ruby + white gold (filename uses "whitegold" as one word)
+        let filename: string;
+        if (variantStone === 'ruby' && metal === 'white_gold') {
+          filename = `Ring ${stoneFilename} whitegold.png`;
+        } else {
+          // Ring naming convention: Ring [stone] [metal].png
+          filename = `Ring ${stoneFilename} ${metalFilename}.png`;
+        }
+        
+        return `${baseUrl}/rings/${filename}`
+      }
+    }
+    
     // Fallback to base image if no variant found
     return `${baseUrl}/bracelet.png`
   }

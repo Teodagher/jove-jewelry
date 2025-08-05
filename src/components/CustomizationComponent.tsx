@@ -85,12 +85,8 @@ export default function CustomizationComponent({
     return price;
   }, [customizationState, jewelryItem]);
 
-  // Generate dynamic preview image URL based on current selections
+  // Generate preview image URL based on customization state
   const previewImageUrl = useMemo(() => {
-    // Debug removed - dynamic preview is working
-    
-    // For bracelets, use dynamic variant images if all required selections are made
-    // Diamond is always present, so we need chain_type, metal, and a second stone (or non-diamond first stone)
     const hasVariantStone = (customizationState.first_stone && customizationState.first_stone !== 'diamond') || customizationState.second_stone;
     
     if (jewelryItem.id === 'bracelet' && 
@@ -105,7 +101,21 @@ export default function CustomizationComponent({
       const generatedUrl = CustomizationService.generateVariantImageUrl(jewelryItem.id, stringCustomizations);
       return generatedUrl;
     }
-    // Fallback to base image
+    
+    if (jewelryItem.id === 'ring' && 
+        customizationState.metal && customizationState.second_stone) {
+      // Convert CustomizationState to string-only object for the service
+      const stringCustomizations: { [key: string]: string } = {};
+      Object.entries(customizationState).forEach(([key, value]) => {
+        if (typeof value === 'string') {
+          stringCustomizations[key] = value;
+        }
+      });
+      const generatedUrl = CustomizationService.generateVariantImageUrl(jewelryItem.id, stringCustomizations);
+      return generatedUrl;
+    }
+    
+    // For other jewelry types, always use base image
     return jewelryItem.baseImage;
   }, [customizationState, jewelryItem]);
 
@@ -120,6 +130,7 @@ export default function CustomizationComponent({
   useEffect(() => {
     if (!currentImageUrl && previewImageUrl) {
       setCurrentImageUrl(previewImageUrl);
+      setImageLoading(false);
     }
   }, [previewImageUrl, currentImageUrl]);
 
