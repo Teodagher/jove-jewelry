@@ -20,12 +20,6 @@ export default function CustomizePage() {
       href: '/customize/necklaces',
       image: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/necklace.png',
       alt: 'Custom necklace design'
-    },
-    {
-      name: 'Earrings',
-      href: '/customize/earrings',
-      image: '/images/earring-preview.jpg',
-      alt: 'Custom earring design'
     }
   ]
 

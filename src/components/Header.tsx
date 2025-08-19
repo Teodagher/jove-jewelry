@@ -2,19 +2,20 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Search, ShoppingCart, User, Menu, X, ChevronDown } from 'lucide-react'
+import { ShoppingCart, User, Menu, X, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Navbar from './Navbar'
+import { useCart } from '@/contexts/CartContext'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false)
+  const { itemCount } = useCart()
 
   const jewelryCategories = [
     { name: 'NECKLACES', href: '/customize/necklaces' },
     { name: 'RINGS', href: '/customize/rings' },
     { name: 'BRACELETS', href: '/customize/bracelets' },
-    { name: 'EARRINGS', href: '/customize/earrings' },
   ]
 
   return (
@@ -54,18 +55,18 @@ export default function Header() {
             <Navbar />
 
             {/* Right side icons */}
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" className="p-2">
-                <User size={20} />
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <Button asChild variant="ghost" size="sm" className="p-2" aria-label="Account">
+                <Link href="/auth/login">
+                  <User size={20} />
+                </Link>
               </Button>
-              <Button variant="ghost" size="sm" className="p-2">
-                <Search size={20} />
-              </Button>
-              <Button variant="ghost" size="sm" className="p-2 relative">
-                <ShoppingCart size={20} />
-                <span className="absolute -top-1 -right-1 bg-zinc-900 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  0
-                </span>
+              <Button asChild variant="ghost" size="sm" className="p-2 relative" aria-label="Cart">
+                <Link href="/cart">
+                  <div className="relative">
+                    <ShoppingCart size={20} />
+                  </div>
+                </Link>
               </Button>
             </div>
           </div>

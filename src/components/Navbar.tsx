@@ -12,7 +12,6 @@ export default function Navbar() {
     { name: 'NECKLACES', href: '/customize/necklaces' },
     { name: 'RINGS', href: '/customize/rings' },
     { name: 'BRACELETS', href: '/customize/bracelets' },
-    { name: 'EARRINGS', href: '/customize/earrings' },
   ]
 
   // Close dropdown when clicking outside

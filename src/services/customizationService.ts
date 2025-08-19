@@ -149,6 +149,12 @@ export class CustomizationService {
   static generateVariantImageUrl(jewelryType: string, customizations: { [key: string]: string }): string {
     const baseUrl = 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item'
     
+    console.log('🔧 CustomizationService: Generating URL for:', {
+      jewelryType,
+      customizations,
+      timestamp: new Date().toISOString()
+    });
+    
     if (jewelryType === 'bracelet') {
       // Map database values to filename format
       const metalMap: { [key: string]: string } = {
@@ -190,17 +196,50 @@ export class CustomizationService {
         // Handle mixed case extensions based on specific combinations
         let filename: string;
         
-        // Special cases for lowercase .png files (based on actual uploaded files)
-        if ((stoneFilename === 'pink-sapphire' && metalFilename === 'yellowgold') ||
-            (stoneFilename === 'emerald' && metalFilename === 'yellowgold') ||
-            (stoneFilename === 'ruby' && metalFilename === 'yellowgold')) {
-          filename = `bracelet-${chainFilename}-${stoneFilename}-${metalFilename}.png`;
-        } else {
-          // Default to uppercase .PNG for most files
-          filename = `bracelet-${chainFilename}-${stoneFilename}-${metalFilename}.PNG`;
-        }
+        // Only generate URLs for combinations that actually exist  
+        // Based on our high-quality compression output, these are the valid bracelet combinations:
+        const validBraceletCombinations = [
+          // Black leather combinations (both metals supported)
+          'black-leather-blue-sapphire-whitegold',
+          'black-leather-blue-sapphire-yellowgold',
+          'black-leather-emerald-whitegold',
+          'black-leather-emerald-yellowgold',
+          'black-leather-pink-sapphire-whitegold',
+          'black-leather-pink-sapphire-yellowgold',
+          'black-leather-ruby-whitegold',
+          // Gold cord combinations (only yellow gold metal supported)
+          'gold-cord-blue-sapphire-yellowgold',
+          'gold-cord-emerald-yellowgold',
+          'gold-cord-pink-sapphire-yellowgold',
+          'gold-cord-ruby-yellowgold'
+        ];
         
-        return `${baseUrl}/bracelets/${filename}`
+        const combinationKey = `${chainFilename}-${stoneFilename}-${metalFilename}`;
+        
+        if (validBraceletCombinations.includes(combinationKey)) {
+          // Use compressed WebP images for much faster loading (HQ: ~50KB, 95% smaller!)
+          filename = `bracelet-${chainFilename}-${stoneFilename}-${metalFilename}.webp`;
+          
+          const finalUrl = `${baseUrl}/bracelets/${filename}`;
+          console.log('🎯 Bracelet URL generated (HQ WebP):', finalUrl, '(~50KB, 95% smaller, much better quality!)');
+          
+          return finalUrl;
+        } else {
+          console.warn('⚠️ Bracelet combination not available:', combinationKey);
+          console.log('📋 Using base bracelet image instead');
+          return 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/bracelet-preview.png';
+        }
+      } else {
+        console.log('❌ Bracelet conditions not met:', {
+          variantStone,
+          metal,
+          chainType,
+          metalMapHas: !!metalMap[metal],
+          stoneMapHas: !!stoneMap[variantStone],
+          chainMapHas: !!chainMap[chainType]
+        });
+        // Return base bracelet image when conditions aren't met
+        return 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/bracelet-preview.png';
       }
     }
     
@@ -228,21 +267,98 @@ export class CustomizationService {
         const stoneFilename = stoneMap[variantStone]
         const metalFilename = metalMap[metal]
         
-        // Special case for ruby + white gold (filename uses "whitegold" as one word)
-        let filename: string;
-        if (variantStone === 'ruby' && metal === 'white_gold') {
-          filename = `Ring ${stoneFilename} whitegold.png`;
-        } else {
-          // Ring naming convention: Ring [stone] [metal].png
-          filename = `Ring ${stoneFilename} ${metalFilename}.png`;
-        }
+        // Ring naming convention: Ring [stone] [metal].webp (compressed)
+        const filename = `Ring ${stoneFilename} ${metalFilename}.webp`;
         
-        return `${baseUrl}/rings/${filename}`
+        const finalUrl = `${baseUrl}/rings/${filename}`;
+        console.log('💍 Ring URL generated (HQ WebP):', finalUrl, '(~50KB, 95% smaller, crisp details!)');
+        
+        return finalUrl
+      }
+    }
+    
+    if (jewelryType === 'necklace') {
+      // Map database values to filename format for necklaces
+      const metalMap: { [key: string]: string } = {
+        'white_gold': 'whitegold',
+        'yellow_gold': 'yellowgold'
+      }
+      
+      const stoneMap: { [key: string]: string } = {
+        'blue_sapphire': 'bluesapphire',
+        'pink_sapphire': 'pinksapphire',
+        'emerald': 'emerald',
+        'ruby': 'ruby'
+      }
+      
+      const chainMap: { [key: string]: string } = {
+        'black_leather': 'black-leather',
+        'white_gold_chain': 'white-gold',
+        'yellow_gold_chain_real': 'yellow-gold'
+      }
+      
+      // Get the selections
+      const metal = customizations.metal
+      const chainType = customizations.chain_type
+      
+      // For necklaces: Use any non-diamond stone for the variant
+      // Check first_stone first, then second_stone
+      let variantStone = customizations.second_stone;
+      if (customizations.first_stone && customizations.first_stone !== 'diamond') {
+        variantStone = customizations.first_stone;
+      }
+      
+      if (variantStone && metal && chainType && metalMap[metal] && stoneMap[variantStone] && chainMap[chainType]) {
+        const stoneFilename = stoneMap[variantStone]
+        const metalFilename = metalMap[metal]
+        const chainFilename = chainMap[chainType]
+        
+        // Chain type is already mapped correctly in chainMap
+        const finalChainType = chainFilename;
+        
+        // Only generate URLs for combinations that actually exist
+        // Based on our compression script output, these are the valid combinations:
+        const validCombinations = [
+          // Black leather combinations
+          'black-leather-bluesapphire-whitegold',
+          'black-leather-bluesapphire-yellowgold', 
+          'black-leather-emerald-whitegold',
+          'black-leather-emerald-yellowgold',
+          'black-leather-pinksapphire-whitegold',
+          'black-leather-pinksapphire-yellowgold',
+          'black-leather-ruby-whitegold',
+          'black-leather-ruby-yellowgold',
+          // White gold chain combinations (only with white gold metal)
+          'white-gold-bluesapphire-whitegold',
+          'white-gold-emerald-whitegold',
+          'white-gold-pinksapphire-whitegold',
+          'white-gold-ruby-whitegold',
+          // Yellow gold chain combinations (only with yellow gold metal)
+          'yellow-gold-bluesapphire-yellowgold',
+          'yellow-gold-emerald-yellowgold',
+          'yellow-gold-pinksapphire-yellowgold',
+          'yellow-gold-ruby-yellowgold'
+        ];
+        
+        const combinationKey = `${finalChainType}-${stoneFilename}-${metalFilename}`;
+        
+        if (validCombinations.includes(combinationKey)) {
+          // Necklace naming convention: necklace-[chain]-[stone]-[metal].webp (compressed)
+          const filename = `necklace-${finalChainType}-${stoneFilename}-${metalFilename}.webp`;
+          const finalUrl = `${baseUrl}/necklaces/${filename}`;
+          
+          console.log('✨ Necklace URL generated:', finalUrl, '(Compressed WebP: ~25KB - 98% smaller!)');
+          
+          return finalUrl;
+        } else {
+          console.warn('⚠️ Necklace combination not available:', combinationKey);
+          console.log('📋 Using base image instead');
+        }
       }
     }
     
     // Fallback to base image if no variant found
-    return `${baseUrl}/bracelet.png`
+    return `${baseUrl}/necklace.png`
   }
 
   // Check if a variant image exists for given customizations

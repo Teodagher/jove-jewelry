@@ -1,11 +1,25 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react'
-import Image from 'next/image'
 import { JewelryItem, CustomizationState, CustomizationOption } from '@/types/customization';
 import type { CustomizationSetting } from '@/types/customization';
 import { CustomizationService } from '@/services/customizationService';
+import JewelryPreview from './JewelryPreview';
 import RingSizeSelector from './RingSizeSelector';
+import { useCart } from '@/contexts/CartContext';
+import { useRouter } from 'next/navigation';
+import { BuyNowButton } from '@/components/ui/buy-now-button';
+
+// Preload critical images for faster UX
+const preloadImage = (src: string) => {
+  if (typeof window !== 'undefined') {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = src;
+    document.head.appendChild(link);
+  }
+};
 
 interface CustomizationComponentProps {
   jewelryItem: JewelryItem;
@@ -17,8 +31,9 @@ export default function CustomizationComponent({
   onCustomizationChange 
 }: CustomizationComponentProps) {
   const [customizationState, setCustomizationState] = useState<CustomizationState>({});
-  const [imageLoading, setImageLoading] = useState(false);
-  const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
+  const [addingToCart, setAddingToCart] = useState(false);
+  const { addCustomJewelryToCart } = useCart();
+  const router = useRouter();
 
   // Initialize with diamond selected for first stone and black leather for chain type by default
   useEffect(() => {
@@ -33,21 +48,51 @@ export default function CustomizationComponent({
       }
     }
     
-    // Auto-select black leather for chain type (since we only have black leather variants)
+    // Auto-select chain type based on jewelry type
     const chainTypeSetting = jewelryItem.settings.find(setting => setting.id === 'chain_type');
     if (chainTypeSetting && !customizationState.chain_type) {
-      const blackLeatherOption = chainTypeSetting.options.find(option => option.id === 'black_leather');
-      if (blackLeatherOption) {
-        updates.chain_type = 'black_leather';
+      if (jewelryItem.id === 'bracelet') {
+        // For bracelets, default to black leather cord
+        const blackLeatherOption = chainTypeSetting.options.find(option => option.id === 'black_leather');
+        if (blackLeatherOption) {
+          updates.chain_type = 'black_leather';
+        }
+      } else {
+        // For other jewelry types, default to white gold chain
+        const whiteGoldChainOption = chainTypeSetting.options.find(option => option.id === 'white_gold_chain');
+        if (whiteGoldChainOption) {
+          updates.chain_type = 'white_gold_chain';
+        }
       }
     }
     
-    // Auto-select white gold for metal (to show dynamic preview immediately)
+    // Auto-select metal based on chain type for better image matching
     const metalSetting = jewelryItem.settings.find(setting => setting.id === 'metal');
     if (metalSetting && !customizationState.metal) {
-      const whiteGoldOption = metalSetting.options.find(option => option.id === 'white_gold');
-      if (whiteGoldOption) {
-        updates.metal = 'white_gold';
+      // If yellow gold chain is selected, prefer yellow gold metal
+      if (updates.chain_type === 'yellow_gold_chain_real') {
+        const yellowGoldOption = metalSetting.options.find(option => option.id === 'yellow_gold');
+        if (yellowGoldOption) {
+          updates.metal = 'yellow_gold';
+        }
+      } else if (jewelryItem.id === 'bracelet' && updates.chain_type === 'black_leather') {
+        // For bracelets with black leather, default to white gold
+        const whiteGoldOption = metalSetting.options.find(option => option.id === 'white_gold');
+        if (whiteGoldOption) {
+          updates.metal = 'white_gold';
+        }
+      } else if (jewelryItem.id === 'bracelet' && updates.chain_type === 'gold_cord') {
+        // For bracelets with gold cord, must use yellow gold
+        const yellowGoldOption = metalSetting.options.find(option => option.id === 'yellow_gold');
+        if (yellowGoldOption) {
+          updates.metal = 'yellow_gold';
+        }
+      } else {
+        // Default to white gold for other chain types
+        const whiteGoldOption = metalSetting.options.find(option => option.id === 'white_gold');
+        if (whiteGoldOption) {
+          updates.metal = 'white_gold';
+        }
       }
     }
     
@@ -68,6 +113,90 @@ export default function CustomizationComponent({
     }
   }, [jewelryItem.settings, customizationState.first_stone, customizationState.chain_type, customizationState.metal, customizationState.second_stone]);
 
+  // Aggressively preload common variant images for better performance
+  useEffect(() => {
+    const preloadWithRetry = (url: string, retries = 3) => {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = url;
+      link.crossOrigin = 'anonymous';
+      
+      link.onload = () => {
+        console.log('📦 Preloaded successfully:', url);
+        document.head.removeChild(link);
+      };
+      
+      link.onerror = () => {
+        document.head.removeChild(link);
+        if (retries > 0) {
+          console.warn(`🔄 Preload retry (${4-retries}/3):`, url);
+          setTimeout(() => preloadWithRetry(url, retries - 1), 1000);
+        } else {
+          console.error('❌ Preload failed after retries:', url);
+        }
+      };
+      
+      document.head.appendChild(link);
+    };
+    
+    if (jewelryItem.id === 'bracelet') {
+      // Preload only ACTUALLY existing bracelet combinations (based on compression script output)
+      const existingBracelets = [
+        'bracelet-black-leather-blue-sapphire-whitegold.webp',
+        'bracelet-black-leather-blue-sapphire-yellowgold.webp',
+        'bracelet-black-leather-emerald-whitegold.webp',
+        'bracelet-black-leather-emerald-yellowgold.webp',
+        'bracelet-black-leather-pink-sapphire-whitegold.webp',
+        'bracelet-black-leather-pink-sapphire-yellowgold.webp',
+        'bracelet-black-leather-ruby-whitegold.webp',
+        'bracelet-gold-cord-blue-sapphire-yellowgold.webp',
+        'bracelet-gold-cord-emerald-yellowgold.webp',
+        'bracelet-gold-cord-pink-sapphire-yellowgold.webp',
+        'bracelet-gold-cord-ruby-yellowgold.webp'
+      ];
+      
+      existingBracelets.forEach(filename => {
+        const preloadUrl = `https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/bracelets/${filename}`;
+        preloadWithRetry(preloadUrl);
+      });
+    } else if (jewelryItem.id === 'necklace') {
+      // Preload only existing necklace combinations
+      const existingNecklaces = [
+        'necklace-black-leather-emerald-whitegold.webp',
+        'necklace-black-leather-emerald-yellowgold.webp',
+        'necklace-black-leather-ruby-whitegold.webp',
+        'necklace-black-leather-ruby-yellowgold.webp',
+        'necklace-black-leather-bluesapphire-whitegold.webp',
+        'necklace-black-leather-bluesapphire-yellowgold.webp',
+        'necklace-white-gold-emerald-whitegold.webp',
+        'necklace-white-gold-ruby-whitegold.webp'
+      ];
+      
+      existingNecklaces.forEach(filename => {
+        const preloadUrl = `https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/necklaces/${filename}`;
+        preloadWithRetry(preloadUrl);
+      });
+    } else if (jewelryItem.id === 'ring') {
+      // Preload all ring combinations (HQ WebP)
+      const existingRings = [
+        'Ring blue sapphire white gold.webp',
+        'Ring blue sapphire yellow gold.webp',
+        'Ring emerald white gold.webp',
+        'Ring emerald yellow gold.webp',
+        'Ring pink sapphire white gold.webp',
+        'Ring pink sapphire yellow gold.webp',
+        'Ring ruby white gold.webp',
+        'Ring ruby yellow gold.webp'
+      ];
+      
+      existingRings.forEach(filename => {
+        const preloadUrl = `https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/rings/${filename}`;
+        preloadWithRetry(preloadUrl);
+      });
+    }
+  }, [jewelryItem.id]);
+
   // Calculate total price based on selections
   const totalPrice = useMemo(() => {
     let price = jewelryItem.basePrice;
@@ -87,6 +216,12 @@ export default function CustomizationComponent({
 
   // Generate preview image URL based on customization state
   const previewImageUrl = useMemo(() => {
+    console.log('🔍 CustomizationComponent: Generating preview URL for:', {
+      jewelryType: jewelryItem.id,
+      customizationState,
+      timestamp: new Date().toISOString()
+    });
+
     const hasVariantStone = (customizationState.first_stone && customizationState.first_stone !== 'diamond') || customizationState.second_stone;
     
     if (jewelryItem.id === 'bracelet' && 
@@ -99,6 +234,7 @@ export default function CustomizationComponent({
         }
       });
       const generatedUrl = CustomizationService.generateVariantImageUrl(jewelryItem.id, stringCustomizations);
+      console.log('✅ Generated bracelet variant URL:', generatedUrl);
       return generatedUrl;
     }
     
@@ -115,24 +251,25 @@ export default function CustomizationComponent({
       return generatedUrl;
     }
     
+    if (jewelryItem.id === 'necklace' && 
+        customizationState.chain_type && customizationState.metal && hasVariantStone) {
+      // Convert CustomizationState to string-only object for the service
+      const stringCustomizations: { [key: string]: string } = {};
+      Object.entries(customizationState).forEach(([key, value]) => {
+        if (typeof value === 'string') {
+          stringCustomizations[key] = value;
+        }
+      });
+      const generatedUrl = CustomizationService.generateVariantImageUrl(jewelryItem.id, stringCustomizations);
+      return generatedUrl;
+    }
+    
     // For other jewelry types, always use base image
+    console.log('📋 Using base image:', jewelryItem.baseImage);
     return jewelryItem.baseImage;
   }, [customizationState, jewelryItem]);
 
-  // Handle image URL changes with crossfade effect
-  useEffect(() => {
-    if (previewImageUrl !== currentImageUrl) {
-      setImageLoading(true);
-    }
-  }, [previewImageUrl, currentImageUrl]);
 
-  // Initialize current image URL
-  useEffect(() => {
-    if (!currentImageUrl && previewImageUrl) {
-      setCurrentImageUrl(previewImageUrl);
-      setImageLoading(false);
-    }
-  }, [previewImageUrl, currentImageUrl]);
 
   // Handle option selection
   const handleOptionSelect = (settingId: string, optionId: string) => {
@@ -140,6 +277,29 @@ export default function CustomizationComponent({
       ...customizationState,
       [settingId]: optionId
     };
+    
+    // Auto-adjust metal based on chain type to ensure image availability
+    if (settingId === 'chain_type') {
+      if (jewelryItem.id === 'necklace') {
+        if (optionId === 'yellow_gold_chain_real') {
+          // Yellow gold chain only works with yellow gold metal
+          newState.metal = 'yellow_gold';
+        } else if (optionId === 'white_gold_chain') {
+          // White gold chain only works with white gold metal  
+          newState.metal = 'white_gold';
+        }
+        // Black leather works with both, so don't auto-change
+      } else if (jewelryItem.id === 'bracelet') {
+        if (optionId === 'gold_cord') {
+          // Gold cord bracelets only work with yellow gold metal
+          newState.metal = 'yellow_gold';
+        } else if (optionId === 'black_leather') {
+          // Black leather bracelets work with both, but default to white gold
+          newState.metal = 'white_gold';
+        }
+      }
+    }
+    
     setCustomizationState(newState);
     onCustomizationChange?.(newState, totalPrice);
   };
@@ -150,6 +310,75 @@ export default function CustomizationComponent({
       .filter(setting => setting.required)
       .every(setting => customizationState[setting.id]);
   }, [customizationState, jewelryItem.settings]);
+
+  // Generate customization summary for human reading
+  const generateCustomizationSummary = () => {
+    const parts: string[] = [];
+    
+    jewelryItem.settings.forEach(setting => {
+      const selectedOptionId = customizationState[setting.id];
+      const selectedOption = setting.options.find(opt => opt.id === selectedOptionId);
+      if (selectedOption) {
+        parts.push(selectedOption.name);
+      }
+    });
+    
+    return `${jewelryItem.name} - ${parts.join(', ')}`;
+  };
+
+  // Handle adding to cart
+  const handleAddToCart = async () => {
+    if (!isComplete) return;
+
+    setAddingToCart(true);
+    try {
+      const customizationSummary = generateCustomizationSummary();
+      
+      await addCustomJewelryToCart({
+        jewelry_type: jewelryItem.id as 'necklaces' | 'rings' | 'bracelets' | 'earrings',
+        customization_data: customizationState,
+        customization_summary: customizationSummary,
+        base_price: jewelryItem.basePrice,
+        total_price: totalPrice,
+        preview_image_url: previewImageUrl
+      });
+
+      // Redirect to cart
+      router.push('/cart');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      alert('Failed to add item to cart. Please try again.');
+    } finally {
+      setAddingToCart(false);
+    }
+  };
+
+  // Handle buy now (add to cart and go straight to checkout)
+  const handleBuyNow = async () => {
+    if (!isComplete) return;
+
+    setAddingToCart(true);
+    try {
+      const customizationSummary = generateCustomizationSummary();
+      
+      await addCustomJewelryToCart({
+        jewelry_type: jewelryItem.id as 'necklaces' | 'rings' | 'bracelets' | 'earrings',
+        customization_data: customizationState,
+        customization_summary: customizationSummary,
+        base_price: jewelryItem.basePrice,
+        total_price: totalPrice,
+        preview_image_url: previewImageUrl
+      });
+
+      // Go straight to checkout
+      router.push('/checkout');
+    } catch (error) {
+      console.error('Error proceeding to checkout:', error);
+      alert('Failed to proceed to checkout. Please try again.');
+    } finally {
+      setAddingToCart(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -167,35 +396,16 @@ export default function CustomizationComponent({
       <div className="lg:hidden px-4 sm:px-6 pb-8 sm:pb-12">
         <div className="max-w-2xl mx-auto">
           {/* Live Preview - Mobile */}
-          <div className="flex justify-center mb-12 sm:mb-20">
-            <div className="relative w-60 h-60 sm:w-72 sm:h-72 flex items-center justify-center overflow-hidden">
-              {/* Current Image */}
-              {currentImageUrl && (
-                <Image
-                  src={currentImageUrl}
-                  alt={`${jewelryItem.name} preview`}
-                  width={280}
-                  height={280}
-                  className={`absolute inset-0 object-contain w-full h-full transition-opacity duration-500 ease-in-out ${
-                    imageLoading ? 'opacity-0' : 'opacity-100'
-                  }`}
-                />
-              )}
-              {/* New Image (loading) */}
-              {imageLoading && previewImageUrl !== currentImageUrl && (
-                <Image
-                  src={previewImageUrl}
-                  alt={`${jewelryItem.name} preview loading`}
-                  width={280}
-                  height={280}
-                  className="absolute inset-0 object-contain w-full h-full transition-opacity duration-500 ease-in-out opacity-0"
-                  onLoad={() => {
-                    setCurrentImageUrl(previewImageUrl);
-                    setTimeout(() => setImageLoading(false), 100);
-                  }}
-                />
-              )}
-            </div>
+          <div className="mb-12 sm:mb-20">
+            <JewelryPreview
+              imageUrl={previewImageUrl}
+              alt={`${jewelryItem.name} preview`}
+              width={320}
+              height={320}
+              className="w-[320px] h-[320px] sm:w-72 sm:h-72 mx-auto"
+              enableZoom={false}
+              priority={true}
+            />
           </div>
 
           {/* Customization Settings - Mobile */}
@@ -211,23 +421,16 @@ export default function CustomizationComponent({
             ))}
           </div>
 
-          {/* Price and Add to Cart - Mobile */}
-          <div className="mt-16 sm:mt-20 text-center px-4">
-            <div className="mb-6 sm:mb-8">
-              <span className="text-xl sm:text-2xl font-normal text-black">
-                ${totalPrice.toLocaleString()}
-              </span>
-            </div>
-            <button
-              className={`w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3 text-sm sm:text-base font-normal tracking-wide transition-all duration-300 border ${
-                isComplete
-                  ? 'bg-black text-white border-black hover:bg-gray-800'
-                  : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-              }`}
+          {/* Actions - Mobile */}
+          <div className="mt-16 sm:mt-20 px-4">
+            <BuyNowButton
+              onAddToCart={handleAddToCart}
+              onBuyNow={handleBuyNow}
               disabled={!isComplete}
-            >
-              ADD TO CART
-            </button>
+              loading={addingToCart}
+              price={totalPrice}
+              showBothOptions={true}
+            />
           </div>
         </div>
       </div>
@@ -250,55 +453,44 @@ export default function CustomizationComponent({
                 ))}
               </div>
               
-              {/* Price and Add to Cart - Desktop */}
-              <div className="mt-16 pt-8 border-t border-gray-100">
-                <div className="mb-8">
-                  <span className="text-3xl font-normal text-black">
-                    ${totalPrice.toLocaleString()}
-                  </span>
-                </div>
-                <button
-                  className={`w-full px-8 py-4 text-base font-normal tracking-wide transition-all duration-300 border ${
-                    isComplete
-                      ? 'bg-black text-white border-black hover:bg-gray-800'
-                      : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-                  }`}
+              {/* Mobile buttons only - Desktop has buttons under preview */}
+              <div className="mt-16 pt-8 border-t border-gray-100 block lg:hidden">
+                <BuyNowButton
+                  onAddToCart={handleAddToCart}
+                  onBuyNow={handleBuyNow}
                   disabled={!isComplete}
-                >
-                  ADD TO CART
-                </button>
+                  loading={addingToCart}
+                  price={totalPrice}
+                  showBothOptions={true}
+                />
               </div>
             </div>
 
             {/* Right Column - Live Preview */}
-            <div className="flex items-center justify-center sticky top-24 h-fit">
-              <div className="relative w-96 h-96 flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden">
-                {/* Current Image */}
-                {currentImageUrl && (
-                  <Image
-                    src={currentImageUrl}
-                    alt={`${jewelryItem.name} preview`}
-                    width={400}
-                    height={400}
-                    className={`absolute inset-0 object-contain w-full h-full p-8 transition-opacity duration-500 ease-in-out ${
-                      imageLoading ? 'opacity-0' : 'opacity-100'
-                    }`}
+            <div className="sticky top-24 h-fit">
+              <div className="flex flex-col items-center">
+                {/* Preview Image */}
+                <JewelryPreview
+                  imageUrl={previewImageUrl}
+                  alt={`${jewelryItem.name} preview`}
+                  width={384}
+                  height={384}
+                  className="mb-8 mx-auto"
+                  enableZoom={true}
+                  priority={true}
+                />
+                
+                {/* Desktop buttons (show on desktop only) */}
+                <div className="hidden lg:block w-full max-w-sm">
+                  <BuyNowButton
+                    onAddToCart={handleAddToCart}
+                    onBuyNow={handleBuyNow}
+                    disabled={!isComplete}
+                    loading={addingToCart}
+                    price={totalPrice}
+                    showBothOptions={true}
                   />
-                )}
-                {/* New Image (loading) */}
-                {imageLoading && previewImageUrl !== currentImageUrl && (
-                  <Image
-                    src={previewImageUrl}
-                    alt={`${jewelryItem.name} preview loading`}
-                    width={400}
-                    height={400}
-                    className="absolute inset-0 object-contain w-full h-full p-8 transition-opacity duration-500 ease-in-out opacity-0"
-                    onLoad={() => {
-                      setCurrentImageUrl(previewImageUrl);
-                      setTimeout(() => setImageLoading(false), 100);
-                    }}
-                  />
-                )}
+                </div>
               </div>
             </div>
           </div>
@@ -374,12 +566,12 @@ function OptionButton({ option, isSelected, onSelect }: OptionButtonProps) {
           <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden transition-all duration-200 ${
             isSelected ? 'ring-2 ring-black ring-offset-2' : ''
           }`}>
-            <Image
+            <img
               src={option.image}
               alt={option.name}
-              width={64}
-              height={64}
               className="w-full h-full object-cover"
+              loading="lazy"
+              style={{ width: '100%', height: '100%' }}
             />
           </div>
         ) : option.color ? (

@@ -3,6 +3,10 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ClientBody from "./ClientBody";
 import Script from "next/script";
+import ServiceWorkerRegister from "../components/ServiceWorkerRegister";
+import { CartProvider } from "@/contexts/CartContext";
+import { ToastProvider } from "@/contexts/ToastContext";
+import ToastContainer from "@/components/ToastContainer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,13 +31,23 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <head>
+        {/* Preconnect to Supabase storage for faster image loading */}
+        <link rel="preconnect" href="https://ndqxwvascqwhqaoqkpng.supabase.co" />
+        <link rel="dns-prefetch" href="https://ndqxwvascqwhqaoqkpng.supabase.co" />
+        
         <Script
           crossOrigin="anonymous"
           src="//unpkg.com/same-runtime/dist/index.global.js"
         />
       </head>
       <body suppressHydrationWarning className="antialiased">
-        <ClientBody>{children}</ClientBody>
+        <ServiceWorkerRegister />
+        <ToastProvider>
+          <CartProvider>
+            <ClientBody>{children}</ClientBody>
+            <ToastContainer />
+          </CartProvider>
+        </ToastProvider>
       </body>
     </html>
   );

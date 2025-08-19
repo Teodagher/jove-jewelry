@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Header from "@/components/Header";
 
 export default function ClientBody({
@@ -8,6 +9,9 @@ export default function ClientBody({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const isAdminRoute = pathname?.startsWith('/admin');
+
   // Remove any extension-added classes during hydration
   useEffect(() => {
     // This runs only on the client after hydration
@@ -16,7 +20,7 @@ export default function ClientBody({
 
   return (
     <div className="antialiased">
-      <Header />
+      {!isAdminRoute && <Header />}
       {children}
     </div>
   );

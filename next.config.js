@@ -1,12 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    unoptimized: true,
+    unoptimized: true, // Disable optimization for external images to avoid timeouts
     domains: [
       "source.unsplash.com",
-      "images.unsplash.com",
+      "images.unsplash.com", 
       "ext.same-assets.com",
       "ugc.same-assets.com",
+      "ndqxwvascqwhqaoqkpng.supabase.co", // Add Supabase storage domain
     ],
     remotePatterns: [
       {
@@ -28,6 +29,11 @@ const nextConfig = {
         protocol: "https",
         hostname: "ugc.same-assets.com",
         pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "ndqxwvascqwhqaoqkpng.supabase.co",
+        pathname: "/storage/v1/object/public/**",
       },
     ],
   },

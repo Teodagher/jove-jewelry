@@ -19,7 +19,7 @@ interface PricingData {
   }>;
 }
 
-export default function RingsPricingPage() {
+export default function BraceletsPricingPage() {
   const [pricingData, setPricingData] = useState<PricingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -32,7 +32,7 @@ export default function RingsPricingPage() {
   const fetchPricingData = async () => {
     try {
       setLoading(true);
-      const data = await CustomizationService.getAllPricingData('ring');
+      const data = await CustomizationService.getAllPricingData('bracelet');
       setPricingData(data);
     } catch (error) {
       console.error('Error fetching pricing data:', error);
@@ -45,7 +45,7 @@ export default function RingsPricingPage() {
   const updateBasePrice = async (newPrice: number) => {
     try {
       setSaving(true);
-      const success = await CustomizationService.updateBasePrice('ring', newPrice);
+      const success = await CustomizationService.updateBasePrice('bracelet', newPrice);
       
       if (success) {
         setMessage({ type: 'success', text: 'Base price updated successfully' });
@@ -63,7 +63,7 @@ export default function RingsPricingPage() {
   const updateOptionPrice = async (settingId: string, optionId: string, newPrice: number) => {
     try {
       setSaving(true);
-      const success = await CustomizationService.updateOptionPrice('ring', settingId, optionId, newPrice);
+      const success = await CustomizationService.updateOptionPrice('bracelet', settingId, optionId, newPrice);
       
       if (success) {
         setMessage({ type: 'success', text: 'Option price updated successfully' });
@@ -104,9 +104,9 @@ export default function RingsPricingPage() {
     <div className="space-y-8">
       {/* Header */}
       <div className="border-b border-gray-200 pb-5">
-        <h1 className="text-3xl font-light text-gray-900 font-serif tracking-wider">Rings Pricing</h1>
+        <h1 className="text-3xl font-light text-gray-900 font-serif tracking-wider">Bracelets Pricing</h1>
         <p className="mt-2 text-sm text-gray-600">
-          Manage base prices and customization options for rings
+          Manage base prices and customization options for bracelets
         </p>
       </div>
       
@@ -179,7 +179,7 @@ export default function RingsPricingPage() {
       ) : (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="text-center text-gray-500">
-            <p>No ring pricing data available. Set up your ring customization options first.</p>
+            <p>No bracelet pricing data available. Set up your bracelet customization options first.</p>
           </div>
         </div>
       )}
