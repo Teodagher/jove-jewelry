@@ -29,7 +29,7 @@ export default function WorkshopSection() {
           </div>
           
           <div className="lg:text-center">
-            <div className="relative rounded-3xl overflow-hidden shadow-xl group">
+            <div className="relative rounded-lg overflow-hidden shadow-xl group">
               {/* Main Image */}
               <div className="aspect-[4/5] relative">
                 <img 
