@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import HeroCarousel from './HeroCarousel'
-import { fetchHeroImages, fallbackHeroImages } from '@/services/heroImageService'
+import { fetchHeroImages } from '@/services/heroImageService'
 
 export default function Hero() {
   const [heroImages, setHeroImages] = useState<string[]>([])
@@ -13,11 +13,10 @@ export default function Hero() {
     const loadHeroImages = async () => {
       try {
         const images = await fetchHeroImages()
-        // Use Supabase images if available, otherwise use fallback images
-        setHeroImages(images.length > 0 ? images : fallbackHeroImages)
+        setHeroImages(images)
       } catch (error) {
         console.error('Failed to load hero images:', error)
-        setHeroImages(fallbackHeroImages)
+        setHeroImages([])
       }
     }
 

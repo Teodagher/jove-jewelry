@@ -65,9 +65,4 @@ export async function fetchHeroImages(): Promise<string[]> {
 /**
  * Fallback hero images for when Supabase images are not available
  */
-export const fallbackHeroImages = [
-  // You can add some default/fallback images here
-  'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80',
-  'https://images.unsplash.com/photo-1602173574767-37ac01994b2a?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80',
-  'https://images.unsplash.com/photo-1588444837495-c6c80cd58aa9?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80'
-]
+export const fallbackHeroImages: string[] = []
