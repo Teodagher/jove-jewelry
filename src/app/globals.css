@@ -64,6 +64,45 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-stone-50 text-foreground;
+  }
+}
+
+@layer components {
+  /* Jove Beige Theme Components */
+  .jove-bg-primary {
+    @apply bg-stone-50;
+  }
+  
+  .jove-bg-gradient {
+    @apply bg-stone-50;
+  }
+  
+  .jove-bg-card {
+    @apply bg-stone-50 border border-amber-100;
+  }
+  
+  .jove-bg-card-hover {
+    @apply hover:border-amber-200 hover:bg-orange-50;
+  }
+  
+  .jove-bg-accent {
+    @apply bg-amber-50;
+  }
+  
+  .jove-bg-accent-hover {
+    @apply hover:bg-orange-50;
+  }
+  
+  .jove-border {
+    @apply border-amber-100;
+  }
+  
+  .jove-border-hover {
+    @apply hover:border-amber-200;
+  }
+  
+  .jove-gradient-accent {
+    @apply bg-gradient-to-r from-amber-100 via-amber-300 to-amber-100;
   }
 }

@@ -2,12 +2,12 @@ import { Shield, Monitor, Gem, Truck, RotateCcw, MessageCircle } from 'lucide-re
 
 export default function ExperienceSection() {
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-stone-50">
       <div className="max-w-7xl mx-auto px-4 text-center">
         <h2 className="text-4xl font-light mb-16">THE JOVÉ EXPERIENCE</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="group">
-            <div className="bg-zinc-50 rounded-lg p-6 mb-4 group-hover:bg-zinc-100 transition-colors">
+            <div className="bg-amber-50 rounded-lg p-6 mb-4 group-hover:bg-orange-50 transition-colors">
               <div className="flex justify-center mb-3">
                 <Shield className="w-8 h-8 text-zinc-600" strokeWidth={1.5} />
               </div>
@@ -16,7 +16,7 @@ export default function ExperienceSection() {
             </div>
           </div>
           <div className="group">
-            <div className="bg-zinc-50 rounded-lg p-6 mb-4 group-hover:bg-zinc-100 transition-colors">
+            <div className="bg-amber-50 rounded-lg p-6 mb-4 group-hover:bg-orange-50 transition-colors">
               <div className="flex justify-center mb-3">
                 <Monitor className="w-8 h-8 text-zinc-600" strokeWidth={1.5} />
               </div>
@@ -25,7 +25,7 @@ export default function ExperienceSection() {
             </div>
           </div>
           <div className="group">
-            <div className="bg-zinc-50 rounded-lg p-6 mb-4 group-hover:bg-zinc-100 transition-colors">
+            <div className="bg-amber-50 rounded-lg p-6 mb-4 group-hover:bg-orange-50 transition-colors">
               <div className="flex justify-center mb-3">
                 <Gem className="w-8 h-8 text-zinc-600" strokeWidth={1.5} />
               </div>
@@ -34,7 +34,7 @@ export default function ExperienceSection() {
             </div>
           </div>
           <div className="group">
-            <div className="bg-zinc-50 rounded-lg p-6 mb-4 group-hover:bg-zinc-100 transition-colors">
+            <div className="bg-amber-50 rounded-lg p-6 mb-4 group-hover:bg-orange-50 transition-colors">
               <div className="flex justify-center mb-3">
                 <Truck className="w-8 h-8 text-zinc-600" strokeWidth={1.5} />
               </div>

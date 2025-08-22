@@ -309,7 +309,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen jove-bg-primary">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -325,7 +325,7 @@ export default function CheckoutPage() {
           {/* Order Form */}
           <div className="space-y-4 lg:space-y-6">
             {/* Payment Method */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="jove-bg-card rounded-lg shadow-sm p-6">
               <div className="flex items-center space-x-3 mb-5">
                 <CreditCard className="w-6 h-6 text-green-600" />
                 <h3 className="text-lg font-medium text-gray-900">Payment Method</h3>
@@ -338,7 +338,7 @@ export default function CheckoutPage() {
             </div>
 
             {/* Customer Information */}
-            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+            <div className="jove-bg-card rounded-lg shadow-sm p-4 sm:p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Customer Information</h3>
               
               <form onSubmit={handleSubmitOrder} className="space-y-4">
@@ -423,7 +423,7 @@ export default function CheckoutPage() {
             </div>
 
             {/* Delivery Address */}
-            <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+            <div className="jove-bg-card rounded-lg shadow-sm p-4 sm:p-6">
               <div className="flex items-center space-x-3 mb-4">
                 <Truck className="w-6 h-6 text-blue-600" />
                 <h3 className="text-lg font-medium text-gray-900">Delivery Address</h3>
@@ -549,7 +549,7 @@ export default function CheckoutPage() {
 
           {/* Order Summary */}
           <div className="lg:sticky lg:top-8 h-fit">
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="jove-bg-card rounded-lg shadow-sm p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Order Summary</h3>
               
               {/* Order Items */}

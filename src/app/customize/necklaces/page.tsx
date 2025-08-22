@@ -40,7 +40,7 @@ export default function NecklaceCustomizePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen jove-bg-primary flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
           <p className="text-gray-600">Loading customization options...</p>
@@ -51,12 +51,12 @@ export default function NecklaceCustomizePage() {
 
   if (error || !jewelryItem) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen jove-bg-primary flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">{error || 'Failed to load configuration'}</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-black text-white hover:bg-gray-800 transition-colors"
+            className="px-4 py-2 bg-zinc-800 text-white hover:bg-zinc-900 transition-colors"
           >
             Retry
           </button>

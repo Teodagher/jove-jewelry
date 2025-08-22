@@ -1,47 +1,73 @@
+'use client'
+
 export default function CraftsmanshipSection() {
   return (
-    <section className="py-20 bg-gradient-to-b from-white to-zinc-50">
-      <div className="max-w-7xl mx-auto px-4 text-center">
-        <h2 className="text-4xl md:text-5xl font-light mb-8 tracking-wide">FIVE DECADES OF ARTISTRY</h2>
-        <p className="text-lg text-gray-600 mb-6 max-w-3xl mx-auto leading-relaxed">
-          Since 1975, Jové has been transforming precious metals and gemstones into personal narratives.
-          Now you can design your perfect piece online with the same attention to detail and craftsmanship.
-        </p>
-        <p className="text-base text-gray-500 mb-12 max-w-2xl mx-auto">
-          From our digital design studio to your doorstep, we create custom bracelets, necklaces, and earrings
-          that capture the essence of what matters most to you.
-        </p>
+    <section className="relative bg-zinc-800 overflow-hidden">
+      {/* Main content with prominent image */}
+      <div className="relative py-12 sm:py-16 lg:py-20 pb-16 sm:pb-20 lg:pb-24">
+        {/* Mobile-first responsive layout */}
+        <div className="flex flex-col lg:grid lg:grid-cols-2 min-h-[60vh]">
+          {/* Content section - appears first on mobile */}
+          <div className="order-1 lg:order-1 flex items-center justify-center p-6 sm:p-8 lg:p-16">
+            <div className="max-w-xl w-full space-y-6 lg:space-y-8">
+              {/* Title and subtitle moved here */}
+              <div className="space-y-3 sm:space-y-4">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extralight tracking-wide text-white">
+                  Lab-Grown Diamonds
+                </h2>
+                <div className="h-px w-24 sm:w-32 bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
+                <p className="text-lg sm:text-xl text-amber-100 font-light tracking-wide">
+                  Redefining Modern Luxury
+                </p>
+              </div>
+              
+              <div className="space-y-5 lg:space-y-6 text-gray-300 leading-relaxed">
+                <p className="text-base sm:text-lg font-medium text-white">
+                  At JOVÉ, we redefine what modern luxury means. Lab-grown diamonds are chemically, physically, and optically identical to natural diamonds.
+                </p>
+                
+                <p className="text-sm sm:text-base text-gray-300">
+                  The only difference lies in their origin. While natural diamonds are extracted from the earth, lab-grown diamonds are created through advanced technology that mirrors the exact natural conditions under which diamonds form over billions of years.
+                </p>
+                
+                <p className="text-sm sm:text-base text-gray-300">
+                  For aesthetic purposes, lab-grown diamonds often achieve greater clarity and fewer imperfections, ensuring your piece shines at its absolute best.
+                </p>
+                
+                <p className="text-sm sm:text-base font-medium text-amber-100">
+                  Best of all, choosing lab-grown means you can experience the luxury of a diamond without compromise—the same timeless elegance and quality, but at a fraction of the cost.
+                </p>
+              </div>
+            </div>
+          </div>
 
-        {/* Featured craftsmanship highlights */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
-          <div className="bg-white rounded-lg p-8 shadow-sm border border-zinc-100 group hover:shadow-md transition-shadow">
-            <div className="text-4xl font-light text-zinc-800 mb-2">50+</div>
-            <div className="text-sm text-gray-600 uppercase tracking-wider mb-2">Years of Excellence</div>
-            <div className="text-xs text-gray-500">Master craftsmanship in every piece</div>
-          </div>
-          <div className="bg-white rounded-lg p-8 shadow-sm border border-zinc-100 group hover:shadow-md transition-shadow">
-            <div className="text-4xl font-light text-zinc-800 mb-2">∞</div>
-            <div className="text-sm text-gray-600 uppercase tracking-wider mb-2">Design Possibilities</div>
-            <div className="text-xs text-gray-500">Unlimited customization options</div>
-          </div>
-          <div className="bg-white rounded-lg p-8 shadow-sm border border-zinc-100 group hover:shadow-md transition-shadow">
-            <div className="text-4xl font-light text-zinc-800 mb-2">24/7</div>
-            <div className="text-sm text-gray-600 uppercase tracking-wider mb-2">Online Design Studio</div>
-            <div className="text-xs text-gray-500">Design anytime, anywhere</div>
-          </div>
-        </div>
-
-        {/* Call to action */}
-        <div className="mt-16">
-          <div className="bg-gradient-to-r from-zinc-100 to-zinc-50 rounded-2xl p-8 max-w-2xl mx-auto">
-            <h3 className="text-2xl font-light mb-4">Ready to Start Designing?</h3>
-            <p className="text-gray-600 mb-6">Create your perfect bracelet, necklace, or earrings in minutes</p>
-            <button className="bg-zinc-900 text-white px-8 py-3 rounded-lg hover:bg-zinc-800 transition-colors font-medium tracking-wide">
-              EXPLORE DESIGNS
-            </button>
+          {/* Image section - appears second on mobile */}
+          <div className="order-2 lg:order-2 relative min-h-[50vh] lg:min-h-full">
+            <div className="absolute inset-0">
+              <img 
+                src="/images/types-lab-grown-diamonds.jpg" 
+                alt="Types of lab-grown diamonds" 
+                className="w-full h-full object-cover opacity-80"
+              />
+              {/* Dark overlay for better contrast */}
+              <div className="absolute inset-0 bg-gradient-to-t from-zinc-800/60 via-transparent to-zinc-800/20" />
+            </div>
+            
+            {/* Image caption overlay - responsive positioning */}
+            <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 lg:bottom-8 lg:left-8 lg:right-8">
+              <div className="bg-white/10 backdrop-blur-xl rounded-lg lg:rounded-xl p-1 sm:p-5 lg:p-6 shadow-2xl border border-white/20">
+                <h3 className="text-base sm:text-lg font-medium text-white mb-1 sm:mb-2">Types & Quality</h3>
+                <p className="text-xs sm:text-sm text-white/80 leading-relaxed">
+                  Explore the diverse range of lab-grown diamonds available, from brilliant cuts to fancy shapes, 
+                  each offering exceptional quality and unique characteristics.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+
     </section>
   )
 }

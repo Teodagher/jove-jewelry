@@ -9,6 +9,7 @@ interface BuyNowButtonProps {
   price?: number;
   className?: string;
   showBothOptions?: boolean;
+  diamondType?: 'natural' | 'lab_grown';
 }
 
 export function BuyNowButton({
@@ -18,7 +19,8 @@ export function BuyNowButton({
   loading = false,
   price,
   className = '',
-  showBothOptions = true
+  showBothOptions = true,
+  diamondType = 'natural'
 }: BuyNowButtonProps) {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -27,16 +29,23 @@ export function BuyNowButton({
     }).format(price);
   };
 
+  // Get button color based on diamond type
+  const buttonColor = diamondType === 'lab_grown' 
+    ? 'bg-emerald-600 hover:bg-emerald-700' 
+    : 'bg-black hover:bg-zinc-800';
+
+  const diamondTypeText = diamondType === 'lab_grown' ? 'Lab Grown' : 'Natural';
+
   if (!showBothOptions) {
     // Single button mode - Buy Now only
     return (
       <Button
         onClick={onBuyNow}
         disabled={disabled || loading}
-        className={`w-full bg-black hover:bg-zinc-800 text-white py-4 text-sm font-light tracking-[0.15em] transition-all duration-500 rounded-none border-0 uppercase ${className}`}
+        className={`w-full ${buttonColor} text-white py-4 text-sm font-light tracking-[0.15em] transition-all duration-500 rounded-none border-0 uppercase ${className}`}
         size="lg"
       >
-        {loading ? 'Processing...' : `Buy Now ${price ? `— ${formatPrice(price)}` : ''}`}
+        {loading ? 'Processing...' : `Buy Now ${diamondTypeText} ${price ? `— ${formatPrice(price)}` : ''}`}
       </Button>
     );
   }
@@ -44,14 +53,14 @@ export function BuyNowButton({
   // Dual button mode
   return (
     <div className={`space-y-4 ${className}`}>
-      {/* Buy Now - Primary Action */}
+      {/* Buy Now - Primary Action with dynamic color and text */}
       <Button
         onClick={onBuyNow}
         disabled={disabled || loading}
-        className="w-full bg-black hover:bg-zinc-800 text-white py-4 text-sm font-light tracking-[0.15em] transition-all duration-500 rounded-none border-0 uppercase"
+        className={`w-full ${buttonColor} text-white py-4 text-sm font-light tracking-[0.15em] transition-all duration-500 rounded-none border-0 uppercase`}
         size="lg"
       >
-        {loading ? 'Processing...' : `Buy Now ${price ? `— ${formatPrice(price)}` : ''}`}
+        {loading ? 'Processing...' : `Buy Now ${diamondTypeText} ${price ? `— ${formatPrice(price)}` : ''}`}
       </Button>
 
       {/* Add to Cart - Secondary Action */}

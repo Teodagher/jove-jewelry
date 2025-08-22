@@ -24,7 +24,7 @@ export default function CustomizePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 flex items-center justify-center px-4 py-8">
+    <div className="min-h-screen jove-bg-primary flex items-center justify-center px-4 py-8">
       <div className="max-w-6xl w-full mx-auto">
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-light text-center mb-8 sm:mb-12 md:mb-16 tracking-wide text-zinc-900">
           Choose Your Jewelry Type

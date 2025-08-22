@@ -11,6 +11,7 @@ export interface JewelryItem {
   name: string
   type: string
   base_price: number
+  base_price_lab_grown?: number // New field for lab grown pricing
   base_image_url: string | null
   is_active: boolean
   created_at: string
@@ -25,6 +26,7 @@ export interface CustomizationOption {
   option_id: string
   option_name: string
   price: number
+  price_lab_grown?: number // New field for lab grown option pricing
   image_url: string | null
   color_gradient: string | null
   display_order: number

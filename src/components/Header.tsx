@@ -21,12 +21,12 @@ export default function Header() {
   return (
     <>
       {/* Top announcement bar */}
-      <div className="bg-zinc-800 text-zinc-100 text-center py-2 text-sm">
+      <div className="bg-zinc-800 text-stone-50 text-center py-2 text-sm">
         Free worldwide shipping on all custom jewelry - <span className="underline cursor-pointer">Design Yours Today</span>
       </div>
 
       {/* Main header */}
-      <header className="bg-white border-b border-zinc-200 sticky top-0 z-50">
+      <header className="bg-stone-50 border-b border-amber-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Mobile menu button */}

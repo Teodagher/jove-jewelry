@@ -14,7 +14,8 @@ import {
   Mail,
   Menu,
   X,
-  LogOut
+  LogOut,
+  Palette
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -32,6 +33,17 @@ const navigation = [
       { name: 'Rings', href: '/admin/pricing/rings' },
       { name: 'Bracelets', href: '/admin/pricing/bracelets' },
       { name: 'Earrings', href: '/admin/pricing/earrings' },
+    ]
+  },
+  {
+    name: 'Website Customization',
+    href: '/admin/website-customization',
+    icon: Palette,
+    children: [
+      { name: 'Pictures', href: '/admin/website-customization/pictures' },
+      { name: 'Themes', href: '/admin/website-customization/themes' },
+      { name: 'Typography', href: '/admin/website-customization/typography' },
+      { name: 'Layout', href: '/admin/website-customization/layout' },
     ]
   },
   { name: 'Orders', href: '/admin/orders', icon: Package },
@@ -68,7 +80,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
 
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-100">
+    <div className="h-screen flex overflow-hidden jove-bg-primary">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div 
@@ -81,7 +93,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
       {/* Fixed Sidebar */}
       <div className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col
+        fixed inset-y-0 left-0 z-50 w-64 jove-bg-card shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         {/* Sidebar Header */}
@@ -114,7 +126,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                       group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200
                       ${active 
                         ? 'bg-zinc-100 text-zinc-900' 
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        : 'text-gray-600 jove-bg-accent-hover hover:text-gray-900'
                       }
                     `}
                   >
@@ -125,8 +137,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     {item.name}
                   </Link>
 
-                  {/* Sub-navigation for pricing */}
-                  {item.children && pathname.startsWith('/admin/pricing') && (
+                  {/* Sub-navigation for items with children */}
+                  {item.children && (pathname.startsWith('/admin/pricing') || pathname.startsWith('/admin/website-customization')) && (
                     <div className="ml-8 mt-1 space-y-1">
                       {item.children.map((child) => (
                         <Link
@@ -137,7 +149,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             block px-3 py-2 text-sm rounded-lg transition-colors duration-200
                             ${pathname === child.href
                               ? 'bg-zinc-50 text-zinc-900 font-medium'
-                              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                              : 'text-gray-500 jove-bg-accent-hover hover:text-gray-700'
                             }
                           `}
                         >
@@ -156,7 +168,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="flex-shrink-0 p-4 border-t border-gray-200 space-y-2">
           <Link
             href="/"
-            className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200"
+            className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-600 rounded-lg jove-bg-accent-hover hover:text-gray-900 transition-colors duration-200"
           >
             <svg className="mr-3 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -165,7 +177,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </Link>
           <button 
             onClick={handleSignOut}
-            className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200"
+            className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-600 rounded-lg jove-bg-accent-hover hover:text-gray-900 transition-colors duration-200"
           >
             <LogOut className="mr-3 h-5 w-5 text-gray-400" />
             Sign out
@@ -176,7 +188,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* Main content area */}
       <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
         {/* Mobile header */}
-        <div className="lg:hidden flex items-center justify-between h-16 px-4 bg-white border-b border-gray-200">
+        <div className="lg:hidden flex items-center justify-between h-16 px-4 jove-bg-card jove-border">
           <button
             type="button"
             className="p-2 rounded-md text-gray-400 hover:text-gray-500"
@@ -191,7 +203,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         {/* Main scrollable content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50">
+        <main className="flex-1 overflow-y-auto jove-bg-primary">
           <div className="py-8">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
               {children}

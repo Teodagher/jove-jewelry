@@ -80,7 +80,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen jove-bg-primary">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -124,7 +124,7 @@ export default function CartPage() {
           /* Cart Items */
           <div className="space-y-6">
             {/* Cart Items List */}
-            <div className="bg-white rounded-lg shadow-sm">
+            <div className="jove-bg-card rounded-lg shadow-sm">
               {items.map((item) => (
                 <div key={item.id} className="p-4 sm:p-6 border-b border-gray-200 last:border-b-0">
                   <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
@@ -210,7 +210,7 @@ export default function CartPage() {
             {/* Cart Summary & Account Creation */}
             <div className="grid lg:grid-cols-2 gap-6">
               {/* Cart Summary */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="jove-bg-card rounded-lg shadow-sm p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Order Summary</h3>
                 <div className="space-y-4">
                   <div className="flex justify-between text-lg">
@@ -238,7 +238,7 @@ export default function CartPage() {
               </div>
 
               {/* Account Creation */}
-              <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="jove-bg-card rounded-lg shadow-sm p-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Create Your Jové Account</h3>
                 <p className="text-sm text-gray-600 mb-6">
                   Join Jové to track your orders, save your favorites, and enjoy exclusive benefits.

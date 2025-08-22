@@ -4,6 +4,7 @@ export interface CustomizationOption {
   image?: string;
   color?: string;
   price?: number;
+  priceLabGrown?: number; // Lab grown option price
 }
 
 export interface CustomizationSetting {
@@ -20,10 +21,14 @@ export interface JewelryItem {
   baseImage: string;
   settings: CustomizationSetting[];
   basePrice: number;
+  basePriceLabGrown?: number; // Lab grown base price
 }
 
+export type DiamondType = 'natural' | 'lab_grown';
+
 export interface CustomizationState {
-  [settingId: string]: string | string[];
+  [settingId: string]: string | string[] | DiamondType | undefined;
+  diamondType?: DiamondType; // Add diamond type to customization state
 }
 
 export interface CustomizationConfig {

@@ -64,6 +64,13 @@ const quickActions = [
     color: 'bg-blue-500',
   },
   {
+    name: 'Website Customization',
+    description: 'Manage hero images, themes, and website appearance',
+    href: '/admin/website-customization',
+    icon: Crown,
+    color: 'bg-indigo-500',
+  },
+  {
     name: 'View Orders',
     description: 'Review and manage customer orders',
     href: '/admin/orders',
@@ -110,7 +117,7 @@ export default function AdminDashboard() {
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <div key={stat.name} className="bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200">
+            <div key={stat.name} className="jove-bg-card overflow-hidden shadow-sm rounded-lg">
               <div className="p-5">
                 <div className="flex items-center">
                   <div className="flex-shrink-0">
@@ -135,7 +142,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white shadow-sm rounded-lg border border-gray-200">
+      <div className="jove-bg-card shadow-sm rounded-lg">
         <div className="px-6 py-5 border-b border-gray-200">
           <h2 className="text-lg font-medium text-gray-900">Quick Actions</h2>
           <p className="mt-1 text-sm text-gray-600">Common administrative tasks</p>
@@ -148,7 +155,7 @@ export default function AdminDashboard() {
                 <a
                   key={action.name}
                   href={action.href}
-                  className="group relative bg-white p-6 rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-200"
+                  className="group relative jove-bg-card p-6 rounded-lg jove-bg-card-hover hover:shadow-md transition-all duration-200"
                 >
                   <div>
                     <div className={`inline-flex p-3 rounded-lg ${action.color} text-white`}>
@@ -169,7 +176,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Recent Orders */}
-      <div className="bg-white shadow-sm rounded-lg border border-gray-200">
+      <div className="jove-bg-card shadow-sm rounded-lg">
         <div className="px-6 py-5 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-medium text-gray-900">Recent Orders</h2>
@@ -203,7 +210,7 @@ export default function AdminDashboard() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="jove-bg-primary divide-y divide-amber-200">
                 {recentOrders.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
@@ -212,7 +219,7 @@ export default function AdminDashboard() {
                   </tr>
                 ) : (
                   recentOrders.map((order) => (
-                    <tr key={order.id} className="hover:bg-gray-50">
+                    <tr key={order.id} className="jove-bg-accent-hover">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {order.id}
                       </td>

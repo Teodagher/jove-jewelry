@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button'
 
 export default function ShowroomSection() {
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-stone-50">
       <div className="max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div>

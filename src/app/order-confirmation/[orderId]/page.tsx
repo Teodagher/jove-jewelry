@@ -114,7 +114,7 @@ export default function OrderConfirmationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen jove-bg-primary">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Success Header */}
         <div className="text-center mb-8">
@@ -141,7 +141,7 @@ export default function OrderConfirmationPage() {
           {/* Order Details */}
           <div className="space-y-6">
             {/* Timeline */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="jove-bg-card rounded-lg shadow-sm p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Order Timeline</h3>
               <div className="space-y-4">
                 <div className="flex items-center">
@@ -177,7 +177,7 @@ export default function OrderConfirmationPage() {
             </div>
 
             {/* Contact Information */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="jove-bg-card rounded-lg shadow-sm p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h3>
               <div className="space-y-3">
                 <div className="flex items-center">
@@ -191,7 +191,7 @@ export default function OrderConfirmationPage() {
             </div>
 
             {/* Delivery Address */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="jove-bg-card rounded-lg shadow-sm p-6">
               <div className="flex items-center mb-4">
                 <MapPin className="w-5 h-5 text-gray-600 mr-2" />
                 <h3 className="text-lg font-medium text-gray-900">Delivery Address</h3>
@@ -216,7 +216,7 @@ export default function OrderConfirmationPage() {
 
           {/* Order Summary */}
           <div className="lg:sticky lg:top-8 h-fit">
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="jove-bg-card rounded-lg shadow-sm p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Order Summary</h3>
               
               {/* Order Items */}

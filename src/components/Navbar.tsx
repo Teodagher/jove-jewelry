@@ -33,7 +33,7 @@ export default function Navbar() {
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="flex items-center space-x-3 text-lg font-light text-zinc-800 hover:text-zinc-900 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-zinc-50 font-serif tracking-wide"
+          className="flex items-center space-x-3 text-lg font-light text-zinc-800 hover:text-zinc-900 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-orange-50 font-serif tracking-wide"
         >
           <span className="text-xl font-light tracking-wider">CUSTOMIZE YOUR</span>
           <ChevronDown 
@@ -45,7 +45,7 @@ export default function Navbar() {
 
         {/* Dropdown menu */}
         {isDropdownOpen && (
-          <div className="absolute top-full left-0 mt-3 w-56 bg-white border border-zinc-100 rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.08)] z-[9999] overflow-hidden">
+          <div className="absolute top-full left-0 mt-3 w-56 bg-stone-50 border border-amber-200 rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.08)] z-[9999] overflow-hidden">
             <div className="py-2 divide-y divide-zinc-100">
               {jewelryCategories.map((category, index) => (
                 <Link

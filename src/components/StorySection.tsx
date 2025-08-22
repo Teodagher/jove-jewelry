@@ -1,6 +1,6 @@
 export default function StorySection() {
   return (
-    <section className="py-20 bg-zinc-50">
+    <section className="py-20 bg-stone-50">
       <div className="max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div>
@@ -16,7 +16,7 @@ export default function StorySection() {
           </div>
 
           <div className="lg:pl-12">
-            <div className="bg-white p-8 rounded-lg shadow-sm">
+            <div className="bg-stone-50 p-8 rounded-lg shadow-sm border border-amber-100">
               <h3 className="text-2xl font-light mb-6 tracking-wide">YOUR STORY AWAITS</h3>
               <p className="text-gray-600 mb-6 leading-relaxed">
                 Whether it's celebrating a milestone, honoring a memory, or marking a new beginning,

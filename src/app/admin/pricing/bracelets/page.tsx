@@ -8,6 +8,7 @@ interface PricingData {
   name: string;
   type: string;
   base_price: number;
+  base_price_lab_grown?: number;
   customization_options: Array<{
     id: string;
     setting_id: string;
@@ -15,6 +16,7 @@ interface PricingData {
     option_id: string;
     option_name: string;
     price: number;
+    price_lab_grown?: number;
     display_order: number;
   }>;
 }
@@ -24,6 +26,7 @@ export default function BraceletsPricingPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [selectedDiamondType, setSelectedDiamondType] = useState<'natural' | 'lab_grown'>('natural');
 
   useEffect(() => {
     fetchPricingData();
@@ -48,7 +51,7 @@ export default function BraceletsPricingPage() {
       const success = await CustomizationService.updateBasePrice('bracelet', newPrice);
       
       if (success) {
-        setMessage({ type: 'success', text: 'Base price updated successfully' });
+        setMessage({ type: 'success', text: 'Natural diamond base price updated successfully' });
         fetchPricingData();
       } else {
         setMessage({ type: 'error', text: 'Failed to update base price' });
@@ -60,19 +63,55 @@ export default function BraceletsPricingPage() {
     }
   };
 
+  const updateBasePriceLabGrown = async (newPrice: number) => {
+    try {
+      setSaving(true);
+      const success = await CustomizationService.updateBasePriceLabGrown('bracelet', newPrice);
+      
+      if (success) {
+        setMessage({ type: 'success', text: 'Lab grown base price updated successfully' });
+        fetchPricingData();
+      } else {
+        setMessage({ type: 'error', text: 'Failed to update lab grown base price' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error updating lab grown base price' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const updateOptionPrice = async (settingId: string, optionId: string, newPrice: number) => {
     try {
       setSaving(true);
       const success = await CustomizationService.updateOptionPrice('bracelet', settingId, optionId, newPrice);
       
       if (success) {
-        setMessage({ type: 'success', text: 'Option price updated successfully' });
+        setMessage({ type: 'success', text: 'Natural diamond option price updated successfully' });
         fetchPricingData();
       } else {
         setMessage({ type: 'error', text: 'Failed to update option price' });
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Error updating option price' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateOptionPriceLabGrown = async (settingId: string, optionId: string, newPrice: number) => {
+    try {
+      setSaving(true);
+      const success = await CustomizationService.updateOptionPriceLabGrown('bracelet', settingId, optionId, newPrice);
+      
+      if (success) {
+        setMessage({ type: 'success', text: 'Lab grown option price updated successfully' });
+        fetchPricingData();
+      } else {
+        setMessage({ type: 'error', text: 'Failed to update lab grown option price' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error updating lab grown option price' });
     } finally {
       setSaving(false);
     }
@@ -87,7 +126,7 @@ export default function BraceletsPricingPage() {
     }
     acc[option.setting_id].options.push(option);
     return acc;
-  }, {} as Record<string, { title: string; options: Array<{ id: string; setting_id: string; setting_title: string; option_id: string; option_name: string; price: number; display_order: number; }> }>) || {};
+  }, {} as Record<string, { title: string; options: Array<{ id: string; setting_id: string; setting_title: string; option_id: string; option_name: string; price: number; price_lab_grown?: number; display_order: number; }> }>) || {};
 
   if (loading) {
     return (
@@ -108,6 +147,33 @@ export default function BraceletsPricingPage() {
         <p className="mt-2 text-sm text-gray-600">
           Manage base prices and customization options for bracelets
         </p>
+        
+        {/* Diamond Type Toggle */}
+        <div className="mt-4 flex items-center space-x-4">
+          <span className="text-sm font-medium text-gray-700">Pricing Type:</span>
+          <div className="flex rounded-lg border border-gray-300 p-1 bg-gray-50">
+            <button
+              onClick={() => setSelectedDiamondType('natural')}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                selectedDiamondType === 'natural'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Natural Diamonds
+            </button>
+            <button
+              onClick={() => setSelectedDiamondType('lab_grown')}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                selectedDiamondType === 'lab_grown'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Lab Grown Diamonds
+            </button>
+          </div>
+        </div>
       </div>
       
       {message && (
@@ -123,28 +189,45 @@ export default function BraceletsPricingPage() {
           <div className="space-y-8">
             {/* Base Price */}
             <div className="border-b pb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Base Price</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Base Price - {selectedDiamondType === 'natural' ? 'Natural Diamonds' : 'Lab Grown Diamonds'}
+              </h2>
               <div className="flex items-center space-x-4">
-                <label className="text-gray-700 font-medium">Base Price ($):</label>
+                <label className="text-gray-700 font-medium">
+                  {selectedDiamondType === 'natural' ? 'Natural' : 'Lab Grown'} Base Price ($):
+                </label>
                 <input
                   type="number"
                   step="0.01"
-                  defaultValue={pricingData.base_price}
+                  key={selectedDiamondType} // Force re-render when type changes
+                  defaultValue={selectedDiamondType === 'natural' ? pricingData.base_price : (pricingData.base_price_lab_grown || 0)}
                   className="border border-gray-300 rounded px-3 py-2 w-32"
                   onBlur={(e) => {
                     const newPrice = parseFloat(e.target.value);
-                    if (newPrice !== pricingData.base_price && newPrice > 0) {
-                      updateBasePrice(newPrice);
+                    const currentPrice = selectedDiamondType === 'natural' ? pricingData.base_price : (pricingData.base_price_lab_grown || 0);
+                    if (newPrice !== currentPrice && newPrice > 0) {
+                      if (selectedDiamondType === 'natural') {
+                        updateBasePrice(newPrice);
+                      } else {
+                        updateBasePriceLabGrown(newPrice);
+                      }
                     }
                   }}
                 />
+                {selectedDiamondType === 'lab_grown' && !pricingData.base_price_lab_grown && (
+                  <span className="text-sm text-amber-600">
+                    (Lab grown pricing not set - will use natural pricing as fallback)
+                  </span>
+                )}
               </div>
             </div>
 
             {/* Customization Options */}
             {Object.entries(groupedOptions).map(([settingId, setting]) => (
               <div key={settingId} className="border-b pb-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">{setting.title}</h2>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  {setting.title} - {selectedDiamondType === 'natural' ? 'Natural Diamonds' : 'Lab Grown Diamonds'}
+                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {setting.options
                     .sort((a, b) => a.display_order - b.display_order)
@@ -159,15 +242,32 @@ export default function BraceletsPricingPage() {
                           <input
                             type="number"
                             step="0.01"
-                            defaultValue={option.price}
+                            key={`${option.id}-${selectedDiamondType}`} // Force re-render when type changes
+                            defaultValue={
+                              selectedDiamondType === 'natural' 
+                                ? option.price 
+                                : (option.price_lab_grown ?? option.price)
+                            }
                             className="border border-gray-300 rounded px-3 py-2 w-24 text-right"
                             onBlur={(e) => {
                               const newPrice = parseFloat(e.target.value);
-                              if (newPrice !== option.price) {
-                                updateOptionPrice(settingId, option.option_id, newPrice);
+                              const currentPrice = selectedDiamondType === 'natural' 
+                                ? option.price 
+                                : (option.price_lab_grown ?? option.price);
+                              if (newPrice !== currentPrice) {
+                                if (selectedDiamondType === 'natural') {
+                                  updateOptionPrice(settingId, option.option_id, newPrice);
+                                } else {
+                                  updateOptionPriceLabGrown(settingId, option.option_id, newPrice);
+                                }
                               }
                             }}
                           />
+                          {selectedDiamondType === 'lab_grown' && option.price_lab_grown === undefined && (
+                            <span className="text-xs text-amber-600 ml-2">
+                              (Using natural price)
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))}

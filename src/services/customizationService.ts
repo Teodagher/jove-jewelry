@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { JewelryItem as DBJewelryItem, CustomizationOption as DBCustomizationOption } from '@/lib/supabase';
-import type { JewelryItem, CustomizationSetting, CustomizationOption } from '@/types/customization';
+import type { JewelryItem, CustomizationSetting, CustomizationOption, DiamondType } from '@/types/customization';
 
 export class CustomizationService {
   // Fetch jewelry item with all customization options
@@ -55,6 +55,7 @@ export class CustomizationService {
             id: option.option_id,
             name: option.option_name,
             price: option.price,
+            priceLabGrown: option.price_lab_grown,
             image: option.image_url || undefined,
             color: option.color_gradient || undefined
           } as CustomizationOption
@@ -74,6 +75,7 @@ export class CustomizationService {
         name: jewelryItem.name,
         baseImage: jewelryItem.base_image_url || '',
         basePrice: jewelryItem.base_price,
+        basePriceLabGrown: jewelryItem.base_price_lab_grown,
         settings: Array.from(settingsMap.values())
       } as JewelryItem
 
@@ -111,6 +113,33 @@ export class CustomizationService {
     }
   }
 
+  // Update lab grown pricing for a specific option
+  static async updateOptionPriceLabGrown(jewelryType: string, settingId: string, optionId: string, newPrice: number): Promise<boolean> {
+    try {
+      // Get jewelry item ID
+      const { data: jewelryItem } = await supabase
+        .from('jewelry_items')
+        .select('id')
+        .eq('type', jewelryType)
+        .single()
+
+      if (!jewelryItem) return false
+
+      // Update option lab grown price
+      const { error } = await supabase
+        .from('customization_options')
+        .update({ price_lab_grown: newPrice })
+        .eq('jewelry_item_id', jewelryItem.id)
+        .eq('setting_id', settingId)
+        .eq('option_id', optionId)
+
+      return !error
+    } catch (error) {
+      console.error('Error updating lab grown option price:', error)
+      return false
+    }
+  }
+
   // Update base price for jewelry item
   static async updateBasePrice(jewelryType: string, newPrice: number): Promise<boolean> {
     try {
@@ -122,6 +151,21 @@ export class CustomizationService {
       return !error
     } catch (error) {
       console.error('Error updating base price:', error)
+      return false
+    }
+  }
+
+  // Update lab grown base price for jewelry item
+  static async updateBasePriceLabGrown(jewelryType: string, newPrice: number): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('jewelry_items')
+        .update({ base_price_lab_grown: newPrice })
+        .eq('type', jewelryType)
+
+      return !error
+    } catch (error) {
+      console.error('Error updating lab grown base price:', error)
       return false
     }
   }
@@ -371,5 +415,29 @@ export class CustomizationService {
     } catch {
       return false
     }
+  }
+
+  // Calculate total price based on diamond type
+  static calculateTotalPrice(jewelryItem: JewelryItem, customizations: { [key: string]: string }, diamondType: DiamondType = 'natural'): number {
+    // Start with base price
+    let totalPrice = diamondType === 'lab_grown' && jewelryItem.basePriceLabGrown 
+      ? jewelryItem.basePriceLabGrown 
+      : jewelryItem.basePrice;
+
+    // Add customization option prices
+    jewelryItem.settings.forEach(setting => {
+      const selectedValue = customizations[setting.id];
+      if (selectedValue && typeof selectedValue === 'string') {
+        const selectedOption = setting.options.find(option => option.id === selectedValue);
+        if (selectedOption) {
+          const optionPrice = diamondType === 'lab_grown' && selectedOption.priceLabGrown !== undefined
+            ? selectedOption.priceLabGrown
+            : (selectedOption.price || 0);
+          totalPrice += optionPrice;
+        }
+      }
+    });
+
+    return totalPrice;
   }
 }
