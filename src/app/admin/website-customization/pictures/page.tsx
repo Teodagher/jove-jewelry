@@ -10,10 +10,13 @@ import {
   AlertCircle,
   CheckCircle2,
   Loader2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Zap,
+  GripVertical
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/supabase/client';
+import { compressImage, generateOptimizedFileName, formatFileSize as formatSize } from '@/lib/imageCompression';
 
 interface HeroImage {
   name: string;
@@ -26,8 +29,20 @@ export default function PicturesManagementPage() {
   const [heroImages, setHeroImages] = useState<HeroImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [compressionInfo, setCompressionInfo] = useState<{
+    originalSize: number;
+    compressedSize: number;
+    savings: number;
+  } | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [reordering, setReordering] = useState(false);
+  
+  // Initialize Supabase client
+  const supabase = createClient();
 
   // Load hero images from Supabase
   const loadHeroImages = async () => {
@@ -127,10 +142,8 @@ export default function PicturesManagementPage() {
     }
   };
 
-  // Upload new image
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  // Process file upload (from input or drag/drop)
+  const processImageFile = async (file: File) => {
 
     // Validate file type
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/avif'];
@@ -139,40 +152,137 @@ export default function PicturesManagementPage() {
       return;
     }
 
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      setError('File size must be less than 10MB');
+    // Validate file size (max 50MB before compression)
+    if (file.size > 50 * 1024 * 1024) {
+      setError('File size must be less than 50MB');
       return;
     }
 
     try {
-      setUploading(true);
       setError(null);
+      setCompressionInfo(null);
+      setCompressing(true);
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      // Compress image to WebP
+      console.log('🗜️ Compressing image:', file.name, `(${formatSize(file.size)})`);
+      
+      const compressedBlob = await compressImage(file, {
+        maxWidth: 1920,
+        maxHeight: 1080,
+        quality: 0.85,
+        format: 'webp'
+      });
 
+      const originalSize = file.size;
+      const compressedSize = compressedBlob.size;
+      const savings = Math.round(((originalSize - compressedSize) / originalSize) * 100);
+
+      setCompressionInfo({
+        originalSize,
+        compressedSize,
+        savings
+      });
+
+      console.log('✅ Compression complete:', {
+        original: formatSize(originalSize),
+        compressed: formatSize(compressedSize),
+        savings: `${savings}%`
+      });
+
+      setCompressing(false);
+      setUploading(true);
+
+      // Generate optimized file name with order prefix
+      const nextOrderNumber = heroImages.length + 1;
+      const orderPrefix = String(nextOrderNumber).padStart(3, '0');
+      const baseFileName = generateOptimizedFileName(file.name);
+      const fileName = `${orderPrefix}-${baseFileName}`;
+
+      // Upload compressed image
       const { error: uploadError } = await supabase.storage
         .from('website-pictures')
-        .upload(`hero-pictures/${fileName}`, file);
+        .upload(`hero-pictures/${fileName}`, compressedBlob, {
+          contentType: 'image/webp'
+        });
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
-        setError('Failed to upload image');
+        setError('Failed to upload compressed image');
         return;
       }
 
-      setSuccess('Image uploaded successfully!');
+      setSuccess(`Image uploaded successfully! Compressed by ${savings}% (${formatSize(originalSize)} → ${formatSize(compressedSize)})`);
       await loadHeroImages(); // Reload images
       
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000);
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setSuccess(null);
+        setCompressionInfo(null);
+      }, 5000);
     } catch (err) {
-      console.error('Error uploading image:', err);
-      setError('Failed to upload image');
+      console.error('Error processing image:', err);
+      setError('Failed to process and upload image');
     } finally {
+      setCompressing(false);
       setUploading(false);
     }
+
+  };
+
+  // Upload new image with compression (from file input)
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    await processImageFile(file);
+    
+    // Clear the input
+    event.target.value = '';
+  };
+
+  // Drag and drop handlers
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setDragActive(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set drag inactive when leaving the drop zone itself, not child elements
+    const rect = (e.currentTarget as Element).getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    
+    if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
+      setDragActive(false);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (uploading || compressing) return;
+
+    const files = Array.from(e.dataTransfer.files);
+    const imageFile = files.find(file => file.type.startsWith('image/'));
+    
+    if (!imageFile) {
+      setError('Please drop a valid image file');
+      return;
+    }
+
+    await processImageFile(imageFile);
   };
 
   // Delete image
@@ -203,13 +313,98 @@ export default function PicturesManagementPage() {
     }
   };
 
-  // Format file size
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  // Use imported formatFileSize function as formatSize for consistency
+  const formatFileSize = formatSize;
+
+  // Reorder images by updating their names with order prefixes
+  const reorderImages = async (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+
+    try {
+      setReordering(true);
+      setError(null);
+
+      // Create a new array with reordered items
+      const reorderedImages = [...heroImages];
+      const [movedImage] = reorderedImages.splice(fromIndex, 1);
+      reorderedImages.splice(toIndex, 0, movedImage);
+
+      // Update the local state immediately for better UX
+      setHeroImages(reorderedImages);
+
+      // Rename files in Supabase to reflect new order
+      const renamePromises = reorderedImages.map(async (image, newIndex) => {
+        const oldName = image.name;
+        const orderPrefix = String(newIndex + 1).padStart(3, '0'); // 001, 002, etc.
+        
+        // Extract the original filename without any existing prefix
+        const cleanName = oldName.replace(/^\d{3}-/, '');
+        const newName = `${orderPrefix}-${cleanName}`;
+
+        if (oldName !== newName) {
+          // Copy file to new name
+          const { error: copyError } = await supabase.storage
+            .from('website-pictures')
+            .copy(`hero-pictures/${oldName}`, `hero-pictures/${newName}`);
+
+          if (copyError) {
+            console.error('Error copying file:', copyError);
+            throw copyError;
+          }
+
+          // Delete old file
+          const { error: deleteError } = await supabase.storage
+            .from('website-pictures')
+            .remove([`hero-pictures/${oldName}`]);
+
+          if (deleteError) {
+            console.error('Error deleting old file:', deleteError);
+            // Don't throw here as the copy succeeded
+          }
+        }
+      });
+
+      await Promise.all(renamePromises);
+      
+      // Reload images to get updated names and URLs
+      await loadHeroImages();
+      
+      setSuccess('Images reordered successfully!');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      console.error('Error reordering images:', err);
+      setError('Failed to reorder images');
+      // Reload original order on error
+      await loadHeroImages();
+    } finally {
+      setReordering(false);
+    }
+  };
+
+  // Drag and drop handlers for reordering
+  const handleReorderDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.currentTarget.outerHTML);
+    (e.currentTarget as HTMLElement).style.opacity = '0.5';
+  };
+
+  const handleReorderDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
+    (e.currentTarget as HTMLElement).style.opacity = '1';
+    setDraggedIndex(null);
+  };
+
+  const handleReorderDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleReorderDrop = (e: React.DragEvent<HTMLDivElement>, dropIndex: number) => {
+    e.preventDefault();
+    
+    if (draggedIndex !== null && draggedIndex !== dropIndex) {
+      reorderImages(draggedIndex, dropIndex);
+    }
   };
 
   useEffect(() => {
@@ -278,19 +473,31 @@ export default function PicturesManagementPage() {
         <div className="px-6 py-5 border-b border-gray-200">
           <h2 className="text-lg font-medium text-gray-900">Upload New Image</h2>
           <p className="mt-1 text-sm text-gray-600">
-            Add images to your hero carousel. Recommended size: 1920x1080px or larger.
+            Add images to your hero carousel. Images are automatically compressed to WebP format for optimal performance.
           </p>
         </div>
         <div className="p-6">
-          <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+          <div 
+            className={`flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md transition-colors ${
+              dragActive 
+                ? 'border-blue-400 bg-blue-50' 
+                : 'border-gray-300 hover:border-gray-400'
+            } ${uploading || compressing ? 'opacity-50 pointer-events-none' : ''}`}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          >
             <div className="space-y-1 text-center">
-              <Upload className="mx-auto h-12 w-12 text-gray-400" />
+              <Upload className={`mx-auto h-12 w-12 transition-colors ${
+                dragActive ? 'text-blue-500' : 'text-gray-400'
+              }`} />
               <div className="flex text-sm text-gray-600">
                 <label
                   htmlFor="file-upload"
                   className="relative cursor-pointer bg-white rounded-md font-medium text-zinc-600 hover:text-zinc-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-zinc-500"
                 >
-                  <span>Upload a file</span>
+                  <span>{dragActive ? 'Drop image here' : 'Upload a file'}</span>
                   <input
                     id="file-upload"
                     name="file-upload"
@@ -298,16 +505,40 @@ export default function PicturesManagementPage() {
                     className="sr-only"
                     accept="image/jpeg,image/jpg,image/png,image/webp,image/avif"
                     onChange={handleImageUpload}
-                    disabled={uploading}
+                    disabled={uploading || compressing}
                   />
                 </label>
-                <p className="pl-1">or drag and drop</p>
+                {!dragActive && <p className="pl-1">or drag and drop</p>}
               </div>
-              <p className="text-xs text-gray-500">PNG, JPG, WebP, AVIF up to 10MB</p>
+              <p className="text-xs text-gray-500">PNG, JPG, WebP, AVIF up to 50MB (auto-compressed)</p>
+              
+              {/* Compression Progress */}
+              {compressing && (
+                <div className="flex items-center justify-center space-x-2 mt-4">
+                  <Zap className="h-4 w-4 animate-pulse text-blue-600" />
+                  <span className="text-sm text-gray-600">Compressing to WebP...</span>
+                </div>
+              )}
+              
+              {/* Upload Progress */}
               {uploading && (
                 <div className="flex items-center justify-center space-x-2 mt-4">
                   <Loader2 className="h-4 w-4 animate-spin text-zinc-600" />
-                  <span className="text-sm text-gray-600">Uploading...</span>
+                  <span className="text-sm text-gray-600">Uploading compressed image...</span>
+                </div>
+              )}
+              
+              {/* Compression Info */}
+              {compressionInfo && !uploading && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center space-x-2">
+                    <Zap className="h-4 w-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-800">Compression Complete</span>
+                  </div>
+                  <div className="mt-1 text-xs text-blue-700">
+                    {formatFileSize(compressionInfo.originalSize)} → {formatFileSize(compressionInfo.compressedSize)} 
+                    <span className="font-medium"> ({compressionInfo.savings}% smaller)</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -321,7 +552,14 @@ export default function PicturesManagementPage() {
           <h2 className="text-lg font-medium text-gray-900">Current Hero Images</h2>
           <p className="mt-1 text-sm text-gray-600">
             {heroImages.length} image{heroImages.length !== 1 ? 's' : ''} in rotation
+            {heroImages.length > 1 && <span className="ml-2 text-blue-600">• Drag to reorder</span>}
           </p>
+          {reordering && (
+            <div className="mt-2 flex items-center space-x-2 text-sm text-blue-600">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Reordering images...</span>
+            </div>
+          )}
         </div>
         
         {loading ? (
@@ -338,9 +576,31 @@ export default function PicturesManagementPage() {
         ) : (
           <div className="p-6">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {heroImages.map((image) => (
-                <div key={image.name} className="group relative">
-                  <div className="aspect-w-16 aspect-h-9 w-full overflow-hidden rounded-lg bg-gray-200">
+              {heroImages.map((image, index) => (
+                <div 
+                  key={image.name} 
+                  className={`group relative cursor-move ${
+                    draggedIndex === index ? 'opacity-50' : ''
+                  } ${reordering ? 'pointer-events-none' : ''}`}
+                  draggable={!reordering}
+                  onDragStart={(e) => handleReorderDragStart(e, index)}
+                  onDragEnd={handleReorderDragEnd}
+                  onDragOver={handleReorderDragOver}
+                  onDrop={(e) => handleReorderDrop(e, index)}
+                >
+                  {/* Order indicator and drag handle */}
+                  <div className="absolute top-2 left-2 z-20 flex items-center space-x-1">
+                    <div className="bg-black/70 text-white text-xs px-2 py-1 rounded-full font-medium">
+                      #{index + 1}
+                    </div>
+                    {heroImages.length > 1 && (
+                      <div className="bg-black/70 text-white p-1 rounded-full">
+                        <GripVertical className="h-3 w-3" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="aspect-w-16 aspect-h-9 w-full overflow-hidden rounded-lg bg-gray-200 border-2 border-transparent hover:border-blue-300 transition-colors">
                     <img
                       src={image.url}
                       alt={image.name}
@@ -353,6 +613,7 @@ export default function PicturesManagementPage() {
                           variant="outline"
                           className="bg-white hover:bg-gray-100"
                           onClick={() => window.open(image.url, '_blank')}
+                          disabled={reordering}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -361,6 +622,7 @@ export default function PicturesManagementPage() {
                           variant="outline"
                           className="bg-white hover:bg-red-50 text-red-600"
                           onClick={() => handleImageDelete(image.name)}
+                          disabled={reordering}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -369,7 +631,7 @@ export default function PicturesManagementPage() {
                   </div>
                   <div className="mt-4">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {image.name}
+                      {image.name.replace(/^\d{3}-/, '')} {/* Remove order prefix from display */}
                     </p>
                     <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
                       <span>{formatFileSize(image.size)}</span>
@@ -386,17 +648,19 @@ export default function PicturesManagementPage() {
       {/* Instructions */}
       <div className="jove-bg-card shadow-sm rounded-lg">
         <div className="px-6 py-5 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Instructions</h2>
+          <h2 className="text-lg font-medium text-gray-900">Instructions & Optimization</h2>
         </div>
         <div className="p-6">
           <div className="prose prose-sm text-gray-600">
             <ul>
-              <li><strong>Image Size:</strong> Recommended minimum size is 1920x1080px for best quality on all devices.</li>
-              <li><strong>Format:</strong> JPEG, PNG, WebP, or AVIF formats are supported.</li>
-              <li><strong>File Size:</strong> Maximum file size is 10MB per image.</li>
-              <li><strong>Order:</strong> Images are displayed in the order they were uploaded (oldest first).</li>
-              <li><strong>Performance:</strong> Images are automatically optimized for web display.</li>
-              <li><strong>Backup:</strong> Always keep original copies of your images as backups.</li>
+              <li><strong>Automatic Compression:</strong> All images are automatically compressed to WebP format with 85% quality for optimal loading speed.</li>
+              <li><strong>Image Size:</strong> Images are resized to maximum 1920x1080px while maintaining aspect ratio.</li>
+              <li><strong>Supported Formats:</strong> Upload JPEG, PNG, WebP, or AVIF files up to 50MB (before compression).</li>
+              <li><strong>File Size Reduction:</strong> Typical compression savings are 30-70% smaller than original files.</li>
+              <li><strong>Order:</strong> Images display in numbered order. Drag and drop to reorder the carousel sequence.</li>
+              <li><strong>Performance Benefits:</strong> WebP format provides superior compression with excellent quality for faster page loads.</li>
+              <li><strong>Backup:</strong> Always keep original copies of your images as backups since compression is irreversible.</li>
+              <li><strong>Quality:</strong> Optimized for web display while maintaining professional visual quality for hero carousel.</li>
             </ul>
           </div>
         </div>

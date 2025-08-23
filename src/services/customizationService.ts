@@ -210,7 +210,9 @@ export class CustomizationService {
         'blue_sapphire': 'blue-sapphire',
         'pink_sapphire': 'pink-sapphire',
         'emerald': 'emerald',
-        'ruby': 'ruby'
+        'ruby': 'ruby',
+        'black_onyx': 'blackonyx',
+        'black_onyx_emerald': 'blackonyx'  // Special case: Black Onyx + Emerald combination
         // Note: diamond variants not available yet
       }
       
@@ -223,13 +225,25 @@ export class CustomizationService {
       const metal = customizations.metal
       const chainType = customizations.chain_type
       
-      // For bracelets: Diamond is always present, so we use the second stone for variants
+      // For bracelets: Handle different stone combinations
+      // If first_stone is black_onyx, use black_onyx for the variant (Black Onyx + Emerald combination)
       // If first_stone is diamond, use second_stone for the variant
-      // If first_stone is not diamond, use first_stone for the variant
+      // If first_stone is not diamond and not black_onyx, use first_stone for the variant
       let variantStone = customizations.second_stone;
-      if (customizations.first_stone && customizations.first_stone !== 'diamond') {
+      if (customizations.first_stone === 'black_onyx') {
+        variantStone = 'black_onyx';  // Black Onyx combinations use blackonyx filename
+        console.log('🖤 Black Onyx detected as first stone, using black_onyx for variant');
+      } else if (customizations.first_stone && customizations.first_stone !== 'diamond') {
         variantStone = customizations.first_stone;
       }
+      
+      console.log('🔍 Bracelet variant selection:', {
+        firstStone: customizations.first_stone,
+        secondStone: customizations.second_stone,
+        selectedVariantStone: variantStone,
+        metal,
+        chainType
+      });
       
       if (variantStone && metal && chainType && metalMap[metal] && stoneMap[variantStone] && chainMap[chainType]) {
         const stoneFilename = stoneMap[variantStone]
@@ -251,6 +265,9 @@ export class CustomizationService {
           'black-leather-pink-sapphire-whitegold',
           'black-leather-pink-sapphire-yellowgold',
           'black-leather-ruby-whitegold',
+          // Black Onyx combinations (both metals supported)
+          'black-leather-blackonyx-whitegold',
+          'black-leather-blackonyx-yellowgold',
           // Gold cord combinations (only yellow gold metal supported)
           'gold-cord-blue-sapphire-yellowgold',
           'gold-cord-emerald-yellowgold',

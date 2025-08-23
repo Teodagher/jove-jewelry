@@ -223,6 +223,12 @@ export default function CustomizationComponent({
     return CustomizationService.calculateTotalPrice(jewelryItem, plainCustomizations, 'lab_grown');
   }, [customizationState, jewelryItem]);
 
+  // Check if Lab Grown option should be available
+  const isLabGrownAvailable = useMemo(() => {
+    // Black Onyx is only available as Natural diamonds
+    return customizationState.first_stone !== 'black_onyx';
+  }, [customizationState.first_stone]);
+
   // Current selected price
   const totalPrice = selectedDiamondType === 'natural' ? totalPriceNatural : totalPriceLabGrown;
 
@@ -310,6 +316,24 @@ export default function CustomizationComponent({
           newState.metal = 'white_gold';
         }
       }
+    }
+    
+    // Auto-select Black Onyx + Emerald combination when Black Onyx is selected as first stone
+    if (settingId === 'first_stone' && optionId === 'black_onyx') {
+      // Automatically select the Black Onyx + Emerald combination for second stone
+      newState.second_stone = 'black_onyx_emerald';
+      console.log('🖤 Auto-selected Black Onyx + Emerald combination for second stone');
+      
+      // Force natural diamond type for Black Onyx (Black Onyx only available as natural)
+      setSelectedDiamondType('natural');
+      console.log('💎 Forced Natural diamond type for Black Onyx selection');
+    }
+    
+    // Clear second stone if switching away from Black Onyx to diamond
+    if (settingId === 'first_stone' && optionId === 'diamond' && customizationState.first_stone === 'black_onyx') {
+      // Reset to default emerald when switching from Black Onyx to Diamond
+      newState.second_stone = 'emerald';
+      console.log('💎 Switched to Diamond, reset second stone to emerald');
     }
     
     setCustomizationState(newState);
@@ -410,29 +434,42 @@ export default function CustomizationComponent({
         </h2>
         
         {/* Diamond Type Selector */}
-        <div className="mt-6 flex justify-center">
-          <div className="flex rounded-lg border border-gray-300 p-1 bg-white shadow-sm">
-            <button
-              onClick={() => setSelectedDiamondType('natural')}
-              className={`px-6 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
-                selectedDiamondType === 'natural'
-                  ? 'bg-black text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Natural Diamonds
-            </button>
-            <button
-              onClick={() => setSelectedDiamondType('lab_grown')}
-              className={`px-6 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
-                selectedDiamondType === 'lab_grown'
-                  ? 'bg-black text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Lab Grown Diamonds
-            </button>
+        <div className="mt-6">
+          <div className="flex justify-center">
+            <div className="flex rounded-lg border border-gray-300 p-1 bg-white shadow-sm">
+              <button
+                onClick={() => setSelectedDiamondType('natural')}
+                className={`px-6 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
+                  selectedDiamondType === 'natural'
+                    ? 'bg-black text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                } ${!isLabGrownAvailable ? 'rounded-r-md' : ''}`}
+              >
+                Natural Diamonds
+              </button>
+              {isLabGrownAvailable && (
+                <button
+                  onClick={() => setSelectedDiamondType('lab_grown')}
+                  className={`px-6 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
+                    selectedDiamondType === 'lab_grown'
+                      ? 'bg-black text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Lab Grown Diamonds
+                </button>
+              )}
+            </div>
           </div>
+          
+          {/* Show info message when Lab Grown is not available */}
+          {!isLabGrownAvailable && (
+            <div className="mt-2 text-center">
+              <p className="text-sm text-gray-500">
+                Black Onyx is only available with Natural diamonds
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -461,6 +498,7 @@ export default function CustomizationComponent({
                 selectedValue={customizationState[setting.id] as string}
                 onSelect={(optionId) => handleOptionSelect(setting.id, optionId)}
                 stepNumber={index + 1}
+                customizationState={customizationState}
               />
             ))}
           </div>
@@ -494,6 +532,7 @@ export default function CustomizationComponent({
                     selectedValue={customizationState[setting.id] as string}
                     onSelect={(optionId) => handleOptionSelect(setting.id, optionId)}
                     stepNumber={index + 1}
+                    customizationState={customizationState}
                   />
                 ))}
               </div>
@@ -553,13 +592,15 @@ interface CustomizationSettingProps {
   selectedValue?: string;
   onSelect: (optionId: string) => void;
   stepNumber: number;
+  customizationState: CustomizationState;  // Add this to access other selections
 }
 
 function CustomizationSetting({ 
   setting, 
   selectedValue, 
   onSelect, 
-  stepNumber 
+  stepNumber,
+  customizationState 
 }: CustomizationSettingProps) {
   // Use specialized RingSizeSelector for ring size options
   if (setting.id === 'ring_size') {
@@ -573,6 +614,30 @@ function CustomizationSetting({
     );
   }
 
+  // Filter options based on selection context
+  const getFilteredOptions = () => {
+    // For second stone options, filter based on first stone selection
+    if (setting.id === 'second_stone') {
+      const firstStone = customizationState.first_stone;
+      
+      // If Black Onyx is selected as first stone, only show Black Onyx + Emerald combination
+      if (firstStone === 'black_onyx') {
+        return setting.options.filter(option => option.id === 'black_onyx_emerald');
+      }
+      
+      // If Diamond is selected as first stone, show all normal second stones (excluding Black Onyx combinations)
+      if (firstStone === 'diamond') {
+        return setting.options.filter(option => 
+          !option.id.includes('black_onyx') && option.id !== 'black_onyx_emerald'
+        );
+      }
+    }
+    
+    return setting.options;
+  };
+
+  const filteredOptions = getFilteredOptions();
+
   // Default rendering for other settings
   return (
     <div className="px-2 sm:px-0">
@@ -581,7 +646,7 @@ function CustomizationSetting({
       </h3>
       
       <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
-        {setting.options.map((option) => (
+        {filteredOptions.map((option) => (
           <OptionButton
             key={option.id}
             option={option}

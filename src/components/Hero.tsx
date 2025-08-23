@@ -24,7 +24,7 @@ export default function Hero() {
   }, [])
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-stone-50">
+    <section className="relative h-[calc(100vh-104px)] flex items-center justify-center overflow-hidden bg-stone-50">
       {/* Hero Carousel Background */}
       <HeroCarousel images={heroImages} interval={5000} />
       
@@ -34,7 +34,7 @@ export default function Hero() {
           CUSTOMIZE YOUR STORY
         </h1>
         <p className="text-xl md:text-2xl font-light mb-8 tracking-wide text-white/90 drop-shadow-md">
-          Create custom bracelets, necklaces, earrings, and more.
+          Create custom bracelets, necklaces, rings.
         </p>
         <p className="text-lg text-white/80 mb-12 max-w-2xl mx-auto leading-relaxed drop-shadow-md">
           Choose your metals, select your gemstones.

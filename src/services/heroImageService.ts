@@ -38,7 +38,7 @@ export async function fetchHeroImages(): Promise<string[]> {
       return []
     }
 
-    // Filter only image files and create public URLs
+    // Filter only image files, sort by order prefix, and create public URLs
     const imageFiles = data
       ?.filter(file => {
         // Skip hidden files like .keep
@@ -46,6 +46,12 @@ export async function fetchHeroImages(): Promise<string[]> {
         
         const extension = file.name.toLowerCase().split('.').pop()
         return ['jpg', 'jpeg', 'png', 'webp', 'avif'].includes(extension || '')
+      })
+      .sort((a, b) => {
+        // Sort by order prefix (001-, 002-, etc.) or filename if no prefix
+        const aPrefix = a.name.match(/^(\d{3})-/)?.[1] || '999'
+        const bPrefix = b.name.match(/^(\d{3})-/)?.[1] || '999'
+        return aPrefix.localeCompare(bPrefix)
       })
       .map(file => {
         const { data: urlData } = supabase.storage
