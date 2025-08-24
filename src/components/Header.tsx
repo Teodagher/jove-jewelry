@@ -20,9 +20,9 @@ export default function Header() {
 
   return (
     <>
-      {/* Top announcement bar */}
-      <div className="bg-zinc-800 text-stone-50 text-center py-2 text-sm">
-        Free worldwide shipping on all custom jewelry - <span className="underline cursor-pointer">Design Yours Today</span>
+      {/* Announcement Bar */}
+      <div className="bg-[#111] text-[#f5c542] text-center text-sm py-2" style={{ fontFamily: 'Arial, sans-serif', letterSpacing: '0.5px' }}>
+        <p className="m-0">🚚 Free Shipping All Over Lebanon</p>
       </div>
 
       {/* Main header */}

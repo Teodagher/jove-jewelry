@@ -6,6 +6,7 @@ import type { CustomizationSetting } from '@/types/customization';
 import { CustomizationService } from '@/services/customizationService';
 import JewelryPreview from './JewelryPreview';
 import RingSizeSelector from './RingSizeSelector';
+import RealLifeImageViewer from './RealLifeImageViewer';
 import { useCart } from '@/contexts/CartContext';
 import { useRouter } from 'next/navigation';
 import { BuyNowButton } from '@/components/ui/buy-now-button';
@@ -327,6 +328,12 @@ export default function CustomizationComponent({
       // Force natural diamond type for Black Onyx (Black Onyx only available as natural)
       setSelectedDiamondType('natural');
       console.log('💎 Forced Natural diamond type for Black Onyx selection');
+      
+      // Force black leather chain type for Black Onyx (only leather cords compatible)
+      if (newState.chain_type === 'gold_cord') {
+        newState.chain_type = 'black_leather';
+        console.log('🖤 Switched to black leather cord for Black Onyx compatibility');
+      }
     }
     
     // Clear second stone if switching away from Black Onyx to diamond
@@ -478,15 +485,20 @@ export default function CustomizationComponent({
         <div className="max-w-2xl mx-auto">
           {/* Live Preview - Mobile */}
           <div className="mb-12 sm:mb-20">
-            <JewelryPreview
-              imageUrl={previewImageUrl}
-              alt={`${jewelryItem.name} preview`}
-              width={320}
-              height={320}
-              className="w-[320px] h-[320px] sm:w-72 sm:h-72 mx-auto"
-              enableZoom={false}
-              priority={true}
-            />
+            <div className="relative w-[320px] h-[320px] sm:w-72 sm:h-72 mx-auto">
+              <JewelryPreview
+                imageUrl={previewImageUrl}
+                alt={`${jewelryItem.name} preview`}
+                width={320}
+                height={320}
+                className="w-full h-full"
+                enableZoom={false}
+                priority={true}
+              />
+              <RealLifeImageViewer 
+                jewelryType={jewelryItem.id as 'bracelet' | 'ring' | 'necklace'}
+              />
+            </div>
           </div>
 
           {/* Customization Settings - Mobile */}
@@ -555,15 +567,20 @@ export default function CustomizationComponent({
             <div className="sticky top-24 h-fit">
               <div className="flex flex-col items-center">
                 {/* Preview Image */}
-                <JewelryPreview
-                  imageUrl={previewImageUrl}
-                  alt={`${jewelryItem.name} preview`}
-                  width={384}
-                  height={384}
-                  className="mb-8 mx-auto"
-                  enableZoom={true}
-                  priority={true}
-                />
+                <div className="relative mb-8 mx-auto">
+                  <JewelryPreview
+                    imageUrl={previewImageUrl}
+                    alt={`${jewelryItem.name} preview`}
+                    width={384}
+                    height={384}
+                    className="w-96 h-96"
+                    enableZoom={true}
+                    priority={true}
+                  />
+                  <RealLifeImageViewer 
+                    jewelryType={jewelryItem.id as 'bracelet' | 'ring' | 'necklace'}
+                  />
+                </div>
                 
                 {/* Desktop buttons (show on desktop only) */}
                 <div className="hidden lg:block w-full max-w-sm">
@@ -616,6 +633,14 @@ function CustomizationSetting({
 
   // Filter options based on selection context
   const getFilteredOptions = () => {
+    // For chain type options, filter based on first stone selection for bracelets
+    if (setting.id === 'chain_type' && customizationState.first_stone === 'black_onyx') {
+      // If Black Onyx is selected as first stone, only show leather cord options (no gold cord)
+      return setting.options.filter(option => 
+        option.id === 'black_leather' || option.id.includes('leather')
+      );
+    }
+    
     // For second stone options, filter based on first stone selection
     if (setting.id === 'second_stone') {
       const firstStone = customizationState.first_stone;

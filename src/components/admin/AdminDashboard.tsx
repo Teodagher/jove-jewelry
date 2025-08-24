@@ -9,7 +9,9 @@ import {
   ShoppingCart,
   Star,
   Crown,
-  Calendar
+  Calendar,
+  UserPlus,
+  Gift
 } from 'lucide-react';
 
 const stats = [
@@ -69,6 +71,20 @@ const quickActions = [
     href: '/admin/website-customization',
     icon: Crown,
     color: 'bg-indigo-500',
+  },
+  {
+    name: 'Leads Management',
+    description: 'View and manage leads from events and forms',
+    href: '/admin/leads',
+    icon: UserPlus,
+    color: 'bg-pink-500',
+  },
+  {
+    name: 'Launch Giveaway',
+    description: 'Run bracelet giveaway for event participants',
+    href: '/giveaway',
+    icon: Gift,
+    color: 'bg-emerald-500',
   },
   {
     name: 'View Orders',

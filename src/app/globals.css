@@ -105,4 +105,64 @@
   .jove-gradient-accent {
     @apply bg-gradient-to-r from-amber-100 via-amber-300 to-amber-100;
   }
+
+  /* iPad-specific optimizations */
+  .launch-event-layout {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  
+  .launch-event-layout input {
+    -webkit-appearance: none;
+    -webkit-border-radius: 0;
+  }
+  
+  .launch-event-layout button {
+    -webkit-appearance: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  /* Phone Input Styling for Jové - Mobile Responsive */
+  .phone-input-container .PhoneInputInput {
+    @apply w-full px-4 sm:px-6 py-4 sm:py-5 text-base sm:text-lg border rounded-md shadow-sm bg-stone-50 font-light tracking-wide placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:border-zinc-400 transition-all duration-300 min-h-[50px] sm:min-h-[60px] border-amber-100 hover:border-zinc-300;
+  }
+
+  .phone-input-container.phone-input-error .PhoneInputInput {
+    @apply border-red-300 focus:ring-red-400 focus:border-red-400;
+  }
+
+  .phone-input-container .PhoneInputCountrySelect {
+    @apply px-3 sm:px-4 py-4 sm:py-5 text-base sm:text-lg border rounded-l-md shadow-sm bg-stone-50 font-light focus:outline-none focus:ring-2 focus:ring-zinc-400 focus:border-zinc-400 transition-all duration-300 min-h-[50px] sm:min-h-[60px] border-amber-100 hover:border-zinc-300 border-r-0;
+  }
+
+  .phone-input-container.phone-input-error .PhoneInputCountrySelect {
+    @apply border-red-300 focus:ring-red-400 focus:border-red-400;
+  }
+
+  .phone-input-container .PhoneInputCountrySelectArrow {
+    @apply text-zinc-400;
+  }
+
+  .phone-input-container .PhoneInputInput {
+    @apply rounded-l-none border-l-0;
+  }
+
+  /* Mobile-specific phone input adjustments */
+@media (max-width: 640px) {
+  .phone-input-container .PhoneInputCountrySelect {
+    min-width: 80px;
+  }
+  
+  .phone-input-container .PhoneInputCountryIcon {
+    width: 20px;
+    height: 15px;
+  }
+}
+
+
+
 }

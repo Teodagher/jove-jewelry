@@ -1,30 +1,44 @@
 export default function WorkshopSection() {
   return (
-    <section className="py-20 bg-stone-50">
+    <section className="py-12 sm:py-16 lg:py-20 bg-stone-50">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <div className="space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
+          <div className="space-y-6 sm:space-y-8">
             <div>
-              <h2 className="text-4xl md:text-5xl font-light mb-6 tracking-wide text-zinc-800">About Me</h2>
-              <div className="h-px w-24 bg-gradient-to-r from-zinc-400 via-amber-300 to-transparent mb-8" />
+              <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-light mb-4 sm:mb-6 tracking-wide text-zinc-800">About Me</h2>
+              <div className="h-px w-16 sm:w-20 md:w-24 bg-gradient-to-r from-zinc-400 via-amber-300 to-transparent mb-6 sm:mb-8" />
             </div>
             
-            <div className="space-y-6 text-gray-700 leading-relaxed">
-              <p className="text-base">
-                My name is Joey Germani, and jewelry has been in my life from a young age.
-              </p>
+            <div className="space-y-4 sm:space-y-6 text-gray-700 leading-relaxed">
+              {/* Mobile: Show condensed version */}
+              <div className="block sm:hidden space-y-4">
+                <p className="text-sm font-medium text-zinc-800">
+                  My name is Joey Germani, and jewelry has been in my life from a young age.
+                </p>
+                <p className="text-sm">
+                  Growing up in a family of jewelers with 35+ years of expertise, I became a certified Diamond Grader in New York. 
+                  That vision became Jové — where true luxury meets affordability.
+                </p>
+              </div>
               
-              <p className="text-base">
-                Growing up in a family of jewelers, I learned the art of craftsmanship at my father's factory, 
-                where he shared over 35 years of expertise in retail and manufacturing. By 18, I was working 
-                full-time in the family business, gaining hands-on knowledge of both jewelry and fashion.
-              </p>
-              
-              <p className="text-base">
-                At 21, I moved to New York and became a certified Diamond Grader, determined to bring my 
-                vision to life. That vision became Jové — a brand where true luxury meets affordability, 
-                offering designs I've been perfecting for years.
-              </p>
+              {/* Tablet and Desktop: Show full story */}
+              <div className="hidden sm:block space-y-6">
+                <p className="text-base">
+                  My name is Joey Germani, and jewelry has been in my life from a young age.
+                </p>
+                
+                <p className="text-base">
+                  Growing up in a family of jewelers, I learned the art of craftsmanship at my father's factory, 
+                  where he shared over 35 years of expertise in retail and manufacturing. By 18, I was working 
+                  full-time in the family business, gaining hands-on knowledge of both jewelry and fashion.
+                </p>
+                
+                <p className="text-base">
+                  At 21, I moved to New York and became a certified Diamond Grader, determined to bring my 
+                  vision to life. That vision became Jové — a brand where true luxury meets affordability, 
+                  offering designs I've been perfecting for years.
+                </p>
+              </div>
             </div>
           </div>
           

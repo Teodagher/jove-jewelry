@@ -6,9 +6,10 @@ import Image from 'next/image'
 interface HeroCarouselProps {
   images: string[]
   interval?: number
+  isInitialLoading?: boolean
 }
 
-export default function HeroCarousel({ images, interval = 4000 }: HeroCarouselProps) {
+export default function HeroCarousel({ images, interval = 4000, isInitialLoading = false }: HeroCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -48,16 +49,25 @@ export default function HeroCarousel({ images, interval = 4000 }: HeroCarouselPr
     }
   }, [images])
 
-  if (images.length === 0) {
+  // Show loading state while initially loading or if no images after loading
+  if (isInitialLoading || (images.length === 0 && !isInitialLoading)) {
     return (
       <div className="absolute inset-0 bg-gradient-to-br from-stone-100 to-stone-200">
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center text-stone-400">
-            <svg className="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p className="text-sm font-light">Upload hero images in admin panel</p>
-          </div>
+          {isInitialLoading ? (
+            // Show loading animation while fetching images
+            <div className="animate-pulse">
+              <div className="w-16 h-16 bg-stone-300 rounded-full"></div>
+            </div>
+          ) : (
+            // Show upload message only after loading is complete and no images found
+            <div className="text-center text-stone-400">
+              <svg className="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <p className="text-sm font-light">Upload hero images in admin panel</p>
+            </div>
+          )}
         </div>
       </div>
     )

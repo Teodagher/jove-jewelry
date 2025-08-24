@@ -15,7 +15,9 @@ import {
   Menu,
   X,
   LogOut,
-  Palette
+  Palette,
+  UserPlus,
+  Gift
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -48,6 +50,7 @@ const navigation = [
   },
   { name: 'Orders', href: '/admin/orders', icon: Package },
   { name: 'Customers', href: '/admin/customers', icon: Users },
+  { name: 'Leads', href: '/admin/leads', icon: UserPlus },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Email Templates', href: '/admin/email-templates', icon: Mail },
   { name: 'Settings', href: '/admin/settings', icon: Settings },

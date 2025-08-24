@@ -8,35 +8,40 @@ export default function CraftsmanshipSection() {
         {/* Mobile-first responsive layout */}
         <div className="flex flex-col lg:grid lg:grid-cols-2 min-h-[60vh]">
           {/* Content section - appears first on mobile */}
-          <div className="order-1 lg:order-1 flex items-center justify-center p-6 sm:p-8 lg:p-16">
-            <div className="max-w-xl w-full space-y-6 lg:space-y-8">
-              {/* Title and subtitle moved here */}
+          <div className="order-1 lg:order-1 flex items-center justify-center p-4 sm:p-6 md:p-8 lg:p-16">
+            <div className="max-w-xl w-full space-y-5 sm:space-y-6 lg:space-y-8">
+              {/* Title and subtitle optimized for mobile */}
               <div className="space-y-3 sm:space-y-4">
-                <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extralight tracking-wide text-white">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extralight tracking-wide text-white">
                   Lab-Grown Diamonds
                 </h2>
-                <div className="h-px w-24 sm:w-32 bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
-                <p className="text-lg sm:text-xl text-amber-100 font-light tracking-wide">
+                <div className="h-px w-20 sm:w-24 lg:w-32 bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
+                <p className="text-base sm:text-lg lg:text-xl text-amber-100 font-light tracking-wide">
                   Redefining Modern Luxury
                 </p>
               </div>
               
-              <div className="space-y-5 lg:space-y-6 text-gray-300 leading-relaxed">
+              <div className="space-y-4 sm:space-y-5 lg:space-y-6 text-gray-300 leading-relaxed">
+                {/* Mobile: Show only key message */}
                 <p className="text-base sm:text-lg font-medium text-white">
                   At JOVÉ, we redefine what modern luxury means. Lab-grown diamonds are chemically, physically, and optically identical to natural diamonds.
                 </p>
                 
-                <p className="text-sm sm:text-base text-gray-300">
-                  The only difference lies in their origin. While natural diamonds are extracted from the earth, lab-grown diamonds are created through advanced technology that mirrors the exact natural conditions under which diamonds form over billions of years.
-                </p>
-                
-                <p className="text-sm sm:text-base text-gray-300">
-                  For aesthetic purposes, lab-grown diamonds often achieve greater clarity and fewer imperfections, ensuring your piece shines at its absolute best.
-                </p>
-                
+                {/* Mobile: Show condensed key benefit */}
                 <p className="text-sm sm:text-base font-medium text-amber-100">
-                  Best of all, choosing lab-grown means you can experience the luxury of a diamond without compromise—the same timeless elegance and quality, but at a fraction of the cost.
+                  Same timeless elegance and quality, but at a fraction of the cost.
                 </p>
+                
+                {/* Hide detailed explanations on mobile, show on tablet+ */}
+                <div className="hidden sm:block space-y-4 lg:space-y-5">
+                  <p className="text-sm sm:text-base text-gray-300">
+                    The only difference lies in their origin. While natural diamonds are extracted from the earth, lab-grown diamonds are created through advanced technology that mirrors the exact natural conditions under which diamonds form over billions of years.
+                  </p>
+                  
+                  <p className="text-sm sm:text-base text-gray-300">
+                    For aesthetic purposes, lab-grown diamonds often achieve greater clarity and fewer imperfections, ensuring your piece shines at its absolute best.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
