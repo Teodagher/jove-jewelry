@@ -298,7 +298,7 @@ export default function PicturesManagementPage() {
 
       if (error) {
         console.error('Delete error:', error);
-        setError('Failed to delete image');
+        setError('Failed to delete image. Please try again.');
         return;
       }
 
@@ -309,7 +309,7 @@ export default function PicturesManagementPage() {
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       console.error('Error deleting image:', err);
-      setError('Failed to delete image');
+      setError('Failed to delete image. Please try again.');
     }
   };
 
