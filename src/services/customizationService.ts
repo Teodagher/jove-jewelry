@@ -216,14 +216,31 @@ export class CustomizationService {
         // Note: diamond variants not available yet
       }
       
+      // Special mapping for white gold chain (uses different naming convention)
+      const whiteGoldChainStoneMap: { [key: string]: string } = {
+        'blue_sapphire': 'bluesapphire',
+        'pink_sapphire': 'pinksapphire',
+        'emerald': 'emerald',
+        'ruby': 'ruby'
+      }
+      
       const chainMap: { [key: string]: string } = {
         'black_leather': 'black-leather',
-        'gold_cord': 'gold-cord'
+        'gold_cord': 'gold-cord',
+        'white_gold_chain': 'whitegold-chain'
       }
       
       // Get the selections
       const metal = customizations.metal
-      const chainType = customizations.chain_type
+      let chainType = customizations.chain_type
+      
+      // Smart chain mapping: When user selects "gold cord", the actual chain depends on the metal
+      // - gold_cord + white_gold → use white_gold_chain (white gold cord)
+      // - gold_cord + yellow_gold → use gold_cord (yellow gold cord)
+      if (chainType === 'gold_cord' && metal === 'white_gold') {
+        chainType = 'white_gold_chain'; // Map to white gold chain for white gold metal
+        console.log('🔗 Smart mapping: gold_cord + white_gold → white_gold_chain');
+      }
       
       // For bracelets: Handle different stone combinations
       // If first_stone is black_onyx, use black_onyx for the variant (Black Onyx + Emerald combination)
@@ -242,11 +259,26 @@ export class CustomizationService {
         secondStone: customizations.second_stone,
         selectedVariantStone: variantStone,
         metal,
-        chainType
+        originalChainType: customizations.chain_type,
+        finalChainType: chainType,
+        smartMappingApplied: customizations.chain_type !== chainType
       });
       
-      if (variantStone && metal && chainType && metalMap[metal] && stoneMap[variantStone] && chainMap[chainType]) {
-        const stoneFilename = stoneMap[variantStone]
+      if (variantStone && metal && chainType && metalMap[metal] && chainMap[chainType]) {
+        // Use special stone mapping for white gold chains, regular mapping for others
+        const useWhiteGoldMapping = chainType === 'white_gold_chain';
+        const currentStoneMap = useWhiteGoldMapping ? whiteGoldChainStoneMap : stoneMap;
+        
+        if (!currentStoneMap[variantStone]) {
+          console.log('❌ Stone not supported for this chain type:', {
+            variantStone,
+            chainType,
+            useWhiteGoldMapping
+          });
+          return null;
+        }
+        
+        const stoneFilename = currentStoneMap[variantStone]
         const metalFilename = metalMap[metal]
         const chainFilename = chainMap[chainType]
         
@@ -255,7 +287,7 @@ export class CustomizationService {
         let filename: string;
         
         // Only generate URLs for combinations that actually exist  
-        // Based on our high-quality compression output, these are the valid bracelet combinations:
+        // Based on our storage and high-quality compression output, these are the valid bracelet combinations:
         const validBraceletCombinations = [
           // Black leather combinations (both metals supported)
           'black-leather-blue-sapphire-whitegold',
@@ -265,19 +297,34 @@ export class CustomizationService {
           'black-leather-pink-sapphire-whitegold',
           'black-leather-pink-sapphire-yellowgold',
           'black-leather-ruby-whitegold',
+          'black-leather-ruby-yellowgold',
           // Black Onyx combinations (both metals supported)
           'black-leather-blackonyx-whitegold',
           'black-leather-blackonyx-yellowgold',
-          // Gold cord combinations (only yellow gold metal supported)
+          // Gold cord combinations (ONLY yellow gold metal supported)
           'gold-cord-blue-sapphire-yellowgold',
           'gold-cord-emerald-yellowgold',
           'gold-cord-pink-sapphire-yellowgold',
-          'gold-cord-ruby-yellowgold'
+          'gold-cord-ruby-yellowgold',
+          // White gold chain combinations (ONLY white gold metal supported)
+          'whitegold-chain-bluesapphire-whitegold',
+          'whitegold-chain-emerald-whitegold',
+          'whitegold-chain-pinksapphire-whitegold',
+          'whitegold-chain-ruby-whitegold'
+          // NOTE: No diamond variants available for any combination
         ];
         
         const combinationKey = `${chainFilename}-${stoneFilename}-${metalFilename}`;
         
         if (validBraceletCombinations.includes(combinationKey)) {
+          // Special case: ruby + yellowgold only exists as PNG (not yet converted to WebP)
+          if (combinationKey === 'black-leather-ruby-yellowgold') {
+            filename = `bracelet-${chainFilename}-${stoneFilename}-${metalFilename}.png`;
+            const finalUrl = `${baseUrl}/bracelets/${filename}`;
+            console.log('🎯 Bracelet URL generated (PNG fallback):', finalUrl, '(Ruby+YellowGold needs WebP conversion)');
+            return finalUrl;
+          }
+          
           // Use compressed WebP images for much faster loading (HQ: ~50KB, 95% smaller!)
           filename = `bracelet-${chainFilename}-${stoneFilename}-${metalFilename}.webp`;
           
@@ -287,8 +334,18 @@ export class CustomizationService {
           return finalUrl;
         } else {
           console.warn('⚠️ Bracelet combination not available:', combinationKey);
-          console.log('📋 Using base bracelet image instead');
-          return 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/bracelet-preview.png';
+          console.log('📋 Available combinations for reference:', validBraceletCombinations);
+          
+          // Special handling for common invalid combinations  
+          if (customizations.chain_type === 'gold_cord' && metal === 'white_gold' && chainType === 'white_gold_chain') {
+            console.warn('❌ White gold chain variant not found - may need to upload more images');
+          }
+          if (customizations.first_stone === 'diamond' && !customizations.second_stone) {
+            console.warn('❌ Diamond variant requires a second stone selection');
+          }
+          
+          console.log('📋 Image not available for this combination');
+          return null; // Return null to indicate no image available
         }
       } else {
         console.log('❌ Bracelet conditions not met:', {
@@ -299,8 +356,8 @@ export class CustomizationService {
           stoneMapHas: !!stoneMap[variantStone],
           chainMapHas: !!chainMap[chainType]
         });
-        // Return base bracelet image when conditions aren't met
-        return 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/bracelet-preview.png';
+        // Return null when conditions aren't met - no image available
+        return null;
       }
     }
     
@@ -418,8 +475,8 @@ export class CustomizationService {
       }
     }
     
-    // Fallback to base image if no variant found
-    return `${baseUrl}/necklace.png`
+    // Fallback - no image available for this jewelry type/combination
+    return null
   }
 
   // Check if a variant image exists for given customizations

@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { 
   DollarSign, 
   Package, 
@@ -14,36 +15,20 @@ import {
   Gift
 } from 'lucide-react';
 
-const stats = [
-  {
-    name: 'Total Revenue',
-    value: '-',
-    change: '-',
-    changeType: 'neutral',
-    icon: DollarSign,
-  },
-  {
-    name: 'Active Orders',
-    value: '-',
-    change: '-',
-    changeType: 'neutral',
-    icon: Package,
-  },
-  {
-    name: 'New Customers',
-    value: '-',
-    change: '-',
-    changeType: 'neutral',
-    icon: Users,
-  },
-  {
-    name: 'Conversion Rate',
-    value: '-',
-    change: '-',
-    changeType: 'neutral',
-    icon: TrendingUp,
-  },
-];
+interface Stats {
+  name: string;
+  value: string;
+  change: string;
+  changeType: 'neutral' | 'positive' | 'negative';
+  icon: React.ComponentType<any>;
+}
+
+interface DashboardData {
+  totalRevenue: number;
+  activeOrders: number;
+  totalCustomers: number;
+  recentOrders: DashboardOrder[];
+}
 
 interface DashboardOrder {
   id: string;
@@ -54,8 +39,6 @@ interface DashboardOrder {
   date: string;
   total: string;
 }
-
-const recentOrders: DashboardOrder[] = [];
 
 const quickActions = [
   {
@@ -110,6 +93,98 @@ const quickActions = [
 ];
 
 export default function AdminDashboard() {
+  const [dashboardData, setDashboardData] = useState<DashboardData>({
+    totalRevenue: 0,
+    activeOrders: 0,
+    totalCustomers: 0,
+    recentOrders: []
+  });
+  const [loading, setLoading] = useState(true);
+
+  const supabase = createClient();
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch orders data
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
+        .select('*, order_items!inner(*)')
+        .order('created_at', { ascending: false });
+
+      if (ordersError) throw ordersError;
+
+      // Calculate stats
+      const totalRevenue = orders?.reduce((sum, order) => sum + Number(order.total || 0), 0) || 0;
+      const activeOrders = orders?.filter(order => 
+        ['pending', 'confirmed', 'in_production', 'ready_for_delivery'].includes(order.status)
+      ).length || 0;
+
+      // Get unique customers
+      const uniqueEmails = new Set(orders?.map(order => order.customer_email) || []);
+      const totalCustomers = uniqueEmails.size;
+
+      // Recent orders for table
+      const recentOrders: DashboardOrder[] = (orders?.slice(0, 5) || []).map(order => ({
+        id: order.order_number || order.id.slice(0, 8).toUpperCase(),
+        customer: order.customer_name,
+        item: `${order.order_items?.length || 0} item${(order.order_items?.length || 0) !== 1 ? 's' : ''}`,
+        value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(order.total),
+        status: order.status.charAt(0).toUpperCase() + order.status.slice(1).replace('_', ' '),
+        date: new Date(order.created_at).toLocaleDateString(),
+        total: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(order.total)
+      }));
+
+      setDashboardData({
+        totalRevenue,
+        activeOrders,
+        totalCustomers,
+        recentOrders
+      });
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const stats: Stats[] = [
+    {
+      name: 'Total Revenue',
+      value: loading ? '-' : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dashboardData.totalRevenue),
+      change: '-',
+      changeType: 'neutral',
+      icon: DollarSign,
+    },
+    {
+      name: 'Active Orders',
+      value: loading ? '-' : dashboardData.activeOrders.toString(),
+      change: '-',
+      changeType: 'neutral',
+      icon: Package,
+    },
+    {
+      name: 'Total Customers',
+      value: loading ? '-' : dashboardData.totalCustomers.toString(),
+      change: '-',
+      changeType: 'neutral',
+      icon: Users,
+    },
+    {
+      name: 'Recent Orders',
+      value: loading ? '-' : dashboardData.recentOrders.length.toString(),
+      change: '-',
+      changeType: 'neutral',
+      icon: TrendingUp,
+    },
+  ];
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -227,14 +302,14 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="jove-bg-primary divide-y divide-amber-200">
-                {recentOrders.length === 0 ? (
+                {dashboardData.recentOrders.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                      No orders yet. Orders will appear here once you start receiving them.
+                      {loading ? 'Loading orders...' : 'No orders yet. Orders will appear here once you start receiving them.'}
                     </td>
                   </tr>
                 ) : (
-                  recentOrders.map((order) => (
+                  dashboardData.recentOrders.map((order) => (
                     <tr key={order.id} className="jove-bg-accent-hover">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {order.id}

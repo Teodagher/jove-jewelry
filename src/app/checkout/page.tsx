@@ -9,6 +9,7 @@ import { MapPin, CreditCard, Truck, Clock } from 'lucide-react';
 import PaymentMethodCard from '@/components/ui/payment-method-card';
 import { useToast } from '@/contexts/ToastContext';
 import GoogleMapsModal from '@/components/GoogleMapsModal';
+import HandcraftedBanner from '@/components/HandcraftedBanner';
 
 interface OrderFormData {
   firstName: string;
@@ -28,7 +29,7 @@ interface OrderFormData {
 
 export default function CheckoutPage() {
   const { items, itemCount, subtotal, clearCart, loading: cartLoading } = useCart();
-  const { error: showError, success: showSuccess } = useToast();
+  const { error: showError, success: showSuccess, luxury: showLuxury } = useToast();
   const [formData, setFormData] = useState<OrderFormData>({
     firstName: '',
     lastName: '',
@@ -69,9 +70,9 @@ export default function CheckoutPage() {
       address: location.address
     }));
     setShowMapModal(false);
-    showSuccess(
-      'Location Selected',
-      'Your delivery location has been updated successfully.'
+    showLuxury(
+      'Delivery Location Confirmed',
+      'Your precious jewelry will be delivered to the selected address with care.'
     );
   };
 
@@ -162,41 +163,91 @@ export default function CheckoutPage() {
 
   const validateForm = () => {
     const requiredFields = [
-      { field: 'firstName', label: 'First name' },
-      { field: 'lastName', label: 'Last name' },
-      { field: 'email', label: 'Email address' },
-      { field: 'phone', label: 'Phone number' },
-      { field: 'city', label: 'City' },
-      { field: 'area', label: 'Area' },
-      { field: 'address', label: 'Street address' },
+      { field: 'firstName', label: 'First name', minLength: 1 },
+      { field: 'lastName', label: 'Last name', minLength: 1 },
+      { field: 'email', label: 'Email address', minLength: 5 },
+      { field: 'phone', label: 'Phone number', minLength: 6 },
+      { field: 'city', label: 'City', minLength: 2 },
+      { field: 'area', label: 'Area', minLength: 2 },
+      { field: 'address', label: 'Street address', minLength: 5 },
     ];
 
-    for (const { field, label } of requiredFields) {
+    // Check required fields
+    for (const { field, label, minLength } of requiredFields) {
       const value = formData[field as keyof OrderFormData];
       if (!value || (typeof value === 'string' && !value.trim())) {
         showError(
-          'Missing Information',
-          `Please enter your ${label.toLowerCase()} to continue with your order.`
+          'Please Complete Your Information',
+          `Your ${label.toLowerCase()} is required to craft your bespoke jewelry order.`
         );
+        // Focus the missing field if possible
+        const element = document.getElementById(field);
+        if (element) {
+          element.focus();
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return false;
+      }
+      
+      // Check minimum length
+      if (typeof value === 'string' && value.trim().length < minLength) {
+        showError(
+          'Please Provide Complete Details',
+          `Your ${label.toLowerCase()} needs at least ${minLength} character${minLength > 1 ? 's' : ''} for your jewelry order.`
+        );
+        const element = document.getElementById(field);
+        if (element) {
+          element.focus();
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
         return false;
       }
     }
 
-    // Email validation
+    // Email validation with better error message
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
+    if (!emailRegex.test(formData.email.trim())) {
       showError(
-        'Invalid Email',
-        'Please enter a valid email address.'
+        'Please Verify Your Email',
+        'We need a valid email address to send you updates about your custom jewelry creation.'
+      );
+      const emailElement = document.getElementById('email');
+      if (emailElement) {
+        emailElement.focus();
+        emailElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return false;
+    }
+
+    // Phone validation with better feedback
+    const phoneNumber = formData.phone.replace(/\D/g, ''); // Remove non-digits
+    if (phoneNumber.length < 6) {
+      showError(
+        'Please Verify Your Phone Number',
+        'We need a valid phone number to coordinate the delivery of your precious jewelry.'
+      );
+      const phoneElement = document.getElementById('phone');
+      if (phoneElement) {
+        phoneElement.focus();
+        phoneElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return false;
+    }
+
+    // Check if cart has items
+    if (!items || items.length === 0) {
+      showError(
+        'Empty Cart',
+        'Your cart is empty. Please add some jewelry items before placing an order.'
       );
       return false;
     }
 
-    // Phone validation (basic)
-    if (formData.phone.length < 6) {
+    // Check if cart total is valid
+    if (!subtotal || subtotal <= 0) {
       showError(
-        'Invalid Phone Number',
-        'Please enter a valid phone number.'
+        'Invalid Order Total',
+        'Your order total appears to be invalid. Please refresh the page and try again.'
       );
       return false;
     }
@@ -211,20 +262,36 @@ export default function CheckoutPage() {
       return;
     }
 
+    console.log('✅ Form validation passed, proceeding with order creation...');
     setSubmitting(true);
 
     try {
       const supabase = createClient();
 
-      // Create the order
+      console.log('🛒 Starting order creation...', {
+        itemCount: items.length,
+        subtotal,
+        formData: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          city: formData.city,
+          area: formData.area,
+          address: formData.address
+        }
+      });
+
+      // Create the order with both old and new structure for compatibility
       const orderData = {
+        // New JSON structure for enhanced features
         customer_info: {
           first_name: formData.firstName,
           last_name: formData.lastName,
           email: formData.email,
           phone: `${formData.countryCode} ${formData.phone}`
         },
-        delivery_address: {
+        delivery_address_json: {
           address: formData.address,
           city: formData.city,
           area: formData.area,
@@ -245,23 +312,95 @@ export default function CheckoutPage() {
           preview_image_url: item.preview_image_url
         })),
         total_amount: subtotal,
+        
+        // Existing table structure for backward compatibility
+        customer_name: `${formData.firstName} ${formData.lastName}`,
+        customer_email: formData.email,
+        customer_phone: `${formData.countryCode} ${formData.phone}`,
+        delivery_address: formData.address,
+        delivery_city: formData.city,
+        delivery_notes: formData.notes,
+        subtotal: subtotal,
+        total: subtotal,
         payment_method: 'cash_on_delivery',
         status: 'pending',
+        notes: formData.notes,
         order_notes: formData.notes
       };
+
+      console.log('📋 Order data prepared:', {
+        keys: Object.keys(orderData),
+        hasCustomerInfo: !!orderData.customer_info,
+        hasDeliveryAddress: !!orderData.delivery_address_json,
+        itemsCount: orderData.items?.length || 0,
+        customerName: orderData.customer_name,
+        customerEmail: orderData.customer_email,
+        subtotal: orderData.subtotal,
+        total: orderData.total
+      });
 
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert(orderData)
-        .select('id')
+        .select('id, order_number')
         .single();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error('❌ Order creation failed:', orderError);
+        throw orderError;
+      }
 
-      // Show success message
-      showSuccess(
-        'Order Placed Successfully!',
-        `Your order #${order.id.slice(0, 8).toUpperCase()} has been confirmed. You'll receive updates via email.`
+      console.log('✅ Order created successfully:', order);
+
+      // Create individual order items
+      const orderItemsData = items.map(item => {
+        // Ensure all required fields are present and valid
+        const itemData = {
+          order_id: order.id,
+          jewelry_type: item.jewelry_type || 'necklace', // Default fallback
+          customization_data: item.customization_data || {},
+          customization_summary: generateCustomizationText(item.customization_data || {}),
+          base_price: Number(item.base_price) || 0,
+          total_price: Number(item.total_price) || 0,
+          quantity: Number(item.quantity) || 1,
+          subtotal: Number(item.subtotal) || 0,
+          preview_image_url: item.preview_image_url || null
+        };
+        
+        console.log('🔍 Processing item:', {
+          id: item.id,
+          jewelry_type: itemData.jewelry_type,
+          base_price: itemData.base_price,
+          total_price: itemData.total_price,
+          quantity: itemData.quantity,
+          subtotal: itemData.subtotal
+        });
+        
+        return itemData;
+      });
+
+      console.log('📦 Creating order items:', {
+        count: orderItemsData.length,
+        orderId: order.id,
+        firstItem: orderItemsData[0] || null
+      });
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItemsData);
+
+      if (itemsError) {
+        console.error('❌ Order items creation failed:', itemsError);
+        throw itemsError;
+      }
+
+      console.log('✅ Order items created successfully');
+
+      // Show luxury success message with Jové branding
+      const orderNumber = order.order_number || order.id.slice(0, 8).toUpperCase();
+      showLuxury(
+        'Your Bespoke Order Has Been Crafted',
+        `Order #${orderNumber} is now being handcrafted with the finest materials. You'll receive updates on your personalized jewelry journey.`
       );
 
       // Clear the cart after successful order
@@ -272,20 +411,76 @@ export default function CheckoutPage() {
     } catch (error: unknown) {
       console.error('Error creating order:', error);
       
-      if ((error as Error).message?.includes('network')) {
+      const errorMessage = (error as Error).message || '';
+      const errorCode = (error as any)?.code || '';
+      
+      // Network/Connection errors
+      if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorCode === 'NETWORK_ERROR') {
         showError(
           'Connection Error',
-          'Please check your internet connection and try again.'
+          'Unable to connect to our servers. Please check your internet connection and try again.'
         );
-      } else if ((error as Error).message?.includes('validation')) {
+      }
+      // Authentication errors
+      else if (errorCode === '401' || errorMessage.includes('unauthorized') || errorMessage.includes('authentication')) {
         showError(
-          'Invalid Information',
-          'Please check your information and try again.'
+          'Authentication Error',
+          'Your session has expired. Please refresh the page and try again.'
         );
-      } else {
+      }
+      // Validation/Data errors
+      else if (errorCode === '23502' || errorMessage.includes('null value') || errorMessage.includes('required')) {
+        showError(
+          'Missing Information',
+          'Please make sure all required fields are filled out correctly and try again.'
+        );
+      }
+      // Database constraint errors
+      else if (errorCode === '23505' || errorMessage.includes('duplicate') || errorMessage.includes('unique')) {
+        showError(
+          'Duplicate Order',
+          'An order with this information already exists. Please contact support if this is an error.'
+        );
+      }
+      // Permission errors
+      else if (errorCode === '42501' || errorMessage.includes('permission') || errorMessage.includes('policy')) {
+        showError(
+          'Permission Error',
+          'Unable to process your order due to security restrictions. Please contact support.'
+        );
+      }
+      // Cart or item errors
+      else if (errorMessage.includes('cart') || errorMessage.includes('item')) {
+        showError(
+          'Cart Error',
+          'There was an issue with your cart items. Please refresh the page and try again.'
+        );
+      }
+      // Payment errors
+      else if (errorMessage.includes('payment') || errorMessage.includes('billing')) {
+        showError(
+          'Payment Error',
+          'There was an issue processing your payment information. Please verify your details and try again.'
+        );
+      }
+      // Server errors
+      else if (errorCode === '500' || errorMessage.includes('internal') || errorMessage.includes('server')) {
+        showError(
+          'Server Error',
+          'Our servers are experiencing issues. Please try again in a few minutes or contact support.'
+        );
+      }
+      // Generic fallback with more helpful info
+      else {
+        // Try to provide more specific error details in development
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        const detailedMessage = isDevelopment 
+          ? `Error: ${errorMessage}${errorCode ? ` (Code: ${errorCode})` : ''}`
+          : 'There was an unexpected error placing your order. Please try again or contact support.';
+        
         showError(
           'Order Failed',
-          'There was an error placing your order. Please try again or contact support.'
+          detailedMessage
         );
       }
     } finally {
@@ -601,15 +796,9 @@ export default function CheckoutPage() {
                 <span>{formatPrice(subtotal)}</span>
               </div>
 
-              {/* Delivery Info */}
-              <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-4 mb-6">
-                <div className="flex items-start">
-                  <Clock className="w-5 h-5 text-zinc-600 mr-3 mt-0.5" />
-                  <div>
-                    <p className="text-sm font-medium text-zinc-800">Handcrafted to Order</p>
-                    <p className="text-xs text-zinc-600">Your jewelry will be ready in 2-3 weeks</p>
-                  </div>
-                </div>
+              {/* Handcrafted Banner */}
+              <div className="mb-6">
+                <HandcraftedBanner />
               </div>
 
               {/* Place Order Button */}

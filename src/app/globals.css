@@ -163,6 +163,57 @@
   }
 }
 
+/* Handcrafted Banner Styles */
+.handcrafted-banner {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  border: 1px solid color-mix(in oklab, currentColor 20%, transparent);
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: color-mix(in oklab, currentColor 7%, transparent);
+  color: inherit; /* inherits your site's text color */
+  line-height: 1.35;
+}
 
+.handcrafted-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.handcrafted-text {
+  font-size: 0.95rem;
+}
+
+.handcrafted-text strong:first-child {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+/* Optional: lighten in very dark UIs */
+@media (prefers-color-scheme: dark) {
+  .handcrafted-banner {
+    border-color: color-mix(in oklab, white 18%, transparent);
+    background: color-mix(in oklab, white 6%, transparent);
+  }
+}
+
+/* Luxury toast shimmer animation */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%) skewX(-12deg);
+  }
+  100% {
+    transform: translateX(200%) skewX(-12deg);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
 
 }

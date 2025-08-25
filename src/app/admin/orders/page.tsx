@@ -1,0 +1,509 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { 
+  Package, 
+  Search, 
+  Filter, 
+  Eye, 
+  Edit, 
+  Clock,
+  CheckCircle,
+  XCircle,
+  Truck,
+  Calendar,
+  DollarSign,
+  User,
+  MapPin,
+  Phone,
+  Mail,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+interface OrderItem {
+  id: string;
+  jewelry_type: string;
+  customization_data: Record<string, any>;
+  customization_summary: string;
+  base_price: number;
+  total_price: number;
+  quantity: number;
+  subtotal: number;
+  preview_image_url?: string;
+}
+
+interface Order {
+  id: string;
+  order_number: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  delivery_address: string;
+  delivery_city: string;
+  delivery_notes?: string;
+  subtotal: number;
+  total: number;
+  status: string;
+  payment_method: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  customer_info?: Record<string, any>;
+  delivery_address_json?: Record<string, any>;
+  items?: OrderItem[];
+  order_items?: OrderItem[];
+}
+
+const STATUS_COLORS = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  confirmed: 'bg-blue-100 text-blue-800',
+  in_production: 'bg-purple-100 text-purple-800',
+  ready_for_delivery: 'bg-indigo-100 text-indigo-800',
+  delivered: 'bg-green-100 text-green-800',
+  cancelled: 'bg-red-100 text-red-800',
+} as const;
+
+const STATUS_OPTIONS = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'confirmed', label: 'Confirmed' },
+  { value: 'in_production', label: 'In Production' },
+  { value: 'ready_for_delivery', label: 'Ready for Delivery' },
+  { value: 'delivered', label: 'Delivered' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
+
+export default function AdminOrdersPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+
+  const supabase = createClient();
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch orders with their items
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          order_items (
+            id,
+            jewelry_type,
+            customization_data,
+            customization_summary,
+            base_price,
+            total_price,
+            quantity,
+            subtotal,
+            preview_image_url
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (ordersError) {
+        throw ordersError;
+      }
+
+      setOrders(ordersData || []);
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      setError('Failed to load orders. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      setUpdatingStatus(orderId);
+      
+      const { error } = await supabase
+        .from('orders')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      // Update local state
+      setOrders(prev => prev.map(order => 
+        order.id === orderId 
+          ? { ...order, status: newStatus, updated_at: new Date().toISOString() }
+          : order
+      ));
+
+    } catch (err) {
+      console.error('Error updating order status:', err);
+      setError('Failed to update order status.');
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = 
+      order.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer_email.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(price);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const formatJewelryType = (type: string) => {
+    const map: Record<string, string> = {
+      necklaces: 'Necklace',
+      rings: 'Ring',
+      bracelets: 'Bracelet',
+      earrings: 'Earring',
+    };
+    const lower = type.toLowerCase();
+    return map[lower] || (lower.charAt(0).toUpperCase() + lower.slice(1));
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending': return <Clock className="h-4 w-4" />;
+      case 'confirmed': return <CheckCircle className="h-4 w-4" />;
+      case 'in_production': return <Package className="h-4 w-4" />;
+      case 'ready_for_delivery': return <Truck className="h-4 w-4" />;
+      case 'delivered': return <CheckCircle className="h-4 w-4" />;
+      case 'cancelled': return <XCircle className="h-4 w-4" />;
+      default: return <Clock className="h-4 w-4" />;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="border-b border-gray-200 pb-5">
+          <h1 className="text-3xl font-light text-gray-900 font-serif tracking-wider">Orders</h1>
+          <p className="mt-2 text-sm text-gray-600">Loading orders...</p>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-zinc-900"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-8">
+        <div className="border-b border-gray-200 pb-5">
+          <h1 className="text-3xl font-light text-gray-900 font-serif tracking-wider">Orders</h1>
+          <p className="mt-2 text-sm text-red-600">{error}</p>
+        </div>
+        <div className="text-center">
+          <Button onClick={fetchOrders} className="bg-black hover:bg-zinc-800">
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="border-b border-gray-200 pb-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-light text-gray-900 font-serif tracking-wider">Orders</h1>
+            <p className="mt-2 text-sm text-gray-600">
+              Manage customer orders and track production status
+            </p>
+          </div>
+          <div className="flex items-center space-x-3 text-sm text-gray-500">
+            <Package className="h-4 w-4" />
+            <span>{filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="jove-bg-card rounded-lg shadow-sm p-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          {/* Search */}
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by order number, customer name, or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500"
+              />
+            </div>
+          </div>
+
+          {/* Status Filter */}
+          <div className="sm:w-48">
+            <div className="relative">
+              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 bg-white"
+              >
+                <option value="all">All Status</option>
+                {STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Orders List */}
+      <div className="space-y-4">
+        {filteredOrders.length === 0 ? (
+          <div className="jove-bg-card rounded-lg shadow-sm p-12 text-center">
+            <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No orders found</h3>
+            <p className="text-gray-600">
+              {searchTerm || statusFilter !== 'all' 
+                ? 'Try adjusting your search or filter criteria.' 
+                : 'Orders will appear here once customers start placing them.'}
+            </p>
+          </div>
+        ) : (
+          filteredOrders.map((order) => (
+            <div key={order.id} className="jove-bg-card rounded-lg shadow-sm">
+              {/* Order Header */}
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">
+                        Order #{order.order_number || order.id.slice(0, 8).toUpperCase()}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {formatDate(order.created_at)}
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      {getStatusIcon(order.status)}
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        STATUS_COLORS[order.status as keyof typeof STATUS_COLORS] || 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {STATUS_OPTIONS.find(s => s.value === order.status)?.label || order.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-4">
+                    <div className="text-right">
+                      <p className="text-lg font-semibold text-gray-900">
+                        {formatPrice(order.total)}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {order.order_items?.length || 0} item{(order.order_items?.length || 0) !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
+                      className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                    >
+                      {expandedOrder === order.id ? (
+                        <ChevronUp className="h-5 w-5" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Customer Info */}
+                <div className="mt-4 flex flex-wrap items-center gap-6 text-sm text-gray-600">
+                  <div className="flex items-center space-x-2">
+                    <User className="h-4 w-4" />
+                    <span>{order.customer_name}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Mail className="h-4 w-4" />
+                    <span>{order.customer_email}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="h-4 w-4" />
+                    <span>{order.delivery_city}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Expanded Order Details */}
+              {expandedOrder === order.id && (
+                <div className="p-6 space-y-6">
+                  {/* Customer & Delivery Info */}
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {/* Customer Information */}
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900 mb-3">Customer Information</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <User className="h-4 w-4 text-gray-400" />
+                          <span>{order.customer_name}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Mail className="h-4 w-4 text-gray-400" />
+                          <a href={`mailto:${order.customer_email}`} className="text-blue-600 hover:text-blue-800">
+                            {order.customer_email}
+                          </a>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Phone className="h-4 w-4 text-gray-400" />
+                          <a href={`tel:${order.customer_phone}`} className="text-blue-600 hover:text-blue-800">
+                            {order.customer_phone}
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Delivery Information */}
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900 mb-3">Delivery Information</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-start space-x-2">
+                          <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
+                          <div>
+                            <p>{order.delivery_address}</p>
+                            <p className="text-gray-600">{order.delivery_city}</p>
+                            {order.delivery_address_json?.area && (
+                              <p className="text-gray-600">{order.delivery_address_json.area}</p>
+                            )}
+                          </div>
+                        </div>
+                        {order.delivery_notes && (
+                          <div className="flex items-start space-x-2">
+                            <Clock className="h-4 w-4 text-gray-400 mt-0.5" />
+                            <p className="text-gray-600">{order.delivery_notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Order Items */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">Order Items</h4>
+                    <div className="space-y-3">
+                      {order.order_items?.map((item) => (
+                        <div key={item.id} className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
+                          <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                            {item.preview_image_url ? (
+                              <img 
+                                src={item.preview_image_url} 
+                                alt="Custom jewelry"
+                                className="w-full h-full object-cover rounded-lg"
+                              />
+                            ) : (
+                              <Package className="w-6 h-6 text-gray-400" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h5 className="text-sm font-medium text-gray-900">
+                              Custom {formatJewelryType(item.jewelry_type)} x{item.quantity}
+                            </h5>
+                            {item.customization_summary && (
+                              <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                                {item.customization_summary}
+                              </p>
+                            )}
+                            <div className="flex items-center justify-between mt-2">
+                              <p className="text-sm text-gray-600">
+                                Base: {formatPrice(item.base_price)} + Options: {formatPrice(item.total_price - item.base_price)}
+                              </p>
+                              <p className="text-sm font-medium text-gray-900">
+                                {formatPrice(item.subtotal)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Order Actions */}
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <label className="text-sm font-medium text-gray-700">Status:</label>
+                        <select
+                          value={order.status}
+                          onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                          disabled={updatingStatus === order.id}
+                          className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-zinc-500"
+                        >
+                          {STATUS_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        {updatingStatus === order.id && (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-zinc-900"></div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`/order-confirmation/${order.id}`, '_blank')}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        View Details
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

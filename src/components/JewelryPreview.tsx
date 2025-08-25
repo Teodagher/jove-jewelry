@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from 'react';
 
 interface JewelryPreviewProps {
-  imageUrl: string;
+  imageUrl: string | null;
   alt: string;
   width?: number;
   height?: number;
@@ -31,6 +31,13 @@ export default function JewelryPreview({
 
   // Log when component mounts and imageUrl changes
   React.useEffect(() => {
+    if (!imageUrl) {
+      console.log('⚠️ JewelryPreview: No image URL provided - showing "not available" state');
+      setImageLoading(false);
+      setImageError(false);
+      return;
+    }
+    
     console.log('🔄 JewelryPreview: Starting to load image:', imageUrl, `(Attempt ${retryCount + 1})`);
     setImageLoading(true);
     setImageError(false);
@@ -130,8 +137,17 @@ export default function JewelryPreview({
           </div>
         )}
 
+        {/* Image not available state */}
+        {!imageUrl && (
+          <div className="absolute inset-0 bg-gray-100 rounded-lg flex flex-col items-center justify-center p-4">
+            <div className="text-gray-500 text-lg mb-2">📷</div>
+            <div className="text-gray-600 text-sm text-center">Image not available</div>
+            <div className="text-gray-500 text-xs text-center mt-1">for this combination</div>
+          </div>
+        )}
+
         {/* Error state */}
-        {imageError && (
+        {imageError && imageUrl && (
           <div className="absolute inset-0 bg-gray-100 rounded-lg flex flex-col items-center justify-center p-4">
             <div className="text-gray-600 text-sm mb-2">Image failed to load</div>
             <button 
@@ -149,7 +165,7 @@ export default function JewelryPreview({
         )}
         
         {/* Main Image */}
-        {!imageError && (
+        {!imageError && imageUrl && (
           <img
             src={imageUrl}
             alt={alt}
@@ -168,7 +184,7 @@ export default function JewelryPreview({
       </div>
 
       {/* Zoom Preview - Right Corner of Preview Box */}
-      {enableZoom && isHovering && !imageLoading && (
+      {enableZoom && isHovering && !imageLoading && imageUrl && (
         <div className="absolute bottom-4 right-4 w-32 h-32 bg-white border-2 border-gray-300 rounded-lg shadow-lg overflow-hidden z-50 pointer-events-none">
           <div className="relative w-full h-full">
             <img

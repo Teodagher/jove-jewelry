@@ -6,6 +6,7 @@ import { Trash2, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import JoveAccountForm from '@/components/JoveAccountForm';
+import HandcraftedBanner from '@/components/HandcraftedBanner';
 
 export default function CartPage() {
   const { items, itemCount, subtotal, removeFromCart, updateQuantity, loading } = useCart();
@@ -219,14 +220,15 @@ export default function CartPage() {
                   </div>
                   
                   <div className="border-t border-gray-200 pt-4">
+                    {/* Handcrafted Banner */}
+                    <div className="mb-6">
+                      <HandcraftedBanner />
+                    </div>
+                    
                     <div className="space-y-2 mb-4">
                       <p className="text-sm text-gray-600 flex items-center">
                         <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
                         Cash on Delivery Available
-                      </p>
-                      <p className="text-sm text-gray-600 flex items-center">
-                        <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
-                        Handcrafted to Order (2-3 weeks)
                       </p>
                       <p className="text-sm text-gray-600 flex items-center">
                         <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>

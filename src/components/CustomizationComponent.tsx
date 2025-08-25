@@ -633,6 +633,26 @@ function CustomizationSetting({
 
   // Filter options based on selection context
   const getFilteredOptions = () => {
+    // For metal options in necklaces, filter based on chain selection
+    if (setting.id === 'metal' && customizationState.chain_type) {
+      const chainType = customizationState.chain_type;
+      
+      // Yellow gold chain only supports yellow gold metal
+      if (chainType === 'yellow_gold_chain_real') {
+        console.log('🔗 Filtering metals for yellow gold chain: showing only yellow gold');
+        return setting.options.filter(option => option.id === 'yellow_gold');
+      }
+      
+      // White gold chain only supports white gold metal
+      if (chainType === 'white_gold_chain') {
+        console.log('🔗 Filtering metals for white gold chain: showing only white gold');
+        return setting.options.filter(option => option.id === 'white_gold');
+      }
+      
+      // Black leather supports both metals (no filtering needed)
+      // Fall through to show all options
+    }
+    
     // For chain type options, filter based on first stone selection for bracelets
     if (setting.id === 'chain_type' && customizationState.first_stone === 'black_onyx') {
       // If Black Onyx is selected as first stone, only show leather cord options (no gold cord)

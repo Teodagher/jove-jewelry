@@ -74,6 +74,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <head>
+        {/* Favicon */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        
         {/* Preconnect to Supabase storage for faster image loading */}
         <link rel="preconnect" href="https://ndqxwvascqwhqaoqkpng.supabase.co" />
         <link rel="dns-prefetch" href="https://ndqxwvascqwhqaoqkpng.supabase.co" />
