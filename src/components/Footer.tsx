@@ -135,7 +135,7 @@ export default function Footer() {
          <div className="footer-section">
            <h4 className="text-base mb-5 uppercase text-white font-normal">CONTACT</h4>
            <ul className="list-none p-0 m-0 space-y-3">
-            <li className="text-sm">Email: <a href="mailto:support@jové.com" className="text-[#f5c542] no-underline hover:underline">support@jové.com</a></li>
+            <li className="text-sm">Email: <a href="mailto:support@maisonjove.com" className="text-[#f5c542] no-underline hover:underline">support@jové.com</a></li>
             <li className="text-sm">Phone/WhatsApp: <a href="tel:+96171777422" className="text-[#f5c542] no-underline hover:underline">+961 71 777 422</a></li>
           </ul>
         </div>

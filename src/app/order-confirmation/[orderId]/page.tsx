@@ -278,7 +278,7 @@ export default function OrderConfirmationPage() {
               {/* Support Note */}
               <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-800">
-                  <strong>Need help?</strong> Contact us at support@jove.com or call us for any questions about your order.
+                  <strong>Need help?</strong> Contact us at support@maisonjove.com or call us for any questions about your order.
                 </p>
               </div>
             </div>
