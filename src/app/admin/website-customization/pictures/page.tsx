@@ -167,9 +167,9 @@ export default function PicturesManagementPage() {
       console.log('🗜️ Compressing image:', file.name, `(${formatSize(file.size)})`);
       
       const compressedBlob = await compressImage(file, {
-        maxWidth: 1920,
-        maxHeight: 1080,
-        quality: 0.85,
+        maxWidth: 2560,
+        maxHeight: 1440,
+        quality: 0.95,
         format: 'webp'
       });
 
@@ -473,7 +473,7 @@ export default function PicturesManagementPage() {
         <div className="px-6 py-5 border-b border-gray-200">
           <h2 className="text-lg font-medium text-gray-900">Upload New Image</h2>
           <p className="mt-1 text-sm text-gray-600">
-            Add images to your hero carousel. Images are automatically compressed to WebP format for optimal performance.
+            Add high-quality images to your hero carousel. Images are automatically optimized to WebP format with minimal quality loss.
           </p>
         </div>
         <div className="p-6">
@@ -653,14 +653,14 @@ export default function PicturesManagementPage() {
         <div className="p-6">
           <div className="prose prose-sm text-gray-600">
             <ul>
-              <li><strong>Automatic Compression:</strong> All images are automatically compressed to WebP format with 85% quality for optimal loading speed.</li>
-              <li><strong>Image Size:</strong> Images are resized to maximum 1920x1080px while maintaining aspect ratio.</li>
+              <li><strong>High-Quality Compression:</strong> Images are compressed to WebP format with 95% quality for superior visual fidelity.</li>
+              <li><strong>Image Size:</strong> Images are resized to maximum 2560x1440px (1440p) while maintaining aspect ratio.</li>
               <li><strong>Supported Formats:</strong> Upload JPEG, PNG, WebP, or AVIF files up to 50MB (before compression).</li>
-              <li><strong>File Size Reduction:</strong> Typical compression savings are 30-70% smaller than original files.</li>
+              <li><strong>File Size Reduction:</strong> Typical compression savings are 20-50% smaller than original files with minimal quality loss.</li>
               <li><strong>Order:</strong> Images display in numbered order. Drag and drop to reorder the carousel sequence.</li>
               <li><strong>Performance Benefits:</strong> WebP format provides superior compression with excellent quality for faster page loads.</li>
               <li><strong>Backup:</strong> Always keep original copies of your images as backups since compression is irreversible.</li>
-              <li><strong>Quality:</strong> Optimized for web display while maintaining professional visual quality for hero carousel.</li>
+              <li><strong>Quality:</strong> Optimized for high-resolution displays while maintaining professional visual quality for hero carousel.</li>
             </ul>
           </div>
         </div>
