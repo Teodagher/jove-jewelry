@@ -101,10 +101,25 @@ export default function GoogleMapsModal({
         setMapsLoaded(true);
       };
 
+      // Check if API key is available
+      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      if (!apiKey) {
+        console.error('Google Maps API key is missing. Please set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your environment variables.');
+        alert('Google Maps is not properly configured. Please contact support.');
+        return;
+      }
+
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initMap`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initMap`;
       script.async = true;
       script.defer = true;
+      
+      // Add error handling for script loading
+      script.onerror = (error) => {
+        console.error('Failed to load Google Maps script:', error);
+        alert('Failed to load Google Maps. Please check your internet connection and try again.');
+      };
+      
       document.head.appendChild(script);
     };
 
@@ -152,7 +167,8 @@ export default function GoogleMapsModal({
           mapInstance.current.setZoom(16);
           placeMarker(lat, lng);
         } else {
-          alert('Location not found. Please try a different search.');
+          console.error('Geocoding failed:', status, results);
+          alert(`Location not found (${status}). Please try a different search.`);
         }
       });
     };
@@ -241,7 +257,8 @@ export default function GoogleMapsModal({
         mapInstance.current.setZoom(16);
         placeMarker(lat, lng);
       } else {
-        alert('Location not found. Please try a different search.');
+        console.error('Search geocoding failed:', status, results);
+        alert(`Location not found (${status}). Please try a different search.`);
       }
     });
   };
@@ -278,7 +295,8 @@ export default function GoogleMapsModal({
       },
       (error) => {
         setIsLoading(false);
-        alert('Unable to get your current location. Please search manually.');
+        console.error('Geolocation error:', error);
+        alert(`Unable to get your current location: ${error.message}. Please search manually.`);
       }
     );
   };

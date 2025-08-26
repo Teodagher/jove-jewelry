@@ -282,50 +282,92 @@ export default function CheckoutPage() {
         }
       });
 
+      // Validate and sanitize data before creating order
+      const sanitizedFormData = {
+        firstName: formData.firstName?.trim() || '',
+        lastName: formData.lastName?.trim() || '',
+        email: formData.email?.trim().toLowerCase() || '',
+        phone: formData.phone?.trim() || '',
+        countryCode: formData.countryCode?.trim() || '+961',
+        address: formData.address?.trim() || '',
+        city: formData.city?.trim() || '',
+        area: formData.area?.trim() || '',
+        building: formData.building?.trim() || '',
+        floor: formData.floor?.trim() || '',
+        notes: formData.notes?.trim() || '',
+        latitude: formData.latitude || null,
+        longitude: formData.longitude || null
+      };
+
+      // Validate required fields
+      const requiredFields = {
+        firstName: sanitizedFormData.firstName,
+        lastName: sanitizedFormData.lastName,
+        email: sanitizedFormData.email,
+        phone: sanitizedFormData.phone,
+        address: sanitizedFormData.address,
+        city: sanitizedFormData.city,
+        area: sanitizedFormData.area
+      };
+
+      for (const [field, value] of Object.entries(requiredFields)) {
+        if (!value || value.length === 0) {
+          throw new Error(`Required field '${field}' is missing or empty`);
+        }
+      }
+
+      // Validate subtotal
+      if (!subtotal || subtotal <= 0) {
+        throw new Error('Invalid order total amount');
+      }
+
       // Create the order with both old and new structure for compatibility
       const orderData = {
         // New JSON structure for enhanced features
         customer_info: {
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          email: formData.email,
-          phone: `${formData.countryCode} ${formData.phone}`
+          first_name: sanitizedFormData.firstName,
+          last_name: sanitizedFormData.lastName,
+          email: sanitizedFormData.email,
+          phone: `${sanitizedFormData.countryCode} ${sanitizedFormData.phone}`
         },
         delivery_address_json: {
-          address: formData.address,
-          city: formData.city,
-          area: formData.area,
-          building: formData.building,
-          floor: formData.floor,
-          notes: formData.notes,
-          latitude: formData.latitude,
-          longitude: formData.longitude
+          address: sanitizedFormData.address,
+          city: sanitizedFormData.city,
+          area: sanitizedFormData.area,
+          building: sanitizedFormData.building,
+          floor: sanitizedFormData.floor,
+          notes: sanitizedFormData.notes,
+          latitude: sanitizedFormData.latitude,
+          longitude: sanitizedFormData.longitude
         },
         items: items.map(item => ({
-          jewelry_type: item.jewelry_type,
-          customization_data: item.customization_data,
-          customization_summary: generateCustomizationText(item.customization_data),
-          base_price: item.base_price,
-          total_price: item.total_price,
-          quantity: item.quantity,
-          subtotal: item.subtotal,
-          preview_image_url: item.preview_image_url
+          jewelry_type: item.jewelry_type || 'necklace',
+          customization_data: item.customization_data || {},
+          customization_summary: generateCustomizationText(item.customization_data || {}),
+          base_price: Number(item.base_price) || 0,
+          total_price: Number(item.total_price) || 0,
+          quantity: Number(item.quantity) || 1,
+          subtotal: Number(item.subtotal) || 0,
+          preview_image_url: item.preview_image_url || null
         })),
-        total_amount: subtotal,
+        total_amount: Number(subtotal),
         
-        // Existing table structure for backward compatibility
-        customer_name: `${formData.firstName} ${formData.lastName}`,
-        customer_email: formData.email,
-        customer_phone: `${formData.countryCode} ${formData.phone}`,
-        delivery_address: formData.address,
-        delivery_city: formData.city,
-        delivery_notes: formData.notes,
-        subtotal: subtotal,
-        total: subtotal,
+        // Existing table structure for backward compatibility - all required fields
+        customer_name: `${sanitizedFormData.firstName} ${sanitizedFormData.lastName}`,
+        customer_email: sanitizedFormData.email,
+        customer_phone: `${sanitizedFormData.countryCode} ${sanitizedFormData.phone}`,
+        delivery_address: sanitizedFormData.address,
+        delivery_city: sanitizedFormData.city,
+        delivery_postal_code: null, // Explicitly set nullable field
+        delivery_notes: sanitizedFormData.notes || null,
+        delivery_latitude: sanitizedFormData.latitude, // 📍 New dedicated coordinate column
+        delivery_longitude: sanitizedFormData.longitude, // 📍 New dedicated coordinate column
+        subtotal: Number(subtotal),
+        total: Number(subtotal),
         payment_method: 'cash_on_delivery',
         status: 'pending',
-        notes: formData.notes,
-        order_notes: formData.notes
+        notes: sanitizedFormData.notes || null,
+        order_notes: sanitizedFormData.notes || null
       };
 
       console.log('📋 Order data prepared:', {
@@ -339,6 +381,7 @@ export default function CheckoutPage() {
         total: orderData.total
       });
 
+      console.log('📤 Attempting to insert order data...');
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert(orderData)
@@ -347,6 +390,12 @@ export default function CheckoutPage() {
 
       if (orderError) {
         console.error('❌ Order creation failed:', orderError);
+        console.error('❌ Order error details:', {
+          message: orderError.message,
+          code: orderError.code,
+          details: orderError.details,
+          hint: orderError.hint
+        });
         throw orderError;
       }
 
@@ -385,12 +434,19 @@ export default function CheckoutPage() {
         firstItem: orderItemsData[0] || null
       });
 
+      console.log('📦 Attempting to insert order items...');
       const { error: itemsError } = await supabase
         .from('order_items')
         .insert(orderItemsData);
 
       if (itemsError) {
         console.error('❌ Order items creation failed:', itemsError);
+        console.error('❌ Order items error details:', {
+          message: itemsError.message,
+          code: itemsError.code,
+          details: itemsError.details,
+          hint: itemsError.hint
+        });
         throw itemsError;
       }
 
@@ -413,6 +469,11 @@ export default function CheckoutPage() {
         console.log('✅ Cart cleared successfully');
       } catch (cartError) {
         console.error('⚠️ Cart clearing failed, but order was successful:', cartError);
+        console.error('⚠️ Cart error details:', {
+          message: cartError?.message,
+          type: typeof cartError,
+          constructor: cartError?.constructor?.name
+        });
         // Don't let cart clearing failure prevent redirect
       }
 
@@ -432,9 +493,37 @@ export default function CheckoutPage() {
       // Note: Don't set setSubmitting(false) here as we're navigating away
     } catch (error: unknown) {
       console.error('Error creating order:', error);
+      console.error('Error type:', typeof error);
+      console.error('Error constructor:', error?.constructor?.name);
+      console.error('Error keys:', error ? Object.keys(error) : 'no keys');
       
-      const errorMessage = (error as Error).message || '';
-      const errorCode = (error as { code?: string })?.code || '';
+      // More robust error extraction
+      let errorMessage = '';
+      let errorCode = '';
+      
+      if (error && typeof error === 'object') {
+        // Handle Supabase errors
+        if ('message' in error && typeof error.message === 'string') {
+          errorMessage = error.message;
+        }
+        if ('code' in error && typeof error.code === 'string') {
+          errorCode = error.code;
+        }
+        // Handle PostgreSQL errors
+        if ('details' in error && typeof error.details === 'string') {
+          errorMessage = errorMessage || error.details;
+        }
+        // Handle network errors
+        if ('status' in error) {
+          errorCode = errorCode || String(error.status);
+        }
+      }
+      
+      // Fallback for completely unknown errors
+      if (!errorMessage && !errorCode) {
+        errorMessage = error ? String(error) : 'Unknown error occurred';
+        console.error('Fallback error message:', errorMessage);
+      }
       
       // Network/Connection errors
       if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorCode === 'NETWORK_ERROR') {

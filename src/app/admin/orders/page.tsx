@@ -48,6 +48,8 @@ interface Order {
   delivery_address: string;
   delivery_city: string;
   delivery_notes?: string;
+  delivery_latitude?: number;
+  delivery_longitude?: number;
   subtotal: number;
   total: number;
   status: string;
@@ -441,11 +443,28 @@ export default function AdminOrdersPage() {
                       <div className="space-y-2 text-sm">
                         <div className="flex items-start space-x-2">
                           <MapPin className="h-4 w-4 text-gray-400 mt-0.5" />
-                          <div>
+                          <div className="flex-1">
                             <p>{order.delivery_address}</p>
                             <p className="text-gray-600">{order.delivery_city}</p>
                             {(order.delivery_address_json as { area?: string })?.area && (
                               <p className="text-gray-600">{String((order.delivery_address_json as { area?: string }).area)}</p>
+                            )}
+                            {order.delivery_latitude && order.delivery_longitude && (
+                              <div className="mt-2 space-y-1">
+                                <p className="text-xs text-green-600 font-medium">📍 GPS Location Available</p>
+                                <p className="text-xs text-gray-500">
+                                  {order.delivery_latitude.toFixed(6)}, {order.delivery_longitude.toFixed(6)}
+                                </p>
+                                <a
+                                  href={`https://maps.google.com/maps?q=${order.delivery_latitude},${order.delivery_longitude}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
+                                >
+                                  <ExternalLink className="h-3 w-3 mr-1" />
+                                  Open in Google Maps
+                                </a>
+                              </div>
                             )}
                           </div>
                         </div>
