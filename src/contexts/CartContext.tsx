@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { CartItem } from '@/types/ecommerce';
 
@@ -41,23 +41,34 @@ const getSessionId = () => {
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
 
-  // Load cart from database on mount
-  useEffect(() => {
-    loadCart();
-  }, []);
-
-  const loadCart = async () => {
+  const loadCart = useCallback(async (user?: { id: string } | null) => {
     try {
-      const sessionId = getSessionId();
       const supabase = createClient();
+      let cartItems;
       
-      const { data: cartItems, error } = await supabase
-        .from('cart_items')
-        .select('*')
-        .eq('session_id', sessionId);
-
-      if (error) throw error;
+      if (user) {
+        // Load user-specific cart
+        const { data, error } = await supabase
+          .from('cart_items')
+          .select('*')
+          .eq('user_id', user.id);
+        
+        if (error) throw error;
+        cartItems = data;
+      } else {
+        // Load session-based cart for guests
+        const sessionId = getSessionId();
+        const { data, error } = await supabase
+          .from('cart_items')
+          .select('*')
+          .eq('session_id', sessionId)
+          .is('user_id', null);
+        
+        if (error) throw error;
+        cartItems = data;
+      }
 
       const formattedItems: CartItem[] = (cartItems || []).map(item => ({
         id: item.id,
@@ -79,25 +90,103 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const addCustomJewelryToCart = async (jewelryData: CustomJewelryData, quantity = 1) => {
+  // Migrate guest cart to user cart when user logs in
+  const migrateGuestCartToUser = useCallback(async (userId: string) => {
     try {
       const sessionId = getSessionId();
       const supabase = createClient();
+      
+      // Get current guest cart items
+      const { data: guestItems, error: guestError } = await supabase
+        .from('cart_items')
+        .select('*')
+        .eq('session_id', sessionId)
+        .is('user_id', null);
+      
+      if (guestError) throw guestError;
+      
+      if (guestItems && guestItems.length > 0) {
+        // Update guest cart items to be associated with the user
+        const { error: updateError } = await supabase
+          .from('cart_items')
+          .update({ user_id: userId })
+          .eq('session_id', sessionId)
+          .is('user_id', null);
+        
+        if (updateError) throw updateError;
+        
+        console.log(`✅ Migrated ${guestItems.length} items from guest cart to user cart`);
+      }
+      
+      // Load the user's cart (now including migrated items)
+      await loadCart({ id: userId });
+    } catch (error) {
+      console.error('Error migrating guest cart to user:', error);
+      // Still load user cart even if migration fails
+      await loadCart({ id: userId });
+    }
+  }, [loadCart]);
+
+  // Listen for auth changes and load appropriate cart
+  useEffect(() => {
+    const supabase = createClient();
+    
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUser(session?.user || null);
+      loadCart(session?.user);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      const newUser = session?.user || null;
+      const oldUser = currentUser;
+      
+      setCurrentUser(newUser);
+      
+      // Handle user login/logout cart migration
+      if (event === 'SIGNED_IN' && newUser && !oldUser) {
+        // User just logged in - migrate guest cart to user cart
+        await migrateGuestCartToUser(newUser.id);
+      } else if (event === 'SIGNED_OUT' && oldUser) {
+        // User logged out - load guest cart
+        await loadCart(null);
+      } else {
+        // Other auth state changes - just reload cart
+        await loadCart(newUser);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [currentUser, migrateGuestCartToUser, loadCart]);
+
+  const addCustomJewelryToCart = async (jewelryData: CustomJewelryData, quantity = 1) => {
+    try {
+      const supabase = createClient();
+      
+      // Prepare cart item data
+      const cartItemData: Record<string, unknown> = {
+        jewelry_type: jewelryData.jewelry_type,
+        customization_data: jewelryData.customization_data,
+        base_price: jewelryData.base_price,
+        total_price: jewelryData.total_price,
+        preview_image_url: jewelryData.preview_image_url,
+        quantity,
+      };
+      
+      // Add user_id if user is logged in, otherwise use session_id
+      if (currentUser) {
+        cartItemData.user_id = currentUser.id;
+      } else {
+        cartItemData.session_id = getSessionId();
+      }
 
       // Add new custom jewelry item to cart
       const { data, error } = await supabase
         .from('cart_items')
-        .insert({
-          session_id: sessionId,
-          jewelry_type: jewelryData.jewelry_type,
-          customization_data: jewelryData.customization_data,
-          base_price: jewelryData.base_price,
-          total_price: jewelryData.total_price,
-          preview_image_url: jewelryData.preview_image_url,
-          quantity
-        })
+        .insert(cartItemData)
         .select('*')
         .single();
 
@@ -171,15 +260,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = async () => {
     try {
-      const sessionId = getSessionId();
       const supabase = createClient();
 
-      const { error } = await supabase
-        .from('cart_items')
-        .delete()
-        .eq('session_id', sessionId);
-
-      if (error) throw error;
+      if (currentUser) {
+        // Clear user-specific cart
+        const { error } = await supabase
+          .from('cart_items')
+          .delete()
+          .eq('user_id', currentUser.id);
+        
+        if (error) throw error;
+      } else {
+        // Clear session-based cart
+        const sessionId = getSessionId();
+        const { error } = await supabase
+          .from('cart_items')
+          .delete()
+          .eq('session_id', sessionId)
+          .is('user_id', null);
+        
+        if (error) throw error;
+      }
 
       setItems([]);
     } catch (error) {

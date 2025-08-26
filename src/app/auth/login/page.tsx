@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 
-export default function AdminLoginPage() {
+export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,8 +19,8 @@ export default function AdminLoginPage() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (session?.user) {
-        // Let middleware handle admin check
-        router.push('/admin');
+        // Redirect to homepage for regular users
+        router.push('/');
       }
     };
 
@@ -45,8 +45,8 @@ export default function AdminLoginPage() {
         throw authError;
       }
 
-      // Redirect will happen automatically via auth context
-      router.push('/admin');
+      // Redirect to homepage after successful login
+      router.push('/');
     } catch (error: unknown) {
       console.error('Login error:', error);
       setError((error as Error).message || 'An error occurred during login');
@@ -61,13 +61,13 @@ export default function AdminLoginPage() {
         <div>
           <div className="mx-auto h-12 w-auto text-center">
             <h1 className="text-3xl font-serif font-light text-zinc-900 tracking-wider">JOVÉ</h1>
-            <p className="text-xs text-zinc-600 font-light tracking-[0.2em] mt-1">ADMIN</p>
+            <p className="text-xs text-zinc-600 font-light tracking-[0.2em] mt-1">JEWELRY</p>
           </div>
           <h2 className="mt-6 text-center text-3xl font-light text-gray-900">
-            Admin Access
+            Welcome Back
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to access the admin panel
+            Sign in to your Jové account
           </p>
         </div>
         
@@ -132,19 +132,19 @@ export default function AdminLoginPage() {
 
           <div className="text-center space-y-2">
             <p className="text-sm text-gray-600">
-              Need to create the first admin account?{' '}
+              Don't have an account?{' '}
               <a
                 href="/auth/signup"
                 className="font-medium text-zinc-600 hover:text-zinc-900 transition-colors duration-200"
               >
-                Sign up here
+                Create one here
               </a>
             </p>
             <Link
               href="/"
               className="block text-sm text-zinc-600 hover:text-zinc-900 transition-colors duration-200"
             >
-              ← Back to website
+              ← Back to Jové
             </Link>
           </div>
         </form>

@@ -52,6 +52,10 @@ export interface Order {
   status: 'pending' | 'confirmed' | 'preparing' | 'shipped' | 'delivered' | 'cancelled';
   payment_method: string;
   notes?: string;
+  discount_type?: 'percentage' | 'fixed_amount';
+  discount_value?: number;
+  discount_amount?: number;
+  discount_code?: string;
   created_at: string;
   updated_at: string;
   order_items: OrderItem[];

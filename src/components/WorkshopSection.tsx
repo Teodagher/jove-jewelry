@@ -1,6 +1,6 @@
 export default function WorkshopSection() {
   return (
-    <section className="py-12 sm:py-16 lg:py-20 bg-stone-50">
+    <section id="about" className="py-12 sm:py-16 lg:py-20 bg-stone-50">
       <div className="max-w-7xl mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-16 items-center">
           <div className="space-y-6 sm:space-y-8">

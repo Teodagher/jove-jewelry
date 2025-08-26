@@ -73,7 +73,7 @@ export default function Navbar() {
 
       {/* About Us Link */}
       <Link
-        href="/about"
+        href="/#about"
         className="text-xl font-light text-zinc-800 hover:text-zinc-900 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-zinc-50 font-serif tracking-wider"
       >
         ABOUT US

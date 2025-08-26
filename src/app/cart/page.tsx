@@ -235,15 +235,23 @@ export default function CartPage() {
                         Free Delivery in Lebanon
                       </p>
                     </div>
+                    
+                    {/* Checkout Button */}
+                    <Button 
+                      onClick={() => router.push('/checkout')}
+                      className="w-full bg-black hover:bg-zinc-800 text-white py-3 text-sm font-light tracking-[0.15em] transition-all duration-500 rounded-none border-0 uppercase mb-4"
+                    >
+                      Proceed to Checkout — {formatPrice(subtotal)}
+                    </Button>
                   </div>
                 </div>
               </div>
 
-              {/* Account Creation */}
+              {/* Optional Account Creation */}
               <div className="jove-bg-card rounded-lg shadow-sm p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Create Your Jové Account</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Create Your Jové Account <span className="text-sm font-normal text-gray-500">(Optional)</span></h3>
                 <p className="text-sm text-gray-600 mb-6">
-                  Join Jové to track your orders, save your favorites, and enjoy exclusive benefits.
+                  Join Jové to track your orders, save your favorites, and enjoy exclusive benefits. You can also checkout as a guest.
                 </p>
                 
                 <JoveAccountForm onSuccess={() => router.push('/checkout')} />

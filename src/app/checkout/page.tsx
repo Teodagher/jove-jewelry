@@ -45,14 +45,15 @@ export default function CheckoutPage() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
+  const [orderCompleted, setOrderCompleted] = useState(false);
   const router = useRouter();
 
-  // Redirect if cart is empty
+  // Redirect if cart is empty (but not if we just completed an order)
   useEffect(() => {
-    if (!cartLoading && items.length === 0) {
+    if (!cartLoading && items.length === 0 && !orderCompleted) {
       router.push('/customize');
     }
-  }, [items.length, cartLoading, router]);
+  }, [items.length, cartLoading, orderCompleted, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -111,7 +112,6 @@ export default function CheckoutPage() {
     { code: '+86', country: 'China' },
     { code: '+81', country: 'Japan' },
     { code: '+82', country: 'South Korea' },
-    { code: '+33', country: 'France' },
     { code: '+41', country: 'Switzerland' },
     { code: '+43', country: 'Austria' },
     { code: '+31', country: 'Netherlands' },
@@ -403,11 +403,33 @@ export default function CheckoutPage() {
         `Order #${orderNumber} is now being handcrafted with the finest materials. You'll receive updates on your personalized jewelry journey.`
       );
 
-      // Clear the cart after successful order
-      await clearCart();
+      // Mark order as completed to prevent redirect back to customize
+      setOrderCompleted(true);
+
+      // Clear the cart after successful order (with error handling)
+      try {
+        console.log('🧹 Clearing cart...');
+        await clearCart();
+        console.log('✅ Cart cleared successfully');
+      } catch (cartError) {
+        console.error('⚠️ Cart clearing failed, but order was successful:', cartError);
+        // Don't let cart clearing failure prevent redirect
+      }
 
       // Redirect to order confirmation
-      router.push(`/order-confirmation/${order.id}`);
+      console.log('🚀 Redirecting to order confirmation:', `/order-confirmation/${order.id}`);
+      
+      // Try Next.js router first
+      try {
+        router.push(`/order-confirmation/${order.id}`);
+        console.log('✅ Router.push executed successfully');
+      } catch (routerError) {
+        console.error('❌ Router.push failed, using window.location:', routerError);
+        // Fallback to window.location if router fails
+        window.location.href = `/order-confirmation/${order.id}`;
+      }
+      
+      // Note: Don't set setSubmitting(false) here as we're navigating away
     } catch (error: unknown) {
       console.error('Error creating order:', error);
       

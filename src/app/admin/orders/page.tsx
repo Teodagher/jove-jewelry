@@ -20,9 +20,12 @@ import {
   Mail,
   ChevronDown,
   ChevronUp,
-  ExternalLink
+  ExternalLink,
+  Plus,
+  Tag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ManualOrderForm from '@/components/admin/ManualOrderForm';
 
 interface OrderItem {
   id: string;
@@ -50,6 +53,10 @@ interface Order {
   status: string;
   payment_method: string;
   notes?: string;
+  discount_type?: 'percentage' | 'fixed_amount';
+  discount_value?: number;
+  discount_amount?: number;
+  discount_code?: string;
   created_at: string;
   updated_at: string;
   customer_info?: Record<string, unknown>;
@@ -84,6 +91,7 @@ export default function AdminOrdersPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [showManualOrderForm, setShowManualOrderForm] = useState(false);
 
   const supabase = createClient();
 
@@ -249,9 +257,18 @@ export default function AdminOrdersPage() {
               Manage customer orders and track production status
             </p>
           </div>
-          <div className="flex items-center space-x-3 text-sm text-gray-500">
-            <Package className="h-4 w-4" />
-            <span>{filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''}</span>
+          <div className="flex items-center space-x-4">
+            <Button
+              onClick={() => setShowManualOrderForm(true)}
+              className="bg-black hover:bg-zinc-800"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Manual Order
+            </Button>
+            <div className="flex items-center space-x-3 text-sm text-gray-500">
+              <Package className="h-4 w-4" />
+              <span>{filteredOrders.length} order{filteredOrders.length !== 1 ? 's' : ''}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -293,6 +310,19 @@ export default function AdminOrdersPage() {
           </div>
         </div>
       </div>
+
+      {/* Manual Order Form */}
+      {showManualOrderForm && (
+        <div className="jove-bg-card rounded-lg shadow-sm">
+          <ManualOrderForm
+            onSuccess={() => {
+              setShowManualOrderForm(false);
+              fetchOrders();
+            }}
+            onCancel={() => setShowManualOrderForm(false)}
+          />
+        </div>
+      )}
 
       {/* Orders List */}
       <div className="space-y-4">
@@ -337,6 +367,11 @@ export default function AdminOrdersPage() {
                       <p className="text-lg font-semibold text-gray-900">
                         {formatPrice(order.total)}
                       </p>
+                      {order.discount_amount && order.discount_amount > 0 && (
+                        <p className="text-sm text-green-600">
+                          -{formatPrice(order.discount_amount)} discount
+                        </p>
+                      )}
                       <p className="text-sm text-gray-600">
                         {order.order_items?.length || 0} item{(order.order_items?.length || 0) !== 1 ? 's' : ''}
                       </p>
@@ -423,6 +458,29 @@ export default function AdminOrdersPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Discount Information */}
+                  {order.discount_amount && order.discount_amount > 0 && (
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900 mb-3">Discount Applied</h4>
+                      <div className="p-4 bg-green-50 rounded-lg">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <Tag className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium text-green-800">
+                            {order.discount_type === 'percentage' 
+                              ? `${order.discount_value}% Off` 
+                              : `${formatPrice(order.discount_value || 0)} Off`}
+                          </span>
+                        </div>
+                        <div className="text-sm text-green-700">
+                          <p>Discount Amount: {formatPrice(order.discount_amount)}</p>
+                          {order.discount_code && (
+                            <p>Code: <span className="font-mono font-medium">{order.discount_code}</span></p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Order Items */}
                   <div>
