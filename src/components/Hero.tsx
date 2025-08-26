@@ -4,21 +4,36 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import HeroCarousel from './HeroCarousel'
-import { fetchHeroImages } from '@/services/heroImageService'
+import { fetchHeroImagesProgressive } from '@/services/heroImageService'
 
 export default function Hero() {
   const [heroImages, setHeroImages] = useState<string[]>([])
+  const [firstImage, setFirstImage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const loadHeroImages = async () => {
       try {
-        const images = await fetchHeroImages()
+        const { firstImage: first, allImages } = await fetchHeroImagesProgressive()
+        
+        // Set first image immediately if available
+        if (first) {
+          setFirstImage(first)
+          setIsLoading(false)
+        }
+        
+        // Load remaining images in background
+        const images = await allImages
         setHeroImages(images)
+        
+        // If we didn't have a first image, we're done loading now
+        if (!first) {
+          setIsLoading(false)
+        }
       } catch (error) {
         console.error('Failed to load hero images:', error)
         setHeroImages([])
-      } finally {
+        setFirstImage(null)
         setIsLoading(false)
       }
     }
@@ -29,7 +44,12 @@ export default function Hero() {
   return (
     <section className="relative h-[calc(100vh-104px)] flex items-center justify-center overflow-hidden bg-stone-50">
       {/* Hero Carousel Background */}
-      <HeroCarousel images={heroImages} interval={5000} isInitialLoading={isLoading} />
+      <HeroCarousel 
+        images={heroImages} 
+        firstImage={firstImage}
+        interval={5000} 
+        isInitialLoading={isLoading} 
+      />
       
       {/* Content */}
       <div className="relative z-10 text-center text-white px-4 max-w-4xl mx-auto">
