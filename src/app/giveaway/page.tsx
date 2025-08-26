@@ -19,8 +19,6 @@ export default function GiveawayPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [winner, setWinner] = useState<string | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
 
   const supabase = createClient();
   const router = useRouter();
@@ -47,41 +45,10 @@ export default function GiveawayPage() {
     }
   }, [supabase]);
 
-  const checkAuth = useCallback(async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        router.push('/auth/login');
-        return;
-      }
-
-      // Check if user is admin by checking their role in the users table
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('roles')
-        .eq('auth_user_id', session.user.id)
-        .single();
-
-      if (userError || !userData?.roles?.includes('admin')) {
-        router.push('/auth/login');
-        return;
-      }
-
-      setIsAuthenticated(true);
-      fetchEventLeads();
-    } catch (error) {
-      console.error('Auth check error:', error);
-      router.push('/auth/login');
-    } finally {
-      setAuthLoading(false);
-    }
-  }, [supabase, router, fetchEventLeads]);
-
-  // Check authentication
+  // Load leads on component mount
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    fetchEventLeads();
+  }, [fetchEventLeads]);
 
 
 
@@ -89,20 +56,7 @@ export default function GiveawayPage() {
     setWinner(winnerName);
   };
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen jove-bg-primary flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
-          <p className="text-zinc-600 font-light">Authenticating...</p>
-        </div>
-      </div>
-    );
-  }
 
-  if (!isAuthenticated) {
-    return null; // Will redirect to login
-  }
 
   if (loading) {
     return (
@@ -141,12 +95,12 @@ export default function GiveawayPage() {
         {/* Back Button */}
         <div className="mb-8">
           <Button
-            onClick={() => router.push('/admin')}
+            onClick={() => router.push('/')}
             variant="ghost"
             className="text-zinc-600 hover:text-zinc-900 font-light tracking-wide"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Admin
+            Back to Home
           </Button>
         </div>
         
