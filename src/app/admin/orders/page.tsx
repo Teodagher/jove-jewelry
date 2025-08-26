@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { 
   Package, 
@@ -27,7 +27,7 @@ import { Button } from '@/components/ui/button';
 interface OrderItem {
   id: string;
   jewelry_type: string;
-  customization_data: Record<string, any>;
+  customization_data: Record<string, unknown>;
   customization_summary: string;
   base_price: number;
   total_price: number;
@@ -52,8 +52,8 @@ interface Order {
   notes?: string;
   created_at: string;
   updated_at: string;
-  customer_info?: Record<string, any>;
-  delivery_address_json?: Record<string, any>;
+  customer_info?: Record<string, unknown>;
+  delivery_address_json?: Record<string, unknown>;
   items?: OrderItem[];
   order_items?: OrderItem[];
 }
@@ -87,7 +87,7 @@ export default function AdminOrdersPage() {
 
   const supabase = createClient();
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -122,7 +122,7 @@ export default function AdminOrdersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
@@ -155,7 +155,7 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [fetchOrders]);
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
@@ -409,8 +409,8 @@ export default function AdminOrdersPage() {
                           <div>
                             <p>{order.delivery_address}</p>
                             <p className="text-gray-600">{order.delivery_city}</p>
-                            {order.delivery_address_json?.area && (
-                              <p className="text-gray-600">{order.delivery_address_json.area}</p>
+                            {(order.delivery_address_json as { area?: string })?.area && (
+                              <p className="text-gray-600">{String((order.delivery_address_json as { area?: string }).area)}</p>
                             )}
                           </div>
                         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { 
   DollarSign, 
@@ -20,7 +20,7 @@ interface Stats {
   value: string;
   change: string;
   changeType: 'neutral' | 'positive' | 'negative';
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 interface DashboardData {
@@ -103,7 +103,7 @@ export default function AdminDashboard() {
 
   const supabase = createClient();
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -148,11 +148,11 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [fetchDashboardData]);
 
   const stats: Stats[] = [
     {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -25,12 +25,29 @@ export default function GiveawayPage() {
   const supabase = createClient();
   const router = useRouter();
 
-  // Check authentication
-  useEffect(() => {
-    checkAuth();
-  }, []);
+  const fetchEventLeads = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, first_name, last_name, source')
+        .ilike('source', '%launch-event-form%')
+        .order('created_at', { ascending: false });
 
-  const checkAuth = async () => {
+      if (error) {
+        console.error('Error fetching leads:', error);
+        return;
+      }
+
+      setLeads(data || []);
+    } catch (error) {
+      console.error('Error fetching leads:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase]);
+
+  const checkAuth = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -59,31 +76,14 @@ export default function GiveawayPage() {
     } finally {
       setAuthLoading(false);
     }
-  };
+  }, [supabase, router, fetchEventLeads]);
 
-  const fetchEventLeads = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('leads')
-        .select('id, first_name, last_name, source')
-        .ilike('source', '%launch-event-form%')
-        .order('created_at', { ascending: false });
+  // Check authentication
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
-      if (error) {
-        console.error('Error fetching leads:', error);
-        setError('Failed to fetch event participants');
-      } else {
-        const leadsData = data || [];
-        setLeads(leadsData);
-      }
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      setError('An unexpected error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const handleWinner = (winnerName: string) => {
     setWinner(winnerName);

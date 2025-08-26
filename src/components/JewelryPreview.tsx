@@ -38,25 +38,15 @@ export default function JewelryPreview({
       return;
     }
     
-    console.log('🔄 JewelryPreview: Starting to load image:', imageUrl, `(Attempt ${retryCount + 1})`);
-    setImageLoading(true);
-    setImageError(false);
-    setLoadStartTime(Date.now());
+            setImageLoading(true);
+        setImageError(false);
+        setLoadStartTime(Date.now());
 
     // Set a timeout for slow loading images (shorter for retries)
-    const timeoutDuration = retryCount > 0 ? 5000 : 8000;
+    const timeoutDuration = retryCount > 0 ? 2000 : 3000;
     const timeout = setTimeout(() => {
       if (imageLoading) {
-        console.warn(`⏰ Image loading timeout (${timeoutDuration/1000}s) reached for:`, imageUrl);
-        if (retryCount < 2) {
-          console.log('🔄 Auto-retrying image load...');
-          setRetryCount(prev => prev + 1);
-          setImageLoading(true);
-          setLoadStartTime(Date.now());
-        } else {
-          setImageError(true);
-          setImageLoading(false);
-        }
+        setImageLoading(false); // Just show the image
       }
     }, timeoutDuration);
 
@@ -67,23 +57,21 @@ export default function JewelryPreview({
         clearTimeout(timeout);
       }
     };
-  }, [imageUrl, retryCount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageUrl, retryCount]); // imageLoading is intentionally excluded to prevent infinite re-render loop
 
-  const handleImageLoad = useCallback(() => {
+  const handleImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     if (loadTimeout) {
       clearTimeout(loadTimeout);
     }
     const loadTime = Date.now() - loadStartTime;
     
-    if (loadTime > 1000) {
-      console.warn(`🐌 SLOW LOAD: Image took ${loadTime}ms (${(loadTime/1000).toFixed(1)}s):`, imageUrl);
-      console.warn('⚠️ Slow loading detected - expected <500ms with compressed WebP images');
-    } else if (loadTime > 500) {
-      console.log(`⚠️ Image loaded in ${loadTime}ms (acceptable):`, imageUrl);
-    } else if (loadTime > 200) {
-      console.log(`✅ Image loaded in ${loadTime}ms (good):`, imageUrl);
-    } else {
-      console.log(`🚀 Image loaded in ${loadTime}ms (excellent):`, imageUrl);
+    if (loadTime > 0 && loadTime < 100000) { // Only log reasonable load times
+      if (loadTime > 1000) {
+        console.warn(`🐌 SLOW LOAD: Image took ${loadTime}ms (${(loadTime/1000).toFixed(1)}s):`, imageUrl);
+      } else if (loadTime > 200) {
+        console.log(`✅ Image loaded in ${loadTime}ms:`, imageUrl);
+      }
     }
     
     setImageLoading(false);
@@ -130,8 +118,8 @@ export default function JewelryPreview({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Loading skeleton */}
-        {imageLoading && !imageError && (
+        {/* Loading skeleton - only show if no image URL or if image failed */}
+        {imageLoading && !imageError && !imageUrl && (
           <div className="absolute inset-0 animate-pulse bg-gray-200 rounded-lg flex items-center justify-center">
             <div className="text-gray-500 text-sm">Loading image...</div>
           </div>
@@ -167,10 +155,11 @@ export default function JewelryPreview({
         {/* Main Image */}
         {!imageError && imageUrl && (
           <img
+            key={imageUrl} // Force remount on URL change
             src={imageUrl}
             alt={alt}
             className={`absolute inset-0 object-contain w-full h-full p-4 sm:p-6 md:p-8 transition-opacity duration-300 ease-in-out ${
-              imageLoading ? 'opacity-0' : 'opacity-100'
+              imageLoading ? 'opacity-50' : 'opacity-100'
             }`}
             onLoad={handleImageLoad}
             onError={handleImageError}

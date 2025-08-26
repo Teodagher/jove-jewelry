@@ -190,7 +190,7 @@ export class CustomizationService {
   }
 
   // Generate dynamic variant image URL based on customization selections
-  static generateVariantImageUrl(jewelryType: string, customizations: { [key: string]: string }): string {
+  static generateVariantImageUrl(jewelryType: string, customizations: { [key: string]: string }): string | null {
     const baseUrl = 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item'
     
     console.log('🔧 CustomizationService: Generating URL for:', {
@@ -482,6 +482,10 @@ export class CustomizationService {
   // Check if a variant image exists for given customizations
   static async checkVariantImageExists(jewelryType: string, customizations: { [key: string]: string }): Promise<boolean> {
     const imageUrl = this.generateVariantImageUrl(jewelryType, customizations)
+    
+    if (!imageUrl) {
+      return false
+    }
     
     try {
       const response = await fetch(imageUrl, { method: 'HEAD' })

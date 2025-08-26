@@ -18,7 +18,7 @@ export interface CustomizationSetting {
 export interface JewelryItem {
   id: string;
   name: string;
-  baseImage: string;
+  baseImage: string | null;
   settings: CustomizationSetting[];
   basePrice: number;
   basePriceLabGrown?: number; // Lab grown base price

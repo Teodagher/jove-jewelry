@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -24,13 +24,7 @@ export default function OrderConfirmationPage() {
 
   const orderId = params.orderId as string;
 
-  useEffect(() => {
-    if (orderId) {
-      fetchOrder();
-    }
-  }, [orderId]);
-
-  const fetchOrder = async () => {
+  const fetchOrder = useCallback(async () => {
     try {
       const supabase = createClient();
       
@@ -59,7 +53,13 @@ export default function OrderConfirmationPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [orderId]);
+
+  useEffect(() => {
+    if (orderId) {
+      fetchOrder();
+    }
+  }, [orderId, fetchOrder]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {

@@ -6,19 +6,19 @@ export default function CustomizePage() {
     {
       name: 'Rings',
       href: '/customize/rings',
-      image: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/ring%20-preview.png',
+      image: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/ring-preview.webp',
       alt: 'Custom ring design'
     },
     {
       name: 'Bracelets',
       href: '/customize/bracelets',
-      image: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/bracelet-preview.png?v=' + Date.now(),
+      image: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/bracelet-preview.webp',
       alt: 'Custom bracelet design'
     },
     {
       name: 'Necklaces',
       href: '/customize/necklaces',
-      image: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/necklace.png',
+      image: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/necklace.webp',
       alt: 'Custom necklace design'
     }
   ]

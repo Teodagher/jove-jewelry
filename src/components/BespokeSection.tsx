@@ -7,19 +7,19 @@ export default function BespokeSection() {
     {
       name: 'BRACELETS',
       description: 'Elegant chains and charm bracelets with customizable stones and metals',
-      image: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/bracelet-preview.png',
+      image: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/bracelet-preview.webp',
       link: '/customize/bracelets'
     },
     {
       name: 'NECKLACES',
       description: 'Beautiful pendants and chains designed to complement your style',
-      image: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/necklace.png',
+      image: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/necklace.webp',
       link: '/customize/necklaces'
     },
     {
       name: 'RINGS',
       description: 'Stunning rings with precious stones and customizable settings',
-      image: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/ring%20-preview.png',
+      image: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/ring-preview.webp',
       link: '/customize/rings'
     }
   ];

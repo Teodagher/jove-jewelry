@@ -113,7 +113,7 @@ export default function CustomizationComponent({
         ...updates
       }));
     }
-  }, [jewelryItem.settings, customizationState.first_stone, customizationState.chain_type, customizationState.metal, customizationState.second_stone]);
+  }, [jewelryItem.settings, jewelryItem.id, customizationState.first_stone, customizationState.chain_type, customizationState.metal, customizationState.second_stone]);
 
   // Aggressively preload common variant images for better performance
   useEffect(() => {
@@ -283,8 +283,22 @@ export default function CustomizationComponent({
       return generatedUrl;
     }
     
-    // For other jewelry types, always use base image
+    // For other jewelry types or during initial load, provide a sensible default
     console.log('📋 Using base image:', jewelryItem.baseImage);
+    
+    // If no base image and no customizations selected yet, use a default variant
+    if (!jewelryItem.baseImage && Object.keys(customizationState).length === 0) {
+      if (jewelryItem.id === 'bracelet') {
+        return 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/bracelets/bracelet-black-leather-emerald-whitegold.webp';
+      }
+      if (jewelryItem.id === 'necklace') {
+        return 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/necklaces/necklace-black-leather-emerald-yellowgold.webp';
+      }
+      if (jewelryItem.id === 'ring') {
+        return 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/rings/Ring%20emerald%20white%20gold.png';
+      }
+    }
+    
     return jewelryItem.baseImage;
   }, [customizationState, jewelryItem]);
 
@@ -386,7 +400,7 @@ export default function CustomizationComponent({
           ? jewelryItem.basePriceLabGrown 
           : jewelryItem.basePrice,
         total_price: totalPrice,
-        preview_image_url: previewImageUrl
+        preview_image_url: previewImageUrl || undefined
       });
 
       // Redirect to cart
@@ -416,7 +430,7 @@ export default function CustomizationComponent({
           ? jewelryItem.basePriceLabGrown 
           : jewelryItem.basePrice,
         total_price: totalPrice,
-        preview_image_url: previewImageUrl
+        preview_image_url: previewImageUrl || undefined
       });
 
       // Go straight to checkout

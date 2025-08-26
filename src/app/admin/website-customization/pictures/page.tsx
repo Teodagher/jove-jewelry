@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Upload, 
   Trash2, 
@@ -45,7 +45,7 @@ export default function PicturesManagementPage() {
   const supabase = createClient();
 
   // Load hero images from Supabase
-  const loadHeroImages = async () => {
+  const loadHeroImages = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -140,7 +140,7 @@ export default function PicturesManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
   // Process file upload (from input or drag/drop)
   const processImageFile = async (file: File) => {
@@ -409,7 +409,7 @@ export default function PicturesManagementPage() {
 
   useEffect(() => {
     loadHeroImages();
-  }, []);
+  }, [loadHeroImages]);
 
   return (
     <div className="space-y-8">

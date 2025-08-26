@@ -412,7 +412,7 @@ export default function CheckoutPage() {
       console.error('Error creating order:', error);
       
       const errorMessage = (error as Error).message || '';
-      const errorCode = (error as any)?.code || '';
+      const errorCode = (error as { code?: string })?.code || '';
       
       // Network/Connection errors
       if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorCode === 'NETWORK_ERROR') {

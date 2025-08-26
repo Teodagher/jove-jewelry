@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { UserPlus, Download, Search, Calendar, Mail, Phone, MapPin } from 'lucide-react';
 
@@ -23,11 +23,7 @@ export default function LeadsManagementPage() {
 
   const supabase = createClient();
 
-  useEffect(() => {
-    fetchLeads();
-  }, []);
-
-  const fetchLeads = async () => {
+  const fetchLeads = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -47,7 +43,11 @@ export default function LeadsManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
+
+  useEffect(() => {
+    fetchLeads();
+  }, [fetchLeads]);
 
   const filteredLeads = leads.filter(lead => {
     const matchesSearch = 
