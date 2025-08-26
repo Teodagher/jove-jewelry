@@ -467,12 +467,12 @@ export default function CheckoutPage() {
         console.log('🧹 Clearing cart...');
         await clearCart();
         console.log('✅ Cart cleared successfully');
-      } catch (cartError) {
+      } catch (cartError: unknown) {
         console.error('⚠️ Cart clearing failed, but order was successful:', cartError);
         console.error('⚠️ Cart error details:', {
-          message: cartError?.message,
+          message: (cartError as Error)?.message || 'Unknown error',
           type: typeof cartError,
-          constructor: cartError?.constructor?.name
+          constructor: (cartError as Error)?.constructor?.name || 'Unknown'
         });
         // Don't let cart clearing failure prevent redirect
       }
