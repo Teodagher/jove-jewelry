@@ -4,10 +4,12 @@ import WorkshopSection from '@/components/WorkshopSection'
 import BespokeSection from '@/components/BespokeSection'
 import Footer from '@/components/Footer'
 import WhatsAppButton from '@/components/WhatsAppButton'
+import ScrollToHashOnLoad from '@/components/ScrollToHashOnLoad'
 
 export default function Home() {
   return (
     <main className="min-h-screen">
+      <ScrollToHashOnLoad />
       <Hero />
       <CraftsmanshipSection />
       <WorkshopSection />
