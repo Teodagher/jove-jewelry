@@ -88,18 +88,18 @@ export default function CustomersPage() {
 
     // Sort
     filtered.sort((a, b) => {
-      let aValue: any = a[sortField]
-      let bValue: any = b[sortField]
+      let aValue: string | number | Date = a[sortField]
+      let bValue: string | number | Date = b[sortField]
 
       if (sortField === 'total_spent') {
-        aValue = parseFloat(aValue)
-        bValue = parseFloat(bValue)
+        aValue = parseFloat(aValue as string)
+        bValue = parseFloat(bValue as string)
       } else if (sortField === 'total_orders') {
         aValue = parseInt(aValue.toString())
         bValue = parseInt(bValue.toString())
       } else if (sortField.includes('date')) {
-        aValue = new Date(aValue)
-        bValue = new Date(bValue)
+        aValue = new Date(aValue as string)
+        bValue = new Date(bValue as string)
       }
 
       if (sortDirection === 'asc') {
