@@ -10,6 +10,7 @@ import RealLifeImageViewer from './RealLifeImageViewer';
 import { useCart } from '@/contexts/CartContext';
 import { useRouter } from 'next/navigation';
 import { BuyNowButton } from '@/components/ui/buy-now-button';
+import ProductDescription from '@/components/ProductDescription';
 
 // Preload critical images for faster UX
 const preloadImage = (src: string) => {
@@ -515,6 +516,11 @@ export default function CustomizationComponent({
             </div>
           </div>
 
+          {/* Product Description - Mobile */}
+          <div className="mb-8">
+            <ProductDescription productType={jewelryItem.id} />
+          </div>
+
           {/* Customization Settings - Mobile */}
           <div className="space-y-12 sm:space-y-16">
             {jewelryItem.settings.map((setting, index) => (
@@ -594,6 +600,11 @@ export default function CustomizationComponent({
                   <RealLifeImageViewer 
                     jewelryType={jewelryItem.id as 'bracelet' | 'ring' | 'necklace'}
                   />
+                </div>
+                
+                {/* Product Description - Desktop */}
+                <div className="mb-8 w-full max-w-sm">
+                  <ProductDescription productType={jewelryItem.id} />
                 </div>
                 
                 {/* Desktop buttons (show on desktop only) */}
