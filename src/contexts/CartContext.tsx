@@ -44,13 +44,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
 
   // Check if we're on an admin page to avoid unnecessary loading
-  const isAdminPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+  const [isAdminPage, setIsAdminPage] = useState(false);
+  
+  useEffect(() => {
+    setIsAdminPage(window.location.pathname.startsWith('/admin'));
+  }, []);
 
   const loadCart = useCallback(async (user?: { id: string } | null) => {
-    // Prevent multiple simultaneous cart loads
-    if (loading) return;
-    
-    setLoading(true);
     try {
       const supabase = createClient();
       let cartItems;
@@ -100,10 +100,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       });
       // Don't throw the error, just log it and continue with empty cart
       setItems([]);
-    } finally {
-      setLoading(false);
     }
-  }, [loading]);
+  }, []);
 
   // Migrate guest cart to user cart when user logs in
   const migrateGuestCartToUser = useCallback(async (userId: string) => {
@@ -150,40 +148,58 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    let isMounted = true;
     const supabase = createClient();
-    let previousUser: { id: string } | null = null;
     
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const user = session?.user || null;
-      setCurrentUser(user);
-      previousUser = user;
-      loadCart(user);
-    });
+    const initialize = async () => {
+      try {
+        // Get initial session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+        
+        const user = session?.user || null;
+        setCurrentUser(user);
+        await loadCart(user);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error initializing cart:', error);
+        setItems([]);
+        setLoading(false);
+      }
+    };
+
+    // Initialize cart
+    initialize();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+      
       const newUser = session?.user || null;
-      const oldUser = previousUser;
-      
       setCurrentUser(newUser);
-      previousUser = newUser;
       
-      // Handle user login/logout cart migration
-      if (event === 'SIGNED_IN' && newUser && !oldUser) {
-        // User just logged in - migrate guest cart to user cart
-        await migrateGuestCartToUser(newUser.id);
-      } else if (event === 'SIGNED_OUT' && oldUser) {
-        // User logged out - load guest cart
-        await loadCart(null);
-      } else {
-        // Other auth state changes - just reload cart
-        await loadCart(newUser);
+      try {
+        // Handle user login/logout cart migration
+        if (event === 'SIGNED_IN' && newUser) {
+          // User just logged in - migrate guest cart to user cart
+          await migrateGuestCartToUser(newUser.id);
+        } else if (event === 'SIGNED_OUT') {
+          // User logged out - load guest cart
+          await loadCart(null);
+        } else {
+          // Other auth state changes - just reload cart
+          await loadCart(newUser);
+        }
+      } catch (error) {
+        console.error('Error handling auth change:', error);
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, [migrateGuestCartToUser, loadCart, isAdminPage]);
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [isAdminPage, loadCart, migrateGuestCartToUser]);
 
   const addCustomJewelryToCart = async (jewelryData: CustomJewelryData, quantity = 1) => {
     try {

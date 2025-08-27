@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
 import ServiceWorkerRegister from "../components/ServiceWorkerRegister";
-import ConditionalCartProvider from "@/components/ConditionalCartProvider";
+import { CartProvider } from "@/contexts/CartContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ToastContainer from "@/components/ToastContainer";
@@ -93,10 +93,10 @@ export default function RootLayout({
         <ServiceWorkerRegister />
         <AuthProvider>
           <ToastProvider>
-            <ConditionalCartProvider>
+            <CartProvider>
               <MainLayout>{children}</MainLayout>
               <ToastContainer />
-            </ConditionalCartProvider>
+            </CartProvider>
           </ToastProvider>
         </AuthProvider>
       </body>

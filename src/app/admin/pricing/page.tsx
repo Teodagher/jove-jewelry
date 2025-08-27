@@ -81,24 +81,6 @@ export default function PricingPage() {
         })}
       </div>
 
-      {/* Quick Stats */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Pricing Overview</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className="text-2xl font-bold text-gray-400">-</div>
-            <div className="text-sm text-gray-600">Average Order Value</div>
-          </div>
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className="text-2xl font-bold text-gray-400">-</div>
-            <div className="text-sm text-gray-600">Total Product Variants</div>
-          </div>
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <div className="text-2xl font-bold text-gray-400">-</div>
-            <div className="text-sm text-gray-600">Customization Options</div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

@@ -8,16 +8,13 @@ import {
   Home,
   DollarSign,
   Users,
-  Settings,
   Package,
   BarChart3,
-  Mail,
   Menu,
   X,
   LogOut,
   Palette,
-  UserPlus,
-  Gift
+  UserPlus
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -43,17 +40,12 @@ const navigation = [
     icon: Palette,
     children: [
       { name: 'Pictures', href: '/admin/website-customization/pictures' },
-      { name: 'Themes', href: '/admin/website-customization/themes' },
-      { name: 'Typography', href: '/admin/website-customization/typography' },
-      { name: 'Layout', href: '/admin/website-customization/layout' },
     ]
   },
   { name: 'Orders', href: '/admin/orders', icon: Package },
   { name: 'Customers', href: '/admin/customers', icon: Users },
   { name: 'Leads', href: '/admin/leads', icon: UserPlus },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-  { name: 'Email Templates', href: '/admin/email-templates', icon: Mail },
-  { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
