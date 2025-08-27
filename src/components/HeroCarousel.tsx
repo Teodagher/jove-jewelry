@@ -88,11 +88,7 @@ export default function HeroCarousel({
   if (isInitialLoading && displayImages.length === 0) {
     return (
       <div className="absolute inset-0 bg-gradient-to-br from-stone-100 to-stone-200">
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="animate-pulse">
-            <div className="w-16 h-16 bg-stone-300 rounded-full"></div>
-          </div>
-        </div>
+        {/* No loading indicator - just clean background */}
       </div>
     )
   }

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import Navbar from './Navbar'
 import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/contexts/AuthContext'
+import AnimatedScrollButton from '@/components/AnimatedScrollButton'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -128,13 +129,13 @@ export default function Header() {
               </div>
 
               {/* Mobile About Us Link */}
-              <Link
-                href="/#about"
-                className="block text-lg font-light text-zinc-800 hover:text-zinc-900 py-3 font-serif tracking-wider transition-all duration-300"
+              <AnimatedScrollButton
+                targetId="about"
                 onClick={() => setIsMenuOpen(false)}
+                className="block w-full text-left text-lg font-light text-zinc-800 hover:text-zinc-900 py-3 font-serif tracking-wider transition-all duration-300"
               >
                 ABOUT US
-              </Link>
+              </AnimatedScrollButton>
             </div>
           </div>
         )}

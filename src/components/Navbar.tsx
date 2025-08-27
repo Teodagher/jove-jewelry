@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { ChevronDown } from 'lucide-react'
+import AnimatedScrollButton from '@/components/AnimatedScrollButton'
 
 export default function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -72,12 +73,12 @@ export default function Navbar() {
       </div>
 
       {/* About Us Link */}
-      <Link
-        href="/#about"
+      <AnimatedScrollButton
+        targetId="about"
         className="text-xl font-light text-zinc-800 hover:text-zinc-900 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-zinc-50 font-serif tracking-wider"
       >
         ABOUT US
-      </Link>
+      </AnimatedScrollButton>
     </nav>
   )
 } 
