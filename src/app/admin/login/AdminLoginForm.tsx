@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function AdminLoginForm() {
   const [email, setEmail] = useState('')
@@ -11,8 +12,14 @@ export default function AdminLoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
 
-  // AdminLayout will handle auth checks, this form is just for login
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user && !authLoading) {
+      router.push('/admin')
+    }
+  }, [user, authLoading, router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,9 +56,8 @@ export default function AdminLoginForm() {
         throw new Error('Access denied. Admin privileges required.')
       }
 
-      // Force page refresh to trigger SSR auth check
+      // Auth context will automatically update and redirect via useEffect
       router.push('/admin')
-      router.refresh()
     } catch (error: unknown) {
       console.error('Admin login error:', error)
       setError((error as Error).message || 'An error occurred during login')

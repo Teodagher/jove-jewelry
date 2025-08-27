@@ -47,6 +47,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const isAdminPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
 
   const loadCart = useCallback(async (user?: { id: string } | null) => {
+    // Prevent multiple simultaneous cart loads
+    if (loading) return;
+    
+    setLoading(true);
     try {
       const supabase = createClient();
       let cartItems;
@@ -99,7 +103,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loading]);
 
   // Migrate guest cart to user cart when user logs in
   const migrateGuestCartToUser = useCallback(async (userId: string) => {
@@ -147,19 +151,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
 
     const supabase = createClient();
+    let previousUser: { id: string } | null = null;
     
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setCurrentUser(session?.user || null);
-      loadCart(session?.user);
+      const user = session?.user || null;
+      setCurrentUser(user);
+      previousUser = user;
+      loadCart(user);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       const newUser = session?.user || null;
-      const oldUser = currentUser;
+      const oldUser = previousUser;
       
       setCurrentUser(newUser);
+      previousUser = newUser;
       
       // Handle user login/logout cart migration
       if (event === 'SIGNED_IN' && newUser && !oldUser) {
@@ -175,7 +183,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [currentUser, migrateGuestCartToUser, loadCart, isAdminPage]);
+  }, [migrateGuestCartToUser, loadCart, isAdminPage]);
 
   const addCustomJewelryToCart = async (jewelryData: CustomJewelryData, quantity = 1) => {
     try {

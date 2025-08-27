@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import ClientBody from "./ClientBody";
 import Script from "next/script";
 import ServiceWorkerRegister from "../components/ServiceWorkerRegister";
 import ConditionalCartProvider from "@/components/ConditionalCartProvider";
 import { ToastProvider } from "@/contexts/ToastContext";
+import { AuthProvider } from "@/contexts/AuthContext";
 import ToastContainer from "@/components/ToastContainer";
+import MainLayout from "@/components/MainLayout";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -90,12 +91,14 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning className="antialiased">
         <ServiceWorkerRegister />
-        <ToastProvider>
-          <ConditionalCartProvider>
-            <ClientBody>{children}</ClientBody>
-            <ToastContainer />
-          </ConditionalCartProvider>
-        </ToastProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <ConditionalCartProvider>
+              <MainLayout>{children}</MainLayout>
+              <ToastContainer />
+            </ConditionalCartProvider>
+          </ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   );

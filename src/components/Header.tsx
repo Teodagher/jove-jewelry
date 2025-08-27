@@ -6,11 +6,13 @@ import { ShoppingCart, User, Menu, X, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Navbar from './Navbar'
 import { useCart } from '@/contexts/CartContext'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false)
   const { itemCount } = useCart()
+  const { user, loading, signOut } = useAuth()
 
   const jewelryCategories = [
     { name: 'NECKLACES', href: '/customize/necklaces' },
@@ -56,11 +58,24 @@ export default function Header() {
 
             {/* Right side icons */}
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <Button asChild variant="ghost" size="sm" className="p-2" aria-label="Account">
-                <Link href="/auth/login">
-                  <User size={20} />
-                </Link>
-              </Button>
+              {user ? (
+                <Button
+                  onClick={() => signOut()}
+                  variant="ghost"
+                  size="sm"
+                  className="p-2"
+                  aria-label="Sign Out"
+                  title={`Signed in as ${user.email}`}
+                >
+                  <User size={20} className="text-green-600" />
+                </Button>
+              ) : (
+                <Button asChild variant="ghost" size="sm" className="p-2" aria-label="Account">
+                  <Link href="/auth/login">
+                    <User size={20} />
+                  </Link>
+                </Button>
+              )}
               <Button asChild variant="ghost" size="sm" className="p-2 relative" aria-label="Cart">
                 <Link href="/cart">
                   <div className="relative">

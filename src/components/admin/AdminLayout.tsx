@@ -248,15 +248,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Bottom section - fixed */}
         <div className="flex-shrink-0 p-4 border-t border-gray-200 space-y-2">
-          <Link
-            href="/"
+          <button
+            onClick={() => {
+              // Just redirect to home page without signing out
+              window.location.href = '/';
+            }}
             className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-600 rounded-lg jove-bg-accent-hover hover:text-gray-900 transition-colors duration-200"
           >
             <svg className="mr-3 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Go back to website
-          </Link>
+          </button>
           <button 
             onClick={handleSignOut}
             className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-600 rounded-lg jove-bg-accent-hover hover:text-gray-900 transition-colors duration-200"
