@@ -1,89 +1,78 @@
-'use client';
+'use client'
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import Link from 'next/link';
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
+export default function AdminLoginForm() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
-  // Check if user is already logged in and redirect
-  useEffect(() => {
-    let mounted = true;
-    
-    const checkSession = async () => {
-      try {
-        const supabase = createClient();
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Session check error:', error);
-          return;
-        }
-        
-        if (session?.user && mounted) {
-          // Redirect to homepage for regular users
-          router.push('/');
-        }
-      } catch (error) {
-        console.error('Session check failed:', error);
-      }
-    };
-
-    checkSession();
-    
-    return () => {
-      mounted = false;
-    };
-  }, [router]);
+  // AdminLayout will handle auth checks, this form is just for login
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
 
     try {
-      const supabase = createClient();
+      const supabase = createClient()
       
-      // Sign in user - auth context will handle the rest
-      const { error: authError } = await supabase.auth.signInWithPassword({
+      // Sign in user
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
-      });
+      })
 
       if (authError) {
-        throw authError;
+        throw authError
       }
 
-      // Refresh to trigger SSR and redirect to homepage after successful login
-      router.push('/')
+      if (!authData.user) {
+        throw new Error('Login failed')
+      }
+
+      // Check if user has admin role
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('roles')
+        .eq('auth_user_id', authData.user.id)
+        .single()
+
+      if (userError || !userData?.roles?.includes('admin')) {
+        // Sign out the user if they're not an admin
+        await supabase.auth.signOut()
+        throw new Error('Access denied. Admin privileges required.')
+      }
+
+      // Force page refresh to trigger SSR auth check
+      router.push('/admin')
       router.refresh()
     } catch (error: unknown) {
-      console.error('Login error:', error);
-      setError((error as Error).message || 'An error occurred during login');
+      console.error('Admin login error:', error)
+      setError((error as Error).message || 'An error occurred during login')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center jove-bg-primary py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-stone-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
           <div className="mx-auto h-12 w-auto text-center">
             <h1 className="text-3xl font-serif font-light text-zinc-900 tracking-wider">JOVÉ</h1>
-            <p className="text-xs text-zinc-600 font-light tracking-[0.2em] mt-1">JEWELRY</p>
+            <p className="text-xs text-zinc-600 font-light tracking-[0.2em] mt-1">ADMIN</p>
           </div>
           <h2 className="mt-6 text-center text-3xl font-light text-gray-900">
-            Welcome Back
+            Admin Access
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to your Jové account
+            Sign in to access the admin panel
           </p>
         </div>
         
@@ -100,7 +89,7 @@ export default function LoginPage() {
                 autoComplete="email"
                 required
                 className="relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-zinc-500 focus:border-zinc-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
+                placeholder="Admin email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -141,24 +130,15 @@ export default function LoginPage() {
                   Signing in...
                 </div>
               ) : (
-                'Sign in'
+                'Access Admin Panel'
               )}
             </button>
           </div>
 
-          <div className="text-center space-y-2">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <a
-                href="/auth/signup"
-                className="font-medium text-zinc-600 hover:text-zinc-900 transition-colors duration-200"
-              >
-                Create one here
-              </a>
-            </p>
+          <div className="text-center">
             <Link
               href="/"
-              className="block text-sm text-zinc-600 hover:text-zinc-900 transition-colors duration-200"
+              className="text-sm text-zinc-600 hover:text-zinc-900 transition-colors duration-200"
             >
               ← Back to Jové
             </Link>
@@ -166,5 +146,5 @@ export default function LoginPage() {
         </form>
       </div>
     </div>
-  );
+  )
 }

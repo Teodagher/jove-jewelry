@@ -4,7 +4,7 @@ import "./globals.css";
 import ClientBody from "./ClientBody";
 import Script from "next/script";
 import ServiceWorkerRegister from "../components/ServiceWorkerRegister";
-import { CartProvider } from "@/contexts/CartContext";
+import ConditionalCartProvider from "@/components/ConditionalCartProvider";
 import { ToastProvider } from "@/contexts/ToastContext";
 import ToastContainer from "@/components/ToastContainer";
 
@@ -91,10 +91,10 @@ export default function RootLayout({
       <body suppressHydrationWarning className="antialiased">
         <ServiceWorkerRegister />
         <ToastProvider>
-          <CartProvider>
+          <ConditionalCartProvider>
             <ClientBody>{children}</ClientBody>
             <ToastContainer />
-          </CartProvider>
+          </ConditionalCartProvider>
         </ToastProvider>
       </body>
     </html>

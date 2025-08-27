@@ -21,13 +21,13 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Check if this is an admin route (but not auth routes)
-  if (request.nextUrl.pathname.startsWith('/admin')) {
+  // Check if this is an admin route (but not the admin login page)
+  if (request.nextUrl.pathname.startsWith('/admin') && !request.nextUrl.pathname.startsWith('/admin/login')) {
     const { data: { session } } = await supabase.auth.getSession()
     
     if (!session) {
-      // Not authenticated, redirect to login
-      return NextResponse.redirect(new URL('/auth/login', request.url))
+      // Not authenticated, redirect to admin login
+      return NextResponse.redirect(new URL('/admin/login', request.url))
     }
 
     // Check if user has admin role
@@ -48,6 +48,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/admin/:path*'
+    // Disable for now - using server-side auth in layouts
+    // '/admin/:path*'
   ],
 }

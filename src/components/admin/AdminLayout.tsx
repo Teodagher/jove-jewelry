@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -58,8 +58,87 @@ const navigation = [
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+
+  // Check authentication and admin role
+  useEffect(() => {
+    let mounted = true;
+
+    const checkAuth = async () => {
+      try {
+        // Skip auth check for login page
+        if (pathname === '/admin/login') {
+          setLoading(false);
+          setIsAuthorized(true);
+          return;
+        }
+
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!mounted) return;
+
+        if (!session?.user) {
+          router.replace('/admin/login');
+          return;
+        }
+
+        // Check admin role
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('roles')
+          .eq('auth_user_id', session.user.id)
+          .single();
+
+        if (!mounted) return;
+
+        if (userError || !userData?.roles?.includes('admin')) {
+          router.replace('/');
+          return;
+        }
+
+        setIsAuthorized(true);
+      } catch (error) {
+        console.error('Auth check error:', error);
+        if (mounted) {
+          router.replace('/admin/login');
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    checkAuth();
+
+    return () => {
+      mounted = false;
+    };
+  }, [pathname, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-stone-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+          <p className="text-zinc-600 font-light">Authenticating...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthorized && pathname !== '/admin/login') {
+    return null; // Will redirect
+  }
+
+  // If on login page, just render children without admin layout
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
 
   // Middleware handles all authentication - this component just renders
 

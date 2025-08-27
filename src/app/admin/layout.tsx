@@ -5,6 +5,6 @@ interface AdminRootLayoutProps {
 }
 
 export default function AdminRootLayout({ children }: AdminRootLayoutProps) {
-  // Middleware handles all authentication - just render the layout
+  // AdminLayout component will handle authentication
   return <AdminLayout>{children}</AdminLayout>
 }

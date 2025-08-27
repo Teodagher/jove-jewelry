@@ -43,6 +43,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
 
+  // Check if we're on an admin page to avoid unnecessary loading
+  const isAdminPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+
   const loadCart = useCallback(async (user?: { id: string } | null) => {
     try {
       const supabase = createClient();
@@ -86,7 +89,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
       setItems(formattedItems);
     } catch (error) {
-      console.error('Error loading cart:', error);
+      console.error('Error loading cart:', {
+        message: (error as Error)?.message || 'Unknown error',
+        details: error,
+        timestamp: new Date().toISOString()
+      });
+      // Don't throw the error, just log it and continue with empty cart
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -131,6 +140,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Listen for auth changes and load appropriate cart
   useEffect(() => {
+    // Skip cart loading on admin pages
+    if (isAdminPage) {
+      setLoading(false);
+      return;
+    }
+
     const supabase = createClient();
     
     // Get initial session
@@ -160,7 +175,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [currentUser, migrateGuestCartToUser, loadCart]);
+  }, [currentUser, migrateGuestCartToUser, loadCart, isAdminPage]);
 
   const addCustomJewelryToCart = async (jewelryData: CustomJewelryData, quantity = 1) => {
     try {

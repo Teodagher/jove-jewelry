@@ -114,7 +114,7 @@ export default function Header() {
 
               {/* Mobile About Us Link */}
               <Link
-                href="/about"
+                href="/#about"
                 className="block text-lg font-light text-zinc-800 hover:text-zinc-900 py-3 font-serif tracking-wider transition-all duration-300"
                 onClick={() => setIsMenuOpen(false)}
               >
