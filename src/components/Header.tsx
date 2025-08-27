@@ -23,11 +23,6 @@ export default function Header() {
 
   return (
     <>
-      {/* Announcement Bar */}
-      <div className="bg-[#111] text-[#f5c542] text-center text-sm py-2" style={{ fontFamily: 'Arial, sans-serif', letterSpacing: '0.5px' }}>
-        <p className="m-0">🚚 Free Shipping All Over Lebanon</p>
-      </div>
-
       {/* Main header */}
       <header className="bg-stone-50 border-b border-amber-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
