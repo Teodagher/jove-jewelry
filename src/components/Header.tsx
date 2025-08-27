@@ -13,7 +13,11 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false)
   const { itemCount } = useCart()
-  const { user, loading, signOut } = useAuth()
+  const { user, loading, supabase } = useAuth()
+  
+  const signOut = async () => {
+    await supabase.auth.signOut()
+  }
 
   const jewelryCategories = [
     { name: 'NECKLACES', href: '/customize/necklaces' },

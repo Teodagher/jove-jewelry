@@ -28,12 +28,13 @@ export async function middleware(request: NextRequest) {
   )
 
   // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
+  // supabase.auth.getClaims(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // IMPORTANT: Don't remove getClaims()
+  const { data } = await supabase.auth.getClaims()
+
+  const user = data?.claims
 
   // Protect admin routes
   if (request.nextUrl.pathname.startsWith('/admin') && !request.nextUrl.pathname.includes('/login')) {

@@ -62,8 +62,9 @@ export default function ProductDescriptionsPage() {
       const cleanTitle = title.trim() || null
       const cleanDescription = description.trim() || null
 
-      const { error } = await supabase
-        .from('product_descriptions')
+      const { error } = await (supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('product_descriptions') as any)
         .update({
           title: cleanTitle,
           description: cleanDescription,
