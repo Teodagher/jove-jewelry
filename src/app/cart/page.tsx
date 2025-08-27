@@ -5,7 +5,7 @@ import { useCart } from '@/contexts/CartContext';
 import { Trash2, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import JoveAccountForm from '@/components/JoveAccountForm';
+
 import HandcraftedBanner from '@/components/HandcraftedBanner';
 
 export default function CartPage() {
@@ -247,14 +247,26 @@ export default function CartPage() {
                 </div>
               </div>
 
-              {/* Optional Account Creation */}
+              {/* Account Creation - Coming Soon */}
               <div className="jove-bg-card rounded-lg shadow-sm p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Create Your Jové Account <span className="text-sm font-normal text-gray-500">(Optional)</span></h3>
-                <p className="text-sm text-gray-600 mb-6">
-                  Join Jové to track your orders, save your favorites, and enjoy exclusive benefits. You can also checkout as a guest.
-                </p>
-                
-                <JoveAccountForm onSuccess={() => router.push('/checkout')} />
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Create Your Jové Account <span className="text-sm font-normal text-gray-500">(Coming Soon)</span></h3>
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  <h4 className="text-lg font-medium text-gray-900 mb-2">Account Creation Coming Soon</h4>
+                  <p className="text-sm text-gray-600 mb-4">
+                    We're working on bringing you an enhanced account experience. For now, you can continue with guest checkout.
+                  </p>
+                  <Button 
+                    onClick={() => router.push('/checkout')}
+                    className="bg-black hover:bg-zinc-800 text-white py-2 px-6 text-sm font-light tracking-[0.15em] transition-all duration-500 rounded-none border-0 uppercase"
+                  >
+                    Continue as Guest
+                  </Button>
+                </div>
               </div>
             </div>
 

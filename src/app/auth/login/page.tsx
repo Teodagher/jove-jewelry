@@ -149,12 +149,9 @@ export default function LoginPage() {
           <div className="text-center space-y-2">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
-              <a
-                href="/auth/signup"
-                className="font-medium text-zinc-600 hover:text-zinc-900 transition-colors duration-200"
-              >
-                Create one here
-              </a>
+              <span className="font-medium text-zinc-400">
+                Account creation coming soon
+              </span>
             </p>
             <Link
               href="/"
