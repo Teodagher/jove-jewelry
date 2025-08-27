@@ -1,158 +1,39 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import React from 'react';
 import Link from 'next/link';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
-
-  // Check if user is already logged in and redirect
-  useEffect(() => {
-    let mounted = true;
-    
-    const checkSession = async () => {
-      try {
-        const supabase = createClient();
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Session check error:', error);
-          return;
-        }
-        
-        if (session?.user && mounted) {
-          // Redirect to homepage for regular users
-          router.push('/');
-        }
-      } catch (error) {
-        console.error('Session check failed:', error);
-      }
-    };
-
-    checkSession();
-    
-    return () => {
-      mounted = false;
-    };
-  }, [router]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
-      const supabase = createClient();
-      
-      // Sign in user - auth context will handle the rest
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (authError) {
-        throw authError;
-      }
-
-      // Refresh to trigger SSR and redirect to homepage after successful login
-      router.push('/')
-      router.refresh()
-    } catch (error: unknown) {
-      console.error('Login error:', error);
-      setError((error as Error).message || 'An error occurred during login');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center jove-bg-primary py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div>
+        <div className="text-center">
           <div className="mx-auto h-12 w-auto text-center">
             <h1 className="text-3xl font-serif font-light text-zinc-900 tracking-wider">JOVÉ</h1>
-            <p className="text-xs text-zinc-600 font-light tracking-[0.2em] mt-1">JEWELRY</p>
+            <p className="text-xs text-zinc-600 font-light tracking-[0.2em] mt-1">CUSTOM JEWELRY</p>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-light text-gray-900">
-            Welcome Back
+          
+          {/* Coming Soon Icon */}
+          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mt-8 mb-6">
+            <svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          
+          <h2 className="text-2xl font-light text-gray-900 mb-4">
+            User Login Coming Soon
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to your Jové account
+          <p className="text-sm text-gray-600 mb-8">
+            We're working on bringing you an enhanced account experience. For now, you can continue with guest checkout for your custom jewelry orders.
           </p>
-        </div>
-        
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+          
           <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-zinc-500 focus:border-zinc-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-zinc-500 focus:border-zinc-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              {error}
-            </div>
-          )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-zinc-900 hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+            <Link
+              href="/customize"
+              className="w-full bg-black hover:bg-zinc-800 text-white py-3 px-6 text-sm font-light tracking-[0.15em] transition-all duration-500 rounded-none border-0 uppercase inline-block text-center"
             >
-              {loading ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Signing in...
-                </div>
-              ) : (
-                'Sign in'
-              )}
-            </button>
-          </div>
-
-          <div className="text-center space-y-2">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <span className="font-medium text-zinc-400">
-                Account creation coming soon
-              </span>
-            </p>
+              Start Customizing
+            </Link>
             <Link
               href="/"
               className="block text-sm text-zinc-600 hover:text-zinc-900 transition-colors duration-200"
@@ -160,7 +41,7 @@ export default function LoginPage() {
               ← Back to Jové
             </Link>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
