@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/contexts/AuthContext'
 import { CartItem } from '@/types/ecommerce';
 
 interface CustomJewelryData {
@@ -22,17 +23,18 @@ interface CartContextType {
   updateQuantity: (cartItemId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
   loading: boolean;
+  getSessionId: () => string;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// Generate a session ID for guest cart
+// Generate a persistent session ID
 const getSessionId = () => {
   if (typeof window === 'undefined') return '';
   
   let sessionId = localStorage.getItem('cart_session_id');
   if (!sessionId) {
-    sessionId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    sessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
     localStorage.setItem('cart_session_id', sessionId);
   }
   return sessionId;
@@ -41,43 +43,32 @@ const getSessionId = () => {
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<{ id: string } | null>(null);
+  const { user } = useAuth();
 
-  // Check if we're on an admin page to avoid unnecessary loading
-  const [isAdminPage, setIsAdminPage] = useState(false);
-  
-  useEffect(() => {
-    setIsAdminPage(window.location.pathname.startsWith('/admin'));
-  }, []);
+  // Skip cart on admin pages
+  const isAdminPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
 
-  const loadCart = useCallback(async (user?: { id: string } | null) => {
+  // Load cart items for current session
+  const loadCart = useCallback(async () => {
+    if (isAdminPage) {
+      setLoading(false);
+      return;
+    }
+
     try {
       const supabase = createClient();
-      let cartItems;
+      const sessionId = getSessionId();
       
-      if (user) {
-        // Load user-specific cart
-        const { data, error } = await supabase
-          .from('cart_items')
-          .select('*')
-          .eq('user_id', user.id);
-        
-        if (error) throw error;
-        cartItems = data;
-      } else {
-        // Load session-based cart for guests
-        const sessionId = getSessionId();
-        const { data, error } = await supabase
-          .from('cart_items')
-          .select('*')
-          .eq('session_id', sessionId)
-          .is('user_id', null);
-        
-        if (error) throw error;
-        cartItems = data;
-      }
+      const { data, error } = await supabase
+        .from('cart_items')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
 
-      const formattedItems: CartItem[] = (cartItems || []).map(item => ({
+      // @ts-expect-error - Supabase typing issue
+      const formattedItems: CartItem[] = (data || []).map((item) => ({
         id: item.id,
         session_id: item.session_id,
         jewelry_type: item.jewelry_type,
@@ -93,120 +84,57 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
       setItems(formattedItems);
     } catch (error) {
-      console.error('Error loading cart:', {
-        message: (error as Error)?.message || 'Unknown error',
-        details: error,
-        timestamp: new Date().toISOString()
-      });
-      // Don't throw the error, just log it and continue with empty cart
+      console.error('Error loading cart:', error);
       setItems([]);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  }, [isAdminPage]);
 
-  // Migrate guest cart to user cart when user logs in
-  const migrateGuestCartToUser = useCallback(async (userId: string) => {
+  // Associate session cart with user when they log in
+  const associateCartWithUser = useCallback(async () => {
+    if (!user) return;
+
     try {
-      const sessionId = getSessionId();
       const supabase = createClient();
+      const sessionId = getSessionId();
       
-      // Get current guest cart items
-      const { data: guestItems, error: guestError } = await supabase
+      // Update cart items to include user_id
+      const { error } = await supabase
         .from('cart_items')
-        .select('*')
+        // @ts-expect-error - Supabase typing issue
+        .update({ user_id: user.id })
         .eq('session_id', sessionId)
         .is('user_id', null);
-      
-      if (guestError) throw guestError;
-      
-      if (guestItems && guestItems.length > 0) {
-        // Update guest cart items to be associated with the user
-        const { error: updateError } = await supabase
-          .from('cart_items')
-          .update({ user_id: userId })
-          .eq('session_id', sessionId)
-          .is('user_id', null);
         
-        if (updateError) throw updateError;
-        
-        console.log(`✅ Migrated ${guestItems.length} items from guest cart to user cart`);
-      }
+      if (error) throw error;
       
-      // Load the user's cart (now including migrated items)
-      await loadCart({ id: userId });
+      console.log('✅ Cart associated with user');
     } catch (error) {
-      console.error('Error migrating guest cart to user:', error);
-      // Still load user cart even if migration fails
-      await loadCart({ id: userId });
+      console.error('Error associating cart with user:', error);
     }
+  }, [user]);
+
+  // Initialize cart
+  useEffect(() => {
+    loadCart();
   }, [loadCart]);
 
-  // Listen for auth changes and load appropriate cart
+  // Associate cart with user when they log in
   useEffect(() => {
-    // Skip cart loading on admin pages
-    if (isAdminPage) {
-      setLoading(false);
-      return;
+    if (user) {
+      associateCartWithUser();
     }
-
-    let isMounted = true;
-    const supabase = createClient();
-    
-    const initialize = async () => {
-      try {
-        // Get initial session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!isMounted) return;
-        
-        const user = session?.user || null;
-        setCurrentUser(user);
-        await loadCart(user);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error initializing cart:', error);
-        setItems([]);
-        setLoading(false);
-      }
-    };
-
-    // Initialize cart
-    initialize();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!isMounted) return;
-      
-      const newUser = session?.user || null;
-      setCurrentUser(newUser);
-      
-      try {
-        // Handle user login/logout cart migration
-        if (event === 'SIGNED_IN' && newUser) {
-          // User just logged in - migrate guest cart to user cart
-          await migrateGuestCartToUser(newUser.id);
-        } else if (event === 'SIGNED_OUT') {
-          // User logged out - load guest cart
-          await loadCart(null);
-        } else {
-          // Other auth state changes - just reload cart
-          await loadCart(newUser);
-        }
-      } catch (error) {
-        console.error('Error handling auth change:', error);
-      }
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, [isAdminPage, loadCart, migrateGuestCartToUser]);
+  }, [user, associateCartWithUser]);
 
   const addCustomJewelryToCart = async (jewelryData: CustomJewelryData, quantity = 1) => {
     try {
       const supabase = createClient();
+      const sessionId = getSessionId();
       
-      // Prepare cart item data
-      const cartItemData: Record<string, unknown> = {
+      const cartItemData = {
+        session_id: sessionId,
+        user_id: user?.id || null,
         jewelry_type: jewelryData.jewelry_type,
         customization_data: jewelryData.customization_data,
         base_price: jewelryData.base_price,
@@ -214,38 +142,36 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         preview_image_url: jewelryData.preview_image_url,
         quantity,
       };
-      
-      // Add user_id if user is logged in, otherwise use session_id
-      if (currentUser) {
-        cartItemData.user_id = currentUser.id;
-      } else {
-        cartItemData.session_id = getSessionId();
-      }
 
-      // Add new custom jewelry item to cart
       const { data, error } = await supabase
         .from('cart_items')
+        // @ts-expect-error - Supabase typing issue
         .insert(cartItemData)
         .select('*')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
+      // @ts-expect-error - Supabase typing issue
+      const dataItem = data;
       const newItem: CartItem = {
-        id: data.id,
-        session_id: data.session_id,
-        jewelry_type: data.jewelry_type,
-        customization_data: data.customization_data,
-        base_price: data.base_price,
-        total_price: data.total_price,
-        preview_image_url: data.preview_image_url,
-        quantity: data.quantity,
-        subtotal: data.quantity * data.total_price,
-        created_at: data.created_at,
-        updated_at: data.updated_at
+        id: dataItem.id,
+        session_id: dataItem.session_id,
+        jewelry_type: dataItem.jewelry_type,
+        customization_data: dataItem.customization_data,
+        base_price: dataItem.base_price,
+        total_price: dataItem.total_price,
+        preview_image_url: dataItem.preview_image_url,
+        quantity: dataItem.quantity,
+        subtotal: dataItem.quantity * dataItem.total_price,
+        created_at: dataItem.created_at,
+        updated_at: dataItem.updated_at
       };
 
-      setItems(prev => [...prev, newItem]);
+      setItems(prev => [newItem, ...prev]);
     } catch (error) {
       console.error('Error adding custom jewelry to cart:', error);
       throw error;
@@ -280,6 +206,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
       const { error } = await supabase
         .from('cart_items')
+        // @ts-expect-error - Supabase typing issue  
         .update({ quantity })
         .eq('id', cartItemId);
 
@@ -300,26 +227,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const clearCart = async () => {
     try {
       const supabase = createClient();
-
-      if (currentUser) {
-        // Clear user-specific cart
-        const { error } = await supabase
-          .from('cart_items')
-          .delete()
-          .eq('user_id', currentUser.id);
-        
-        if (error) throw error;
-      } else {
-        // Clear session-based cart
-        const sessionId = getSessionId();
-        const { error } = await supabase
-          .from('cart_items')
-          .delete()
-          .eq('session_id', sessionId)
-          .is('user_id', null);
-        
-        if (error) throw error;
-      }
+      const sessionId = getSessionId();
+      
+      const { error } = await supabase
+        .from('cart_items')
+        .delete()
+        .eq('session_id', sessionId);
+      
+      if (error) throw error;
 
       setItems([]);
     } catch (error) {
@@ -339,7 +254,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       removeFromCart,
       updateQuantity,
       clearCart,
-      loading
+      loading,
+      getSessionId
     }}>
       {children}
     </CartContext.Provider>

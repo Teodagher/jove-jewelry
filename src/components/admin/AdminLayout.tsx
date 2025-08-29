@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import logger from '@/lib/logger';
 import {
   Home,
   DollarSign,
@@ -52,69 +53,71 @@ const navigation = [
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
-  // Check authentication and admin role
+  logger.log('🏗️ AdminLayout render:', { 
+    pathname, 
+    hasUser: !!user, 
+    userId: user?.id,
+    loading 
+  });
+
+  // Handle auth state
   useEffect(() => {
-    let mounted = true;
+    const supabase = createClient();
+    
+    // Get initial user
+    supabase.auth.getUser().then(({ data }) => {
+      logger.log('🏗️ AdminLayout: Initial user check:', { hasUser: !!data.user, userId: data.user?.id });
+      setUser(data.user);
+      setLoading(false);
+    });
 
-    const checkAuth = async () => {
-      try {
-        // Skip auth check for login page
-        if (pathname === '/admin/login') {
-          setLoading(false);
-          setIsAuthorized(true);
-          return;
-        }
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      logger.log('🔔 AdminLayout: Auth state changed:', { hasUser: !!session?.user, userId: session?.user?.id });
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
-        const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
+    return () => subscription.unsubscribe();
+  }, []);
 
-        if (!mounted) return;
+  // Handle auth redirects (middleware already handles most of this, but this is backup)
+  useEffect(() => {
+    logger.log('🏗️ AdminLayout auth effect:', { 
+      pathname, 
+      hasUser: !!user, 
+      loading,
+      isLoginPage: pathname === '/admin/login'
+    });
 
-        if (!session?.user) {
-          router.replace('/admin/login');
-          return;
-        }
+    if (loading) {
+      logger.log('🏗️ Still loading, waiting...');
+      return;
+    }
 
-        // Check admin role
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('roles')
-          .eq('auth_user_id', session.user.id)
-          .single();
+    // If not on login page and no user, redirect to login
+    if (pathname !== '/admin/login' && !user) {
+      logger.log('🏗️ No user on protected route, redirecting to login');
+      router.replace('/admin/login');
+      return;
+    }
 
-        if (!mounted) return;
-
-        if (userError || !userData?.roles?.includes('admin')) {
-          router.replace('/');
-          return;
-        }
-
-        setIsAuthorized(true);
-      } catch (error) {
-        console.error('Auth check error:', error);
-        if (mounted) {
-          router.replace('/admin/login');
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    checkAuth();
-
-    return () => {
-      mounted = false;
-    };
-  }, [pathname, router]);
+    // If on login page and have user, redirect to admin dashboard
+    if (pathname === '/admin/login' && user) {
+      logger.log('🏗️ User found on login page, redirecting to dashboard');
+      router.replace('/admin');
+      return;
+    }
+  }, [user, loading, pathname, router]);
 
   if (loading) {
+    logger.log('🏗️ Showing loading state');
     return (
       <div className="min-h-screen flex items-center justify-center bg-stone-50">
         <div className="text-center">
@@ -125,16 +128,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     );
   }
 
-  if (!isAuthorized && pathname !== '/admin/login') {
+  if (!user && pathname !== '/admin/login') {
+    logger.log('🏗️ No user and not login page, returning null');
     return null; // Will redirect
   }
 
   // If on login page, just render children without admin layout
   if (pathname === '/admin/login') {
+    logger.log('🏗️ Rendering login page');
     return <>{children}</>;
   }
 
-  // Middleware handles all authentication - this component just renders
+  logger.log('🏗️ Rendering full admin layout');
 
   const isActive = (href: string) => {
     if (href === '/admin') {
@@ -145,11 +150,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const handleSignOut = async () => {
     try {
+      logger.log('🏗️ Signing out user');
       const supabase = createClient();
       await supabase.auth.signOut();
-      router.push('/auth/login');
+      router.push('/');
     } catch (error) {
-      console.error('Error signing out:', error);
+      logger.error('❌ Error signing out:', error);
     }
   };
 

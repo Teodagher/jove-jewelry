@@ -3,9 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
 import ServiceWorkerRegister from "../components/ServiceWorkerRegister";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { ToastProvider } from "@/contexts/ToastContext";
-import { AuthProvider } from "@/contexts/AuthContext";
 import ToastContainer from "@/components/ToastContainer";
 import MainLayout from "@/components/MainLayout";
 
@@ -91,14 +91,14 @@ export default function RootLayout({
       </head>
       <body suppressHydrationWarning className="antialiased">
         <ServiceWorkerRegister />
-        <AuthProvider>
-          <ToastProvider>
+        <ToastProvider>
+          <AuthProvider>
             <CartProvider>
               <MainLayout>{children}</MainLayout>
               <ToastContainer />
             </CartProvider>
-          </ToastProvider>
-        </AuthProvider>
+          </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   );

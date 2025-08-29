@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Preserve console logs in production for auth debugging
+  compiler: {
+    removeConsole: false,
+  },
   images: {
     unoptimized: true, // Disable optimization for external images to avoid timeouts
     domains: [

@@ -3,19 +3,43 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useAuth } from '@/contexts/AuthContext'
+import { createClient } from '@/lib/supabase/client'
+import logger from '@/lib/logger'
 
 export default function AdminLoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [user, setUser] = useState<any>(null)
+  const [authLoading, setAuthLoading] = useState(true)
   const router = useRouter()
-  const { user, loading: authLoading, supabase } = useAuth()
+
+  useEffect(() => {
+    const supabase = createClient()
+    
+    // Get initial user
+    supabase.auth.getUser().then(({ data }) => {
+      logger.log('🔍 AdminLogin: Initial user check:', { hasUser: !!data.user, userId: data.user?.id })
+      setUser(data.user)
+      setAuthLoading(false)
+    })
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      logger.log('🔔 AdminLogin: Auth state changed:', { hasUser: !!session?.user, userId: session?.user?.id })
+      setUser(session?.user ?? null)
+      setAuthLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   // Redirect if already authenticated
   useEffect(() => {
     if (user && !authLoading) {
+      logger.log('🔀 AdminLogin: User found, redirecting to admin')
       router.push('/admin')
     }
   }, [user, authLoading, router])
@@ -26,7 +50,8 @@ export default function AdminLoginForm() {
     setError(null)
 
     try {
-      // Using supabase from useAuth context
+      const supabase = createClient()
+      logger.log('🔐 AdminLogin: Attempting login for:', email)
       
       // Sign in user
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -42,6 +67,8 @@ export default function AdminLoginForm() {
         throw new Error('Login failed')
       }
 
+      logger.log('✅ AdminLogin: Authentication successful, checking admin role')
+
       // Check if user has admin role
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -49,17 +76,21 @@ export default function AdminLoginForm() {
         .eq('auth_user_id', authData.user.id)
         .single()
 
+      logger.log('👤 AdminLogin: Role check result:', { userData, userError })
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if (userError || !(userData as any)?.roles?.includes('admin')) {
+        logger.log('❌ AdminLogin: User is not admin, signing out')
         // Sign out the user if they're not an admin
         await supabase.auth.signOut()
         throw new Error('Access denied. Admin privileges required.')
       }
 
-      // Auth context will automatically update and redirect via useEffect
+      logger.log('🎉 AdminLogin: Admin login successful')
+      // Auth state change will trigger redirect via useEffect
       router.push('/admin')
     } catch (error: unknown) {
-      console.error('Admin login error:', error)
+      logger.error('❌ AdminLogin: Login error:', error)
       setError((error as Error).message || 'An error occurred during login')
     } finally {
       setLoading(false)

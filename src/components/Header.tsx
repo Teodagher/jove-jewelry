@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ShoppingCart, User, Menu, X, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,11 +13,7 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false)
   const { itemCount } = useCart()
-  const { user, loading, supabase } = useAuth()
-  
-  const signOut = async () => {
-    await supabase.auth.signOut()
-  }
+  const { user, signOut } = useAuth()
 
   const jewelryCategories = [
     { name: 'NECKLACES', href: '/customize/necklaces' },
@@ -80,6 +76,11 @@ export default function Header() {
                 <Link href="/cart">
                   <div className="relative">
                     <ShoppingCart size={20} />
+                    {itemCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-amber-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {itemCount}
+                      </span>
+                    )}
                   </div>
                 </Link>
               </Button>
