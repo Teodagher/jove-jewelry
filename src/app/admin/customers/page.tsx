@@ -8,7 +8,7 @@ interface Customer {
   id: string
   email: string
   name: string
-  phone?: string
+  phone?: string | null
   total_orders: number
   total_spent: string
   first_order_date: string
@@ -36,15 +36,48 @@ export default function CustomersPage() {
       setLoading(true)
       const supabase = createClient()
 
-      const { data, error } = await supabase
-        .from('customers')
-        .select('*')
-        .order('last_order_date', { ascending: false })
+      // Single query with aggregated order stats using PostgreSQL
+      const { data: customersWithStats, error } = await supabase.rpc('get_customers_with_order_stats')
 
-      if (error) throw error
+      if (error) {
+        // Fallback to manual calculation if RPC doesn't exist
+        console.warn('RPC function not found, using manual calculation')
+        
+        const { data: customersData, error: customersError } = await supabase
+          .from('customers')
+          .select('id, email, name, phone, created_at')
 
-      setCustomers(data || [])
-      setFilteredCustomers(data || [])
+        if (customersError) throw customersError
+
+        const { data: orderStats, error: orderStatsError } = await supabase
+          .from('orders')
+          .select('customer_email, total, created_at')
+
+        if (orderStatsError) throw orderStatsError
+
+        const calculated = (customersData as Array<{id: string, email: string, name: string, phone: string | null, created_at: string}> || []).map(customer => {
+          const customerOrders = (orderStats as Array<{customer_email: string, total: string, created_at: string}> || [])
+            .filter(order => order.customer_email === customer.email)
+          const total_orders = customerOrders.length
+          const total_spent = customerOrders.reduce((sum, order) => sum + parseFloat(order.total || '0'), 0)
+          const orderDates = customerOrders.map(order => new Date(order.created_at)).sort((a, b) => a.getTime() - b.getTime())
+          
+          return {
+            ...customer,
+            total_orders,
+            total_spent: total_spent.toFixed(2),
+            first_order_date: orderDates.length > 0 ? orderDates[0].toISOString() : customer.created_at,
+            last_order_date: orderDates.length > 0 ? orderDates[orderDates.length - 1].toISOString() : customer.created_at
+          }
+        }) || []
+        
+        setCustomers(calculated)
+        setFilteredCustomers(calculated)
+        return
+      }
+
+      setCustomers(customersWithStats)
+      setFilteredCustomers(customersWithStats)
     } catch (err) {
       console.error('Error loading customers:', err)
       setError((err as Error).message)
