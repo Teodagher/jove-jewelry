@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 
 interface ProductDescriptionProps {
   productType: string
+  customizationState?: { [key: string]: string }
 }
 
 interface ProductDescriptionData {
@@ -15,7 +16,7 @@ interface ProductDescriptionData {
   is_active: boolean
 }
 
-export default function ProductDescription({ productType }: ProductDescriptionProps) {
+export default function ProductDescription({ productType, customizationState = {} }: ProductDescriptionProps) {
   const [description, setDescription] = useState<ProductDescriptionData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -33,6 +34,29 @@ export default function ProductDescription({ productType }: ProductDescriptionPr
       default:
         return itemId
     }
+  }
+
+  // Get stone size text from customization state
+  const getStoneSize = (): string => {
+    const diamondSize = customizationState.diamond_size
+    if (!diamondSize) return '0.15ct' // default fallback
+    
+    switch (diamondSize) {
+      case 'small_015ct':
+        return '0.15ct'
+      case 'medium_030ct':
+        return '0.30ct'
+      case 'large_050ct':
+        return '0.50ct'
+      default:
+        return '0.15ct'
+    }
+  }
+
+  // Replace variables in text with actual values
+  const replaceVariables = (text: string): string => {
+    const stoneSize = getStoneSize()
+    return text.replace(/{selected-stone-size}/g, stoneSize)
   }
 
   useEffect(() => {
@@ -79,12 +103,12 @@ export default function ProductDescription({ productType }: ProductDescriptionPr
     <div className="w-full bg-white border border-zinc-200 rounded-lg p-6 shadow-sm">
       {description.title && (
         <h3 className="text-lg font-medium text-zinc-900 mb-3 text-center">
-          {description.title}
+          {replaceVariables(description.title)}
         </h3>
       )}
       {description.description && (
         <p className="text-sm text-zinc-600 leading-relaxed text-center">
-          {description.description}
+          {replaceVariables(description.description)}
         </p>
       )}
     </div>

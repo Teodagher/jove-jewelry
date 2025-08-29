@@ -527,6 +527,18 @@ export default function AdminOrdersPage() {
                                 {item.customization_summary}
                               </p>
                             )}
+                            {/* Show engraving as an Extra */}
+                            {item.customization_data?.engraving && (
+                              <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
+                                <div className="flex items-center space-x-1">
+                                  <span className="text-xs font-medium text-amber-800">EXTRA:</span>
+                                  <span className="text-xs text-amber-700">Engraving Requested</span>
+                                </div>
+                                <p className="text-xs text-amber-800 font-mono mt-1">
+                                  "{String(item.customization_data.engraving)}"
+                                </p>
+                              </div>
+                            )}
                             <div className="flex items-center justify-between mt-2">
                               <p className="text-sm text-gray-600">
                                 Base: {formatPrice(item.base_price)} + Options: {formatPrice(item.total_price - item.base_price)}

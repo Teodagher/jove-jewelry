@@ -374,10 +374,18 @@ export default function CustomizationComponent({
     const parts: string[] = [];
     
     jewelryItem.settings.forEach(setting => {
-      const selectedOptionId = customizationState[setting.id];
-      const selectedOption = setting.options.find(opt => opt.id === selectedOptionId);
-      if (selectedOption) {
-        parts.push(selectedOption.name);
+      if (setting.id === 'engraving') {
+        // Handle engraving text specially
+        const engravingText = customizationState[setting.id];
+        if (engravingText && engravingText.trim()) {
+          parts.push(`Engraving: "${engravingText.trim()}"`);
+        }
+      } else {
+        const selectedOptionId = customizationState[setting.id];
+        const selectedOption = setting.options.find(opt => opt.id === selectedOptionId);
+        if (selectedOption) {
+          parts.push(selectedOption.name);
+        }
       }
     });
     
@@ -518,7 +526,7 @@ export default function CustomizationComponent({
 
           {/* Product Description - Mobile */}
           <div className="mb-8">
-            <ProductDescription productType={jewelryItem.id} />
+            <ProductDescription productType={jewelryItem.id} customizationState={customizationState} />
           </div>
 
           {/* Customization Settings - Mobile */}
@@ -604,7 +612,7 @@ export default function CustomizationComponent({
                 
                 {/* Product Description - Desktop */}
                 <div className="mb-8 w-full max-w-sm">
-                  <ProductDescription productType={jewelryItem.id} />
+                  <ProductDescription productType={jewelryItem.id} customizationState={customizationState} />
                 </div>
                 
                 {/* Desktop buttons (show on desktop only) */}
@@ -653,6 +661,32 @@ function CustomizationSetting({
         onSelect={onSelect}
         title={setting.title}
       />
+    );
+  }
+
+  // Use specialized text input for engraving
+  if (setting.id === 'engraving') {
+    return (
+      <div className="px-2 sm:px-0">
+        <h3 className="text-base sm:text-lg font-normal text-center mb-6 sm:mb-8 text-black uppercase tracking-wider">
+          {setting.title}
+        </h3>
+        <div className="flex justify-center">
+          <div className="w-full max-w-md">
+            <input
+              type="text"
+              placeholder="Enter engraving text (optional)"
+              value={selectedValue || ''}
+              onChange={(e) => onSelect(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-center text-sm focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200"
+              maxLength={14}
+            />
+            <p className="text-xs text-gray-500 text-center mt-2">
+              Max 14 characters. Leave blank for no engraving.
+            </p>
+          </div>
+        </div>
+      </div>
     );
   }
 

@@ -144,6 +144,7 @@ export default function ProductDescriptionsPage() {
           <li>• Descriptions appear between the product image and the "Add to Cart" button</li>
           <li>• If both title and description are empty, nothing will be shown on the product page</li>
           <li>• Toggle "Active" to show/hide descriptions without deleting content</li>
+          <li>• Use <code className="bg-blue-200 px-1 rounded">{"{selected-stone-size}"}</code> to dynamically show the selected stone size (e.g., 0.15ct, 0.30ct, 0.50ct)</li>
           <li>• Changes are applied immediately to your website</li>
         </ul>
       </div>
