@@ -11,6 +11,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useRouter } from 'next/navigation';
 import { BuyNowButton } from '@/components/ui/buy-now-button';
 import ProductDescription from '@/components/ProductDescription';
+import PoweredByAstryCustomization from '@/components/PoweredByAstryCustomization';
 
 // Preload critical images for faster UX
 const preloadImage = (src: string) => {
@@ -646,6 +647,9 @@ export default function CustomizationComponent({
           </div>
         </div>
       </div>
+      
+      {/* Powered by Astry */}
+      <PoweredByAstryCustomization />
     </div>
   );
 }

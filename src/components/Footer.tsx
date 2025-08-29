@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import PoweredByAstry from './PoweredByAstry'
 
 export default function Footer() {
   const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({})
@@ -141,6 +142,9 @@ export default function Footer() {
         </div>
 
       </div>
+      
+      {/* Powered by Astry */}
+      <PoweredByAstry />
     </footer>
   )
 }
