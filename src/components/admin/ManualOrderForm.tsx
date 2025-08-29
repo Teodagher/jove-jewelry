@@ -285,8 +285,8 @@ export default function ManualOrderForm({ onSuccess, onCancel }: ManualOrderForm
         },
       };
 
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
+      const { data: order, error: orderError } = await (supabase
+        .from('orders') as any)
         .insert(orderData)
         .select()
         .single();
@@ -309,8 +309,8 @@ export default function ManualOrderForm({ onSuccess, onCancel }: ManualOrderForm
         preview_image_url: item.preview_image_url,
       }));
 
-      const { error: itemsError } = await supabase
-        .from('order_items')
+      const { error: itemsError } = await (supabase
+        .from('order_items') as any)
         .insert(orderItemsData);
 
       if (itemsError) throw itemsError;

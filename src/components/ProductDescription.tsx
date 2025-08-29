@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 
 interface ProductDescriptionProps {
   productType: string
-  customizationState?: { [key: string]: string }
+  customizationState?: { [key: string]: string | string[] | undefined }
 }
 
 interface ProductDescriptionData {

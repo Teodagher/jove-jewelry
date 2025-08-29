@@ -365,7 +365,7 @@ export default function CustomizationComponent({
   // Check if all required settings are selected
   const isComplete = useMemo(() => {
     return jewelryItem.settings
-      .filter(setting => setting.required)
+      .filter(setting => setting.required && setting.id !== 'engraving')
       .every(setting => customizationState[setting.id]);
   }, [customizationState, jewelryItem.settings]);
 
@@ -377,7 +377,7 @@ export default function CustomizationComponent({
       if (setting.id === 'engraving') {
         // Handle engraving text specially
         const engravingText = customizationState[setting.id];
-        if (engravingText && engravingText.trim()) {
+        if (engravingText && typeof engravingText === 'string' && engravingText.trim()) {
           parts.push(`Engraving: "${engravingText.trim()}"`);
         }
       } else {

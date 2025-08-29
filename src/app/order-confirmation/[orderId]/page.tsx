@@ -28,8 +28,8 @@ export default function OrderConfirmationPage() {
     try {
       const supabase = createClient();
       
-      const { data, error } = await supabase
-        .from('orders')
+      const { data, error } = await (supabase
+        .from('orders') as any)
         .select('*')
         .eq('id', orderId)
         .single();
@@ -38,12 +38,12 @@ export default function OrderConfirmationPage() {
 
       // Map the data to match our interface
       const mappedOrder = {
-        id: data.id,
-        order_number: data.order_number,
-        customer_name: data.customer_name,
-        customer_email: data.customer_email,
-        total: data.total,
-        created_at: data.created_at
+        id: (data as any).id,
+        order_number: (data as any).order_number,
+        customer_name: (data as any).customer_name,
+        customer_email: (data as any).customer_email,
+        total: (data as any).total,
+        created_at: (data as any).created_at
       };
 
       setOrder(mappedOrder);

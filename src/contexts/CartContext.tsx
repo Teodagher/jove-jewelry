@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
-import { CartItem } from '@/types/ecommerce';
+import { CartItem, CartItemInsert, CartItemUpdate } from '@/types/ecommerce';
 
 interface CustomJewelryData {
   jewelry_type: 'necklaces' | 'rings' | 'bracelets' | 'earrings';
@@ -67,19 +67,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       
       if (error) throw error;
 
-      // @ts-expect-error - Supabase typing issue
-      const formattedItems: CartItem[] = (data || []).map((item) => ({
-        id: item.id,
-        session_id: item.session_id,
-        jewelry_type: item.jewelry_type,
-        customization_data: item.customization_data,
-        base_price: item.base_price,
-        total_price: item.total_price,
-        preview_image_url: item.preview_image_url,
-        quantity: item.quantity,
-        subtotal: item.quantity * item.total_price,
-        created_at: item.created_at,
-        updated_at: item.updated_at
+      const formattedItems: CartItem[] = (data || []).map((item: any) => ({
+        id: item.id as string,
+        session_id: item.session_id as string,
+        jewelry_type: item.jewelry_type as 'necklaces' | 'rings' | 'bracelets' | 'earrings',
+        customization_data: item.customization_data as Record<string, unknown>,
+        base_price: item.base_price as number,
+        total_price: item.total_price as number,
+        preview_image_url: item.preview_image_url as string | undefined,
+        quantity: item.quantity as number,
+        subtotal: (item.quantity as number) * (item.total_price as number),
+        created_at: item.created_at as string,
+        updated_at: item.updated_at as string
       }));
 
       setItems(formattedItems);
@@ -100,10 +99,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const sessionId = getSessionId();
       
       // Update cart items to include user_id
-      const { error } = await supabase
-        .from('cart_items')
-        // @ts-expect-error - Supabase typing issue
-        .update({ user_id: user.id })
+      const updateData: CartItemUpdate = { user_id: user.id };
+      const { error } = await (supabase
+        .from('cart_items') as any)
+        .update(updateData)
         .eq('session_id', sessionId)
         .is('user_id', null);
         
@@ -132,7 +131,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const supabase = createClient();
       const sessionId = getSessionId();
       
-      const cartItemData = {
+      const cartItemData: CartItemInsert = {
         session_id: sessionId,
         user_id: user?.id || null,
         jewelry_type: jewelryData.jewelry_type,
@@ -143,9 +142,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         quantity,
       };
 
-      const { data, error } = await supabase
-        .from('cart_items')
-        // @ts-expect-error - Supabase typing issue
+      const { data, error } = await (supabase
+        .from('cart_items') as any)
         .insert(cartItemData)
         .select('*')
         .single();
@@ -155,20 +153,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
 
-      // @ts-expect-error - Supabase typing issue
-      const dataItem = data;
+      const dataItem = data as any;
       const newItem: CartItem = {
-        id: dataItem.id,
-        session_id: dataItem.session_id,
-        jewelry_type: dataItem.jewelry_type,
-        customization_data: dataItem.customization_data,
-        base_price: dataItem.base_price,
-        total_price: dataItem.total_price,
-        preview_image_url: dataItem.preview_image_url,
-        quantity: dataItem.quantity,
-        subtotal: dataItem.quantity * dataItem.total_price,
-        created_at: dataItem.created_at,
-        updated_at: dataItem.updated_at
+        id: dataItem.id as string,
+        session_id: dataItem.session_id as string,
+        jewelry_type: dataItem.jewelry_type as 'necklaces' | 'rings' | 'bracelets' | 'earrings',
+        customization_data: dataItem.customization_data as Record<string, unknown>,
+        base_price: dataItem.base_price as number,
+        total_price: dataItem.total_price as number,
+        preview_image_url: dataItem.preview_image_url as string | undefined,
+        quantity: dataItem.quantity as number,
+        subtotal: (dataItem.quantity as number) * (dataItem.total_price as number),
+        created_at: dataItem.created_at as string,
+        updated_at: dataItem.updated_at as string
       };
 
       setItems(prev => [newItem, ...prev]);
@@ -204,10 +201,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     try {
       const supabase = createClient();
 
-      const { error } = await supabase
-        .from('cart_items')
-        // @ts-expect-error - Supabase typing issue  
-        .update({ quantity })
+      const updateData: CartItemUpdate = { quantity };
+      const { error } = await (supabase
+        .from('cart_items') as any)
+        .update(updateData)
         .eq('id', cartItemId);
 
       if (error) throw error;

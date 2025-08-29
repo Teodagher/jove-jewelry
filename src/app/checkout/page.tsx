@@ -382,8 +382,8 @@ export default function CheckoutPage() {
       });
 
       console.log('📤 Attempting to insert order data...');
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
+      const { data: order, error: orderError } = await (supabase
+        .from('orders') as any)
         .insert(orderData)
         .select('id, order_number')
         .single();
@@ -435,8 +435,8 @@ export default function CheckoutPage() {
       });
 
       console.log('📦 Attempting to insert order items...');
-      const { error: itemsError } = await supabase
-        .from('order_items')
+      const { error: itemsError } = await (supabase
+        .from('order_items') as any)
         .insert(orderItemsData);
 
       if (itemsError) {

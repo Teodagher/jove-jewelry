@@ -108,25 +108,25 @@ export default function AdminDashboard() {
       setLoading(true);
 
       // Fetch orders data
-      const { data: orders, error: ordersError } = await supabase
-        .from('orders')
+      const { data: orders, error: ordersError } = await (supabase
+        .from('orders') as any)
         .select('*, order_items!inner(*)')
         .order('created_at', { ascending: false });
 
       if (ordersError) throw ordersError;
 
       // Calculate stats
-      const totalRevenue = orders?.reduce((sum, order) => sum + Number(order.total || 0), 0) || 0;
-      const activeOrders = orders?.filter(order => 
+      const totalRevenue = orders?.reduce((sum: number, order: any) => sum + Number(order.total || 0), 0) || 0;
+      const activeOrders = orders?.filter((order: any) => 
         ['pending', 'confirmed', 'in_production', 'ready_for_delivery'].includes(order.status)
       ).length || 0;
 
       // Get unique customers
-      const uniqueEmails = new Set(orders?.map(order => order.customer_email) || []);
+      const uniqueEmails = new Set(orders?.map((order: any) => order.customer_email) || []);
       const totalCustomers = uniqueEmails.size;
 
       // Recent orders for table
-      const recentOrders: DashboardOrder[] = (orders?.slice(0, 5) || []).map(order => ({
+      const recentOrders: DashboardOrder[] = (orders?.slice(0, 5) || []).map((order: any) => ({
         id: order.order_number || order.id.slice(0, 8).toUpperCase(),
         customer: order.customer_name,
         item: `${order.order_items?.length || 0} item${(order.order_items?.length || 0) !== 1 ? 's' : ''}`,

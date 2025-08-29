@@ -138,8 +138,8 @@ export default function AdminOrdersPage() {
     try {
       setUpdatingStatus(orderId);
       
-      const { error } = await supabase
-        .from('orders')
+      const { error } = await (supabase
+        .from('orders') as any)
         .update({ 
           status: newStatus,
           updated_at: new Date().toISOString()
@@ -528,7 +528,7 @@ export default function AdminOrdersPage() {
                               </p>
                             )}
                             {/* Show engraving as an Extra */}
-                            {item.customization_data?.engraving && (
+                            {(item.customization_data?.engraving as string) && (
                               <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-md">
                                 <div className="flex items-center space-x-1">
                                   <span className="text-xs font-medium text-amber-800">EXTRA:</span>

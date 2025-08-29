@@ -105,7 +105,7 @@ export default function LaunchEventForm() {
           email: formData.email.trim().toLowerCase(),
           phone_number: formData.phoneNumber || '',
           source: source
-        });
+        } as any);
 
       if (error) {
         console.error('Supabase error:', error);

@@ -23,6 +23,22 @@ export interface CartItem {
   updated_at: string;
 }
 
+export interface CartItemInsert {
+  session_id: string;
+  user_id?: string | null;
+  jewelry_type: 'necklaces' | 'rings' | 'bracelets' | 'earrings';
+  customization_data: Record<string, unknown>;
+  base_price: number;
+  total_price: number;
+  preview_image_url?: string;
+  quantity: number;
+}
+
+export interface CartItemUpdate {
+  quantity?: number;
+  user_id?: string | null;
+}
+
 export interface OrderItem {
   id: string;
   order_id: string;
