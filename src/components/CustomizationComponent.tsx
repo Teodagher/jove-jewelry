@@ -340,6 +340,13 @@ export default function CustomizationComponent({
       newState.second_stone = 'black_onyx_emerald';
       console.log('🖤 Auto-selected Black Onyx + Emerald combination for second stone');
       
+      // Auto-select default black onyx stone size (small)
+      newState.black_onyx_stone_size = 'small_onyx_08ct';
+      console.log('🖤 Auto-selected small Black Onyx stone size');
+      
+      // Clear diamond size selection if it was set
+      delete newState.diamond_size;
+      
       // Force natural diamond type for Black Onyx (Black Onyx only available as natural)
       setSelectedDiamondType('natural');
       console.log('💎 Forced Natural diamond type for Black Onyx selection');
@@ -356,6 +363,13 @@ export default function CustomizationComponent({
       // Reset to default emerald when switching from Black Onyx to Diamond
       newState.second_stone = 'emerald';
       console.log('💎 Switched to Diamond, reset second stone to emerald');
+      
+      // Auto-select default diamond size (small)
+      newState.diamond_size = 'small_015ct';
+      console.log('💎 Auto-selected small diamond size');
+      
+      // Clear black onyx stone size selection if it was set
+      delete newState.black_onyx_stone_size;
     }
     
     setCustomizationState(newState);
@@ -737,10 +751,36 @@ function CustomizationSetting({
       }
     }
     
+    // For stone size options, show appropriate sizes based on first stone selection
+    if (setting.id === 'diamond_size' || setting.id === 'black_onyx_stone_size') {
+      const firstStone = customizationState.first_stone;
+      
+      // If Black Onyx is selected as first stone, show Black Onyx stone sizes
+      if (firstStone === 'black_onyx' && setting.id === 'black_onyx_stone_size') {
+        return setting.options; // Show all black onyx stone size options
+      }
+      
+      // If Diamond is selected as first stone, show Diamond stone sizes
+      if (firstStone === 'diamond' && setting.id === 'diamond_size') {
+        return setting.options; // Show all diamond stone size options
+      }
+      
+      // Hide the option if it doesn't match the selected first stone
+      if ((firstStone === 'black_onyx' && setting.id === 'diamond_size') ||
+          (firstStone === 'diamond' && setting.id === 'black_onyx_stone_size')) {
+        return []; // Hide this setting completely
+      }
+    }
+    
     return setting.options;
   };
 
   const filteredOptions = getFilteredOptions();
+
+  // Don't render the setting at all if no options are available
+  if (filteredOptions.length === 0) {
+    return null;
+  }
 
   // Default rendering for other settings
   return (

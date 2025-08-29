@@ -12,6 +12,8 @@ export interface JewelryItem {
   type: string
   base_price: number
   base_price_lab_grown?: number // New field for lab grown pricing
+  black_onyx_base_price?: number // New field for black onyx base pricing
+  black_onyx_base_price_lab_grown?: number // New field for black onyx lab grown base pricing
   base_image_url: string | null
   is_active: boolean
   created_at: string

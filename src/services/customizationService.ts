@@ -76,6 +76,8 @@ export class CustomizationService {
         baseImage: jewelryItem.base_image_url || '',
         basePrice: jewelryItem.base_price,
         basePriceLabGrown: jewelryItem.base_price_lab_grown,
+        blackOnyxBasePrice: jewelryItem.black_onyx_base_price,
+        blackOnyxBasePriceLabGrown: jewelryItem.black_onyx_base_price_lab_grown,
         settings: Array.from(settingsMap.values())
       } as JewelryItem
 
@@ -166,6 +168,36 @@ export class CustomizationService {
       return !error
     } catch (error) {
       console.error('Error updating lab grown base price:', error)
+      return false
+    }
+  }
+
+  // Update black onyx base price for jewelry item
+  static async updateBlackOnyxBasePrice(jewelryType: string, newPrice: number): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('jewelry_items')
+        .update({ black_onyx_base_price: newPrice })
+        .eq('type', jewelryType)
+
+      return !error
+    } catch (error) {
+      console.error('Error updating black onyx base price:', error)
+      return false
+    }
+  }
+
+  // Update black onyx lab grown base price for jewelry item
+  static async updateBlackOnyxBasePriceLabGrown(jewelryType: string, newPrice: number): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('jewelry_items')
+        .update({ black_onyx_base_price_lab_grown: newPrice })
+        .eq('type', jewelryType)
+
+      return !error
+    } catch (error) {
+      console.error('Error updating black onyx lab grown base price:', error)
       return false
     }
   }
@@ -497,10 +529,23 @@ export class CustomizationService {
 
   // Calculate total price based on diamond type
   static calculateTotalPrice(jewelryItem: JewelryItem, customizations: { [key: string]: string }, diamondType: DiamondType = 'natural'): number {
-    // Start with base price
-    let totalPrice = diamondType === 'lab_grown' && jewelryItem.basePriceLabGrown 
-      ? jewelryItem.basePriceLabGrown 
-      : jewelryItem.basePrice;
+    // Check if black onyx is selected as first stone for special pricing
+    const isBlackOnyxSelected = customizations.first_stone === 'black_onyx';
+    
+    // Start with appropriate base price
+    let totalPrice: number;
+    
+    if (isBlackOnyxSelected && jewelryItem.blackOnyxBasePrice !== undefined) {
+      // Use black onyx specific base price
+      totalPrice = diamondType === 'lab_grown' && jewelryItem.blackOnyxBasePriceLabGrown !== undefined
+        ? jewelryItem.blackOnyxBasePriceLabGrown 
+        : jewelryItem.blackOnyxBasePrice;
+    } else {
+      // Use regular base price
+      totalPrice = diamondType === 'lab_grown' && jewelryItem.basePriceLabGrown 
+        ? jewelryItem.basePriceLabGrown 
+        : jewelryItem.basePrice;
+    }
 
     // Add customization option prices
     jewelryItem.settings.forEach(setting => {

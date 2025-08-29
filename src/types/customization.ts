@@ -22,6 +22,8 @@ export interface JewelryItem {
   settings: CustomizationSetting[];
   basePrice: number;
   basePriceLabGrown?: number; // Lab grown base price
+  blackOnyxBasePrice?: number; // Black onyx base price
+  blackOnyxBasePriceLabGrown?: number; // Black onyx lab grown base price
 }
 
 export type DiamondType = 'natural' | 'lab_grown';

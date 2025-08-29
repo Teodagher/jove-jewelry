@@ -9,6 +9,8 @@ interface PricingData {
   type: string;
   base_price: number;
   base_price_lab_grown?: number;
+  black_onyx_base_price?: number;
+  black_onyx_base_price_lab_grown?: number;
   customization_options: Array<{
     id: string;
     setting_id: string;
@@ -76,6 +78,42 @@ export default function BraceletsPricingPage() {
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Error updating lab grown base price' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateBlackOnyxBasePrice = async (newPrice: number) => {
+    try {
+      setSaving(true);
+      const success = await CustomizationService.updateBlackOnyxBasePrice('bracelet', newPrice);
+      
+      if (success) {
+        setMessage({ type: 'success', text: 'Black onyx base price updated successfully' });
+        fetchPricingData();
+      } else {
+        setMessage({ type: 'error', text: 'Failed to update black onyx base price' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error updating black onyx base price' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateBlackOnyxBasePriceLabGrown = async (newPrice: number) => {
+    try {
+      setSaving(true);
+      const success = await CustomizationService.updateBlackOnyxBasePriceLabGrown('bracelet', newPrice);
+      
+      if (success) {
+        setMessage({ type: 'success', text: 'Black onyx lab grown base price updated successfully' });
+        fetchPricingData();
+      } else {
+        setMessage({ type: 'error', text: 'Failed to update black onyx lab grown base price' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error updating black onyx lab grown base price' });
     } finally {
       setSaving(false);
     }
@@ -217,6 +255,49 @@ export default function BraceletsPricingPage() {
                 {selectedDiamondType === 'lab_grown' && !pricingData.base_price_lab_grown && (
                   <span className="text-sm text-amber-600">
                     (Lab grown pricing not set - will use natural pricing as fallback)
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Black Onyx Base Price */}
+            <div className="border-b pb-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Black Onyx Base Price - {selectedDiamondType === 'natural' ? 'Natural Diamonds' : 'Lab Grown Diamonds'}
+              </h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Special base price used when Black Onyx is selected as the first stone
+              </p>
+              <div className="flex items-center space-x-4">
+                <label className="text-gray-700 font-medium">
+                  Black Onyx {selectedDiamondType === 'natural' ? 'Natural' : 'Lab Grown'} Base Price ($):
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  key={`black-onyx-${selectedDiamondType}`} // Force re-render when type changes
+                  defaultValue={selectedDiamondType === 'natural' ? (pricingData.black_onyx_base_price || 0) : (pricingData.black_onyx_base_price_lab_grown || 0)}
+                  className="border border-gray-300 rounded px-3 py-2 w-32"
+                  onBlur={(e) => {
+                    const newPrice = parseFloat(e.target.value);
+                    const currentPrice = selectedDiamondType === 'natural' ? (pricingData.black_onyx_base_price || 0) : (pricingData.black_onyx_base_price_lab_grown || 0);
+                    if (newPrice !== currentPrice && newPrice >= 0) {
+                      if (selectedDiamondType === 'natural') {
+                        updateBlackOnyxBasePrice(newPrice);
+                      } else {
+                        updateBlackOnyxBasePriceLabGrown(newPrice);
+                      }
+                    }
+                  }}
+                />
+                {selectedDiamondType === 'natural' && !pricingData.black_onyx_base_price && (
+                  <span className="text-sm text-amber-600">
+                    (Not set - will use regular base pricing)
+                  </span>
+                )}
+                {selectedDiamondType === 'lab_grown' && !pricingData.black_onyx_base_price_lab_grown && (
+                  <span className="text-sm text-amber-600">
+                    (Not set - will use natural black onyx pricing or regular base pricing)
                   </span>
                 )}
               </div>
