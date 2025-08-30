@@ -380,7 +380,31 @@ export default function CustomizationComponent({
   // Check if all required settings are selected
   const isComplete = useMemo(() => {
     return jewelryItem.settings
-      .filter(setting => setting.required && setting.id !== 'engraving')
+      .filter(setting => {
+        // Skip engraving as it's optional
+        if (setting.id === 'engraving') return false;
+        
+        // Only check required settings that have visible options
+        if (!setting.required) return false;
+        
+        // Apply same filtering logic as in CustomizationSetting component
+        // Stone size settings are only required if the corresponding stone is selected
+        if (setting.id === 'diamond_size') {
+          return customizationState.first_stone === 'diamond';
+        }
+        if (setting.id === 'black_onyx_stone_size') {
+          return customizationState.first_stone === 'black_onyx';
+        }
+        
+        // Cord size is only required if it's actually visible for the jewelry type
+        if (setting.id === 'cord_size') {
+          // For now, include cord_size in validation since it appears in bracelet options
+          // TODO: Add more specific logic based on chain type if needed
+          return true;
+        }
+        
+        return true;
+      })
       .every(setting => customizationState[setting.id]);
   }, [customizationState, jewelryItem.settings]);
 
@@ -552,7 +576,6 @@ export default function CustomizationComponent({
                 setting={setting}
                 selectedValue={customizationState[setting.id] as string}
                 onSelect={(optionId) => handleOptionSelect(setting.id, optionId)}
-                stepNumber={index + 1}
                 customizationState={customizationState}
               />
             ))}
@@ -586,7 +609,6 @@ export default function CustomizationComponent({
                     setting={setting}
                     selectedValue={customizationState[setting.id] as string}
                     onSelect={(optionId) => handleOptionSelect(setting.id, optionId)}
-                    stepNumber={index + 1}
                     customizationState={customizationState}
                   />
                 ))}
@@ -659,7 +681,6 @@ interface CustomizationSettingProps {
   setting: CustomizationSetting;
   selectedValue?: string;
   onSelect: (optionId: string) => void;
-  stepNumber: number;
   customizationState: CustomizationState;  // Add this to access other selections
 }
 
@@ -667,7 +688,6 @@ function CustomizationSetting({
   setting, 
   selectedValue, 
   onSelect, 
-  stepNumber,
   customizationState 
 }: CustomizationSettingProps) {
   // Use specialized RingSizeSelector for ring size options
