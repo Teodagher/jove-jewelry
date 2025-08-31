@@ -8,6 +8,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import ToastContainer from "@/components/ToastContainer";
 import MainLayout from "@/components/MainLayout";
+import ClarityInit from "./ClarityInit";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -90,6 +91,7 @@ export default function RootLayout({
         />
       </head>
       <body suppressHydrationWarning className="antialiased">
+        <ClarityInit />
         <ServiceWorkerRegister />
         <ToastProvider>
           <AuthProvider>
