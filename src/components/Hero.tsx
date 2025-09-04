@@ -42,7 +42,7 @@ export default function Hero() {
   }, [])
 
   return (
-    <section className="relative h-[calc(100vh-104px)] flex items-center justify-center overflow-hidden bg-stone-50">
+    <section className="relative h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden bg-stone-50">
       {/* Hero Carousel Background */}
       <HeroCarousel 
         images={heroImages} 

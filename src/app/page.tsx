@@ -1,4 +1,5 @@
 import Hero from '@/components/Hero'
+import NaturalDiamondsSection from '@/components/NaturalDiamondsSection'
 import CraftsmanshipSection from '@/components/CraftsmanshipSection'
 import WorkshopSection from '@/components/WorkshopSection'
 import BespokeSection from '@/components/BespokeSection'
@@ -11,6 +12,7 @@ export default function Home() {
     <main className="min-h-screen">
       <ScrollToHashOnLoad />
       <Hero />
+      <NaturalDiamondsSection />
       <CraftsmanshipSection />
       <WorkshopSection />
       <BespokeSection />
