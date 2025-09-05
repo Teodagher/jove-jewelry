@@ -11,17 +11,17 @@ export default function CraftsmanshipSection() {
           <div className="order-1 lg:order-1 flex items-center justify-center px-4 py-6 sm:p-6 md:p-8 lg:p-16">
             <div className="max-w-lg lg:max-w-xl w-full space-y-4 sm:space-y-5 lg:space-y-8">
               {/* Title and subtitle optimized for mobile */}
-              <div className="space-y-2 sm:space-y-3 lg:space-y-4 text-center lg:text-left">
+              <div className="space-y-2 sm:space-y-3 lg:space-y-4 text-left">
                 <h2 className="text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extralight tracking-wide text-white leading-tight">
                   Lab-Grown Diamonds
                 </h2>
-                <div className="h-px w-16 sm:w-20 lg:w-32 bg-gradient-to-r from-transparent via-amber-300 to-transparent mx-auto lg:mx-0" />
+                <div className="h-px w-16 sm:w-20 lg:w-32 bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
                 <p className="text-sm sm:text-base lg:text-xl text-amber-100 font-light tracking-wide">
                   Redefining Modern Luxury
                 </p>
               </div>
               
-              <div className="space-y-3 sm:space-y-4 lg:space-y-6 text-gray-300 leading-relaxed text-center lg:text-left">
+              <div className="space-y-3 sm:space-y-4 lg:space-y-6 text-gray-300 leading-relaxed text-left">
                 {/* Mobile: Show only key message */}
                 <p className="text-sm sm:text-base lg:text-lg font-medium text-white leading-relaxed">
                   At JOVÉ, we redefine what modern luxury means. Lab-grown diamonds are chemically, physically, and optically identical to natural diamonds.

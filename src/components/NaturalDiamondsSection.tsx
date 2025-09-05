@@ -31,17 +31,17 @@ export default function NaturalDiamondsSection() {
           <div className="order-1 lg:order-2 flex items-center justify-center px-4 py-6 sm:p-6 md:p-8 lg:p-16">
             <div className="max-w-lg w-full space-y-4 sm:space-y-5 lg:space-y-8">
               {/* Title and subtitle optimized for mobile */}
-              <div className="space-y-2 sm:space-y-3 lg:space-y-4 text-center lg:text-left">
+              <div className="space-y-2 sm:space-y-3 lg:space-y-4 text-left">
                 <h2 className="text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extralight tracking-wide text-zinc-800 leading-tight">
                   Natural Diamonds
                 </h2>
-                <div className="h-px w-16 sm:w-20 lg:w-32 bg-gradient-to-r from-transparent via-amber-300 to-transparent mx-auto lg:mx-0" />
+                <div className="h-px w-16 sm:w-20 lg:w-32 bg-gradient-to-r from-transparent via-amber-300 to-transparent" />
                 <p className="text-sm sm:text-base lg:text-xl text-amber-600 font-light tracking-wide">
                   Timeless Beauty from the Earth
                 </p>
               </div>
               
-              <div className="space-y-3 sm:space-y-4 lg:space-y-6 text-gray-700 leading-relaxed text-center lg:text-left">
+              <div className="space-y-3 sm:space-y-4 lg:space-y-6 text-gray-700 leading-relaxed text-left">
                 {/* Main content - optimized for mobile */}
                 <p className="text-sm sm:text-base lg:text-lg font-medium text-zinc-800 leading-relaxed">
                   At JOVÉ, we celebrate the rare wonder of nature. Natural diamonds are formed deep within the Earth over billions of years, each one a unique masterpiece of time and pressure.
