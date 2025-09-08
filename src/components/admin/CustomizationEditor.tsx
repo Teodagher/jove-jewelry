@@ -909,6 +909,32 @@ function SettingCard({
     setShowAddOption(false);
   };
 
+  // Helper function to delete image from storage
+  const deleteImageFromStorage = async (imageUrl: string | null) => {
+    if (!imageUrl || !imageUrl.includes('supabase.co')) return;
+    
+    try {
+      // Extract the file path from the public URL
+      const url = new URL(imageUrl);
+      const pathParts = url.pathname.split('/');
+      const fileName = pathParts[pathParts.length - 1];
+      
+      console.log('Attempting to delete image from storage:', fileName);
+      
+      const { error } = await supabase.storage
+        .from('customization_options')
+        .remove([fileName]);
+        
+      if (error) {
+        console.error('Error deleting image from storage:', error);
+      } else {
+        console.log('Successfully deleted image from storage:', fileName);
+      }
+    } catch (error) {
+      console.error('Error parsing image URL for deletion:', error);
+    }
+  };
+
   // Delete option function
   const deleteOption = async (optionToDelete: CustomizationOption) => {
     if (!confirm(`Are you sure you want to delete "${optionToDelete.option_name}"? This action cannot be undone.`)) {
@@ -916,7 +942,7 @@ function SettingCard({
     }
 
     try {
-      // Delete from database
+      // Delete from database first
       const { error } = await supabase
         .from('customization_options')
         .delete()
@@ -930,6 +956,11 @@ function SettingCard({
           message: 'There was an error deleting the option'
         });
         return;
+      }
+
+      // Delete associated image from storage (if it exists)
+      if (optionToDelete.image_url) {
+        await deleteImageFromStorage(optionToDelete.image_url);
       }
 
       // Update local state
@@ -948,7 +979,7 @@ function SettingCard({
       addToast({
         type: 'success',
         title: 'Option deleted',
-        message: `"${optionToDelete.option_name}" has been deleted`
+        message: `"${optionToDelete.option_name}" and its image have been deleted`
       });
       
       // Notify parent that options changed
@@ -1156,6 +1187,7 @@ function SettingCard({
               allSettings={allSettings}
               isFirst={optionIndex === 0}
               isLast={optionIndex === setting.options.length - 1}
+              onOptionsChange={onOptionsChange}
             />
           ))}
           
@@ -1275,7 +1307,8 @@ function OptionCard({
   onSettingsChange,
   allSettings,
   isFirst,
-  isLast
+  isLast,
+  onOptionsChange
 }: {
   option: CustomizationOption;
   optionIndex: number;
@@ -1292,6 +1325,7 @@ function OptionCard({
   allSettings: CustomizationSetting[];
   isFirst: boolean;
   isLast: boolean;
+  onOptionsChange?: () => void;
 }) {
   const [editedOption, setEditedOption] = useState(option);
 
