@@ -226,7 +226,7 @@ export class VariantGenerator {
     // Apply the same dual stone logic for unknown product types
     let firstStone = '';
     let secondStone = '';
-    let otherOptions: string[] = [];
+    const otherOptions: string[] = [];
     
     options.forEach(option => {
       const settingTitle = option.setting_title.toLowerCase();
@@ -263,7 +263,7 @@ export class VariantGenerator {
     const actualFirstStone = firstStone ? extractStoneFromContextual(firstStone) : '';
     
     // Build filename parts
-    let filenameParts = [productType];
+    const filenameParts = [productType];
     
     // Add stones based on dual stone logic
     if (firstStone && actualFirstStone !== 'diamond' && secondStone) {
