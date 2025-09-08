@@ -28,7 +28,7 @@ export default function OptionImageUpload({
     return await uploadImage(file);
   };
 
-  // Compress image to WebP format with target size < 100KB
+  // Compress image to WebP format with target size < 15KB (ultra extreme compression)
   const compressImage = (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const canvas = document.createElement('canvas');
@@ -36,8 +36,8 @@ export default function OptionImageUpload({
       const img = new Image();
 
       img.onload = () => {
-        // Calculate dimensions to maintain aspect ratio
-        const maxDimension = 800; // Max width or height
+        // Tiny dimensions for maximum compression
+        const maxDimension = 150; // Reduced from 200 to 150 (even smaller)
         let { width, height } = img;
         
         if (width > height) {
@@ -55,11 +55,18 @@ export default function OptionImageUpload({
         canvas.width = width;
         canvas.height = height;
 
-        // Draw and compress
-        ctx?.drawImage(img, 0, 0, width, height);
+        // Draw with basic quality for maximum compression
+        if (ctx) {
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'medium'; // Reduced from 'high' to 'medium'
+          ctx.drawImage(img, 0, 0, width, height);
+        }
 
-        // Start with high quality and reduce if needed
-        let quality = 0.9;
+        // Start with extremely low quality
+        let quality = 0.3; // Start even lower
+        const targetSize = 15000; // 15KB target (much smaller)
+        const minQuality = 0.05; // Go to almost minimum quality
+        
         const tryCompress = () => {
           canvas.toBlob((blob) => {
             if (!blob) {
@@ -67,12 +74,27 @@ export default function OptionImageUpload({
               return;
             }
 
-            // If under 100KB or quality is too low, use this version
-            if (blob.size <= 100000 || quality <= 0.3) {
+            console.log(`Compression attempt: quality=${quality.toFixed(2)}, size=${blob.size} bytes`);
+
+            // If under 15KB or quality is at minimum, use this version
+            if (blob.size <= targetSize || quality <= minQuality) {
+              console.log(`Final compressed image: ${blob.size} bytes (${(blob.size / 1024).toFixed(1)}KB)`);
               resolve(blob);
             } else {
-              // Reduce quality and try again
-              quality -= 0.1;
+              // Reduce quality extremely aggressively
+              const sizeRatio = blob.size / targetSize;
+              if (sizeRatio > 4) {
+                quality -= 0.25; // Massive reduction if way over target
+              } else if (sizeRatio > 3) {
+                quality -= 0.2; // Huge reduction if way over target
+              } else if (sizeRatio > 2) {
+                quality -= 0.15; // Big reduction if over target
+              } else if (sizeRatio > 1.5) {
+                quality -= 0.1; // Medium reduction
+              } else {
+                quality -= 0.05; // Small reduction when close
+              }
+              
               tryCompress();
             }
           }, 'image/webp', quality);
@@ -287,7 +309,7 @@ export default function OptionImageUpload({
                   {dragOver ? 'Drop image here' : 'Upload image'}
                 </p>
                 <p className="text-xs text-gray-500">
-                  PNG, JPG, GIF up to 10MB (will be compressed to WebP &lt; 100KB)
+                  PNG, JPG, GIF up to 10MB (will be compressed to WebP &lt; 15KB)
                 </p>
               </div>
             </div>
@@ -296,7 +318,7 @@ export default function OptionImageUpload({
       )}
       
       <p className="text-xs text-gray-500">
-        Images are automatically compressed to WebP format under 100KB while maintaining quality
+        Images are automatically compressed to WebP format under 15KB while maintaining quality
       </p>
     </div>
   );
