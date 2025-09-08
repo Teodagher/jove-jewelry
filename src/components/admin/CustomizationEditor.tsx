@@ -25,6 +25,7 @@ import {
   ArrowUp,
   ArrowDown
 } from 'lucide-react';
+import { compressToTargetSize } from '@/lib/imageCompression';
 
 interface CustomizationOption {
   id: string;
@@ -682,66 +683,42 @@ function SettingCard({
     }
   };
 
-  // Upload image helper (same as in NewStepModal)
+  // Upload image helper with 20KB target compression
   const uploadImageFile = async (file: File): Promise<string> => {
-    const fileExt = 'webp';
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-    
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    
-    return new Promise((resolve, reject) => {
-      img.onload = () => {
-        const maxDimension = 800;
-        let { width, height } = img;
-        
-        if (width > height) {
-          if (width > maxDimension) {
-            height = (height * maxDimension) / width;
-            width = maxDimension;
-          }
-        } else {
-          if (height > maxDimension) {
-            width = (width * maxDimension) / height;
-            height = maxDimension;
-          }
-        }
+    try {
+      console.log(`🔄 Compressing image to ~20KB: ${file.name} (${(file.size / 1024).toFixed(1)}KB original)`);
+      
+      // Compress image to target 20KB
+      const compressedBlob = await compressToTargetSize(file, 20, {
+        maxWidth: 800,
+        maxHeight: 800,
+        format: 'webp'
+      });
 
-        canvas.width = width;
-        canvas.height = height;
-        ctx?.drawImage(img, 0, 0, width, height);
+      console.log(`✅ Compressed to ${(compressedBlob.size / 1024).toFixed(1)}KB`);
 
-        canvas.toBlob(async (blob) => {
-          if (!blob) {
-            reject(new Error('Failed to compress image'));
-            return;
-          }
+      // Generate filename
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`;
 
-          try {
-            const { data, error } = await supabase.storage
-              .from('customization_options')
-              .upload(fileName, blob, {
-                contentType: 'image/webp',
-                upsert: false
-              });
+      // Upload to storage
+      const { data, error } = await supabase.storage
+        .from('customization_options')
+        .upload(fileName, compressedBlob, {
+          contentType: 'image/webp',
+          upsert: false
+        });
 
-            if (error) throw error;
+      if (error) throw error;
 
-            const { data: { publicUrl } } = supabase.storage
-              .from('customization_options')
-              .getPublicUrl(data.path);
+      const { data: { publicUrl } } = supabase.storage
+        .from('customization_options')
+        .getPublicUrl(data.path);
 
-            resolve(publicUrl);
-          } catch (uploadError) {
-            reject(uploadError);
-          }
-        }, 'image/webp', 0.9);
-      };
-
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = URL.createObjectURL(file);
-    });
+      return publicUrl;
+    } catch (error) {
+      console.error('❌ Image upload failed:', error);
+      throw new Error(`Failed to upload image: ${error}`);
+    }
   };
 
   // Generate option ID from name with uniqueness check
