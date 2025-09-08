@@ -6,7 +6,8 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/toast-provider';
 import { variantGenerator, type ProductVariant, type VariantGenerationResult } from '@/services/variantGenerator';
-import { compressToTargetSize, formatFileSize } from '@/lib/imageCompression';
+import { formatFileSize } from '@/lib/imageCompression';
+import imageCompression from 'browser-image-compression';
 import { 
   Upload, 
   Image as ImageIcon, 
@@ -123,12 +124,17 @@ export default function ProductImages({ productId, productType, productSlug, ref
         [variantId]: { ...prev[variantId], progress: 25 }
       }));
 
-      // Compress image to target size (~100KB)
-      const compressedBlob = await compressToTargetSize(file, 100, {
-        maxWidth: 1920,
-        maxHeight: 1080,
-        format: 'webp'
-      });
+      // Compress image to target size (~20KB) using browser-image-compression
+      const options = {
+        maxSizeMB: 0.02, // 20KB target
+        maxWidthOrHeight: 1920, // Max dimension for product images
+        useWebWorker: true, // Use web worker for performance
+        fileType: 'image/webp', // Convert to WebP
+        initialQuality: 0.6, // Start with lower quality for smaller files
+        alwaysKeepResolution: false // Allow resolution reduction if needed
+      };
+
+      const compressedBlob = await imageCompression(file, options);
 
       setUploadStatus(prev => ({
         ...prev,

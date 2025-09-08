@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import OptionImageUpload from './OptionImageUpload';
 import { supabase } from '@/lib/supabase/client';
+import imageCompression from 'browser-image-compression';
 
 interface CustomizationSetting {
   setting_id: string;
@@ -205,67 +206,48 @@ export default function NewStepModal({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Upload image helper
+  // Upload image helper with 20KB target compression using browser-image-compression
   const uploadImageFile = async (file: File): Promise<string> => {
-    const fileExt = 'webp';
-    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-    
-    // Compress the image (simplified version of OptionImageUpload logic)
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    
-    return new Promise((resolve, reject) => {
-      img.onload = () => {
-        const maxDimension = 800;
-        let { width, height } = img;
-        
-        if (width > height) {
-          if (width > maxDimension) {
-            height = (height * maxDimension) / width;
-            width = maxDimension;
-          }
-        } else {
-          if (height > maxDimension) {
-            width = (width * maxDimension) / height;
-            height = maxDimension;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        ctx?.drawImage(img, 0, 0, width, height);
-
-        canvas.toBlob(async (blob) => {
-          if (!blob) {
-            reject(new Error('Failed to compress image'));
-            return;
-          }
-
-          try {
-            const { data, error } = await supabase.storage
-              .from('customization_options')
-              .upload(fileName, blob, {
-                contentType: 'image/webp',
-                upsert: false
-              });
-
-            if (error) throw error;
-
-            const { data: { publicUrl } } = supabase.storage
-              .from('customization_options')
-              .getPublicUrl(data.path);
-
-            resolve(publicUrl);
-          } catch (uploadError) {
-            reject(uploadError);
-          }
-        }, 'image/webp', 0.9);
+    try {
+      console.log(`🔄 Compressing image to ~20KB: ${file.name} (${(file.size / 1024).toFixed(1)}KB original)`);
+      
+      // Aggressive compression settings to target 20KB
+      const options = {
+        maxSizeMB: 0.02, // 20KB target
+        maxWidthOrHeight: 800, // Max dimension
+        useWebWorker: true, // Use web worker for performance
+        fileType: 'image/webp', // Convert to WebP
+        initialQuality: 0.6, // Start with lower quality for smaller files
+        alwaysKeepResolution: false // Allow resolution reduction if needed
       };
 
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = URL.createObjectURL(file);
-    });
+      // Compress the image
+      const compressedFile = await imageCompression(file, options);
+      
+      console.log(`✅ Compressed to ${(compressedFile.size / 1024).toFixed(1)}KB (${((1 - compressedFile.size / file.size) * 100).toFixed(1)}% reduction)`);
+
+      // Generate filename
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`;
+
+      // Upload to storage
+      const { data, error } = await supabase.storage
+        .from('customization_options')
+        .upload(fileName, compressedFile, {
+          contentType: 'image/webp',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('customization_options')
+        .getPublicUrl(data.path);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('❌ Image upload failed:', error);
+      throw new Error(`Failed to upload image: ${error}`);
+    }
   };
 
   // Handle submit

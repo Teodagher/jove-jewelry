@@ -25,7 +25,7 @@ import {
   ArrowUp,
   ArrowDown
 } from 'lucide-react';
-import { compressToTargetSize } from '@/lib/imageCompression';
+import imageCompression from 'browser-image-compression';
 
 interface CustomizationOption {
   id: string;
@@ -683,19 +683,25 @@ function SettingCard({
     }
   };
 
-  // Upload image helper with 20KB target compression
+  // Upload image helper with aggressive 20KB target compression using browser-image-compression
   const uploadImageFile = async (file: File): Promise<string> => {
     try {
       console.log(`🔄 Compressing image to ~20KB: ${file.name} (${(file.size / 1024).toFixed(1)}KB original)`);
       
-      // Compress image to target 20KB
-      const compressedBlob = await compressToTargetSize(file, 20, {
-        maxWidth: 800,
-        maxHeight: 800,
-        format: 'webp'
-      });
+      // Aggressive compression settings to target 20KB
+      const options = {
+        maxSizeMB: 0.02, // 20KB target
+        maxWidthOrHeight: 800, // Max dimension
+        useWebWorker: true, // Use web worker for performance
+        fileType: 'image/webp', // Convert to WebP
+        initialQuality: 0.6, // Start with lower quality for smaller files
+        alwaysKeepResolution: false // Allow resolution reduction if needed
+      };
 
-      console.log(`✅ Compressed to ${(compressedBlob.size / 1024).toFixed(1)}KB`);
+      // Compress the image
+      const compressedFile = await imageCompression(file, options);
+      
+      console.log(`✅ Compressed to ${(compressedFile.size / 1024).toFixed(1)}KB (${((1 - compressedFile.size / file.size) * 100).toFixed(1)}% reduction)`);
 
       // Generate filename
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`;
@@ -703,7 +709,7 @@ function SettingCard({
       // Upload to storage
       const { data, error } = await supabase.storage
         .from('customization_options')
-        .upload(fileName, compressedBlob, {
+        .upload(fileName, compressedFile, {
           contentType: 'image/webp',
           upsert: false
         });

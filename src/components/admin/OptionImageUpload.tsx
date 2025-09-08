@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { Upload, X, ImageIcon, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import imageCompression from 'browser-image-compression';
 
 interface OptionImageUploadProps {
   currentImageUrl?: string | null;
@@ -28,97 +29,31 @@ export default function OptionImageUpload({
     return await uploadImage(file);
   };
 
-  // Compress image to WebP format with target size < 10KB (maximum compression)
-  const compressImage = (file: File): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      console.log(`🔥 Starting compression of ${file.name} (${(file.size / 1024).toFixed(1)}KB)`);
+  // Compress image to WebP format with 20KB target using browser-image-compression
+  const compressImage = async (file: File): Promise<Blob> => {
+    try {
+      console.log(`🔄 Compressing image to ~20KB: ${file.name} (${(file.size / 1024).toFixed(1)}KB original)`);
       
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-
-      img.onload = () => {
-        console.log(`📐 Original image dimensions: ${img.width}x${img.height}`);
-        
-        // Even tinier dimensions for maximum compression
-        const maxDimension = 100; // Reduced from 150 to 100 (super tiny)
-        let { width, height } = img;
-        
-        if (width > height) {
-          if (width > maxDimension) {
-            height = (height * maxDimension) / width;
-            width = maxDimension;
-          }
-        } else {
-          if (height > maxDimension) {
-            width = (width * maxDimension) / height;
-            height = maxDimension;
-          }
-        }
-
-        console.log(`📐 Target dimensions: ${width}x${height}`);
-
-        canvas.width = width;
-        canvas.height = height;
-
-        // Draw with lowest quality for maximum compression
-        if (ctx) {
-          ctx.imageSmoothingEnabled = false; // Disable smoothing for smaller files
-          ctx.drawImage(img, 0, 0, width, height);
-        }
-
-        // Start with very low quality
-        let quality = 0.1; // Start extremely low
-        const targetSize = 10000; // 10KB target (even smaller)
-        const minQuality = 0.02; // Go to absolute minimum quality
-        
-        const tryCompress = () => {
-          canvas.toBlob((blob) => {
-            if (!blob) {
-              reject(new Error('Failed to compress image'));
-              return;
-            }
-
-            const sizeKB = (blob.size / 1024).toFixed(1);
-            console.log(`🔄 Compression attempt: quality=${quality.toFixed(3)}, size=${blob.size} bytes (${sizeKB}KB)`);
-
-            // If under 10KB or quality is at absolute minimum, use this version
-            if (blob.size <= targetSize || quality <= minQuality) {
-              console.log(`✅ Final compressed image: ${blob.size} bytes (${sizeKB}KB) - ${((1 - blob.size / file.size) * 100).toFixed(1)}% reduction`);
-              resolve(blob);
-            } else {
-              // Reduce quality extremely aggressively
-              const sizeRatio = blob.size / targetSize;
-              if (sizeRatio > 5) {
-                quality -= 0.3; // Massive reduction if way over target
-              } else if (sizeRatio > 4) {
-                quality -= 0.25; // Huge reduction
-              } else if (sizeRatio > 3) {
-                quality -= 0.2; // Big reduction
-              } else if (sizeRatio > 2) {
-                quality -= 0.15; // Medium-large reduction
-              } else if (sizeRatio > 1.5) {
-                quality -= 0.1; // Medium reduction
-              } else {
-                quality -= 0.03; // Small reduction when close
-              }
-              
-              // Ensure quality doesn't go below minimum
-              if (quality < minQuality) {
-                quality = minQuality;
-              }
-              
-              tryCompress();
-            }
-          }, 'image/webp', quality);
-        };
-
-        tryCompress();
+      // Aggressive compression settings to target 20KB for option images
+      const options = {
+        maxSizeMB: 0.02, // 20KB target
+        maxWidthOrHeight: 800, // Max dimension for option images
+        useWebWorker: true, // Use web worker for performance
+        fileType: 'image/webp', // Convert to WebP
+        initialQuality: 0.6, // Start with lower quality for smaller files
+        alwaysKeepResolution: false // Allow resolution reduction if needed
       };
 
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = URL.createObjectURL(file);
-    });
+      // Compress the image
+      const compressedFile = await imageCompression(file, options);
+      
+      console.log(`✅ Compressed to ${(compressedFile.size / 1024).toFixed(1)}KB (${((1 - compressedFile.size / file.size) * 100).toFixed(1)}% reduction)`);
+
+      return compressedFile;
+    } catch (error) {
+      console.error('❌ Image compression failed:', error);
+      throw new Error(`Failed to compress image: ${error}`);
+    }
   };
 
   // Upload image to Supabase Storage
@@ -322,7 +257,7 @@ export default function OptionImageUpload({
                   {dragOver ? 'Drop image here' : 'Upload image'}
                 </p>
                 <p className="text-xs text-gray-500">
-                  PNG, JPG, GIF up to 10MB (will be compressed to WebP &lt; 10KB)
+                  PNG, JPG, GIF up to 10MB (will be compressed to WebP ~20KB)
                 </p>
               </div>
             </div>
@@ -331,7 +266,7 @@ export default function OptionImageUpload({
       )}
       
       <p className="text-xs text-gray-500">
-        Images are automatically compressed to WebP format under 10KB while maintaining quality
+        Images are automatically compressed to WebP format (~20KB) while maintaining quality
       </p>
     </div>
   );
