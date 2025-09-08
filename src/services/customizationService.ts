@@ -559,8 +559,16 @@ export class CustomizationService {
       
       if (variantStone && metal && metalMap[metal]) {
         const actualVariantStone = extractStoneFromContextual(variantStone);
-        const stoneFilename = stoneMap[actualVariantStone];
+        const stoneFilename = stoneMap[actualVariantStone] || actualVariantStone;
         const metalFilename = metalMap[metal];
+        
+        console.log('🔧 Ring stone mapping debug:', {
+          variantStone,
+          actualVariantStone,
+          stoneFilename,
+          availableInStoneMap: Object.keys(stoneMap),
+          metalFilename
+        });
         
         // Generate filename based on stone combination
         let filename: string;
