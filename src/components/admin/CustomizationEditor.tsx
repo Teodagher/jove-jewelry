@@ -575,6 +575,7 @@ export default function CustomizationEditor({
             allSettings={settings}
             isFirst={settingIndex === 0}
             isLast={settingIndex === settings.length - 1}
+            onOptionsChange={onOptionsChange}
           />
         ))}
       </div>
@@ -629,7 +630,8 @@ function SettingCard({
   onSettingsChange,
   allSettings,
   isFirst,
-  isLast
+  isLast,
+  onOptionsChange
 }: {
   setting: CustomizationSetting;
   settingIndex: number;
@@ -651,6 +653,7 @@ function SettingCard({
   allSettings: CustomizationSetting[];
   isFirst: boolean;
   isLast: boolean;
+  onOptionsChange?: () => void;
 }) {
   const [showAddOption, setShowAddOption] = useState(false);
   const [newOption, setNewOption] = useState({
