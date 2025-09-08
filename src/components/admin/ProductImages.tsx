@@ -239,13 +239,45 @@ export default function ProductImages({ productId, productType, productSlug, ref
 
     try {
       const uploadPath = variantGenerator.generateUploadPath(productType, variant.filename);
+      console.log('🗑️ Attempting to delete image:', {
+        productType,
+        filename: variant.filename,
+        uploadPath,
+        fullUrl: variant.imageUrl
+      });
       
-      const { error } = await supabase.storage
+      // Delete from Supabase Storage
+      const { error, data } = await supabase.storage
         .from('customization-item')
         .remove([uploadPath]);
 
+      console.log('🗑️ Storage deletion result:', { error, data });
+
       if (error) {
         throw error;
+      }
+
+      // Clean up database references to this image URL
+      const imageUrl = variant.imageUrl;
+      
+      // Update cart items that reference this image
+      const { error: cartError } = await supabase
+        .from('cart_items')
+        .update({ preview_image_url: null })
+        .eq('preview_image_url', imageUrl);
+
+      if (cartError) {
+        console.warn('Warning: Failed to update cart items:', cartError);
+      }
+
+      // Update order items that reference this image
+      const { error: orderError } = await supabase
+        .from('order_items')
+        .update({ preview_image_url: null })
+        .eq('preview_image_url', imageUrl);
+
+      if (orderError) {
+        console.warn('Warning: Failed to update order items:', orderError);
       }
 
       // Update variant state
@@ -267,7 +299,7 @@ export default function ProductImages({ productId, productType, productSlug, ref
       addToast({
         type: 'success',
         title: 'Image Deleted',
-        message: `${variant.name} image has been removed`
+        message: `${variant.name} image and all database references have been removed`
       });
 
     } catch (error: any) {

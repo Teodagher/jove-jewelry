@@ -353,73 +353,85 @@ export default function CustomizationComponent({
   // Current selected price
   const totalPrice = selectedDiamondType === 'natural' ? totalPriceNatural : totalPriceLabGrown;
 
-  // Generate preview image URL based on customization state
-  const previewImageUrl = useMemo(() => {
+  // Generate preview image URL based on customization state (async)
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(jewelryItem.baseImage);
+
+  useEffect(() => {
+    const generatePreviewUrl = async () => {
       console.log('🔍 CustomizationComponent: Generating preview URL for:', {
         jewelryType: jewelryItem.type,
         customizationState,
-      timestamp: new Date().toISOString()
-    });
+        timestamp: new Date().toISOString()
+      });
 
-    const hasVariantStone = (customizationState.first_stone && customizationState.first_stone !== 'diamond') || customizationState.second_stone;
-    
-     if (jewelryItem.type === 'bracelet' && 
-         customizationState.chain_type && customizationState.metal && hasVariantStone) {
-      // Convert CustomizationState to string-only object for the service
-      const stringCustomizations: { [key: string]: string } = {};
-      Object.entries(customizationState).forEach(([key, value]) => {
-        if (typeof value === 'string') {
-          stringCustomizations[key] = value;
-        }
-      });
-       const generatedUrl = CustomizationService.generateVariantImageUrl(jewelryItem.type, stringCustomizations);
-      console.log('✅ Generated bracelet variant URL:', generatedUrl);
-      return generatedUrl;
-    }
-    
-    if (jewelryItem.type === 'ring' && 
-        customizationState.metal && customizationState.second_stone) {
-      // Convert CustomizationState to string-only object for the service
-      const stringCustomizations: { [key: string]: string } = {};
-      Object.entries(customizationState).forEach(([key, value]) => {
-        if (typeof value === 'string') {
-          stringCustomizations[key] = value;
-        }
-      });
-       const generatedUrl = CustomizationService.generateVariantImageUrl(jewelryItem.type, stringCustomizations);
-      return generatedUrl;
-    }
-    
-     if (jewelryItem.type === 'necklace' && 
-         customizationState.chain_type && customizationState.metal && hasVariantStone) {
-      // Convert CustomizationState to string-only object for the service
-      const stringCustomizations: { [key: string]: string } = {};
-      Object.entries(customizationState).forEach(([key, value]) => {
-        if (typeof value === 'string') {
-          stringCustomizations[key] = value;
-        }
-      });
-       const generatedUrl = CustomizationService.generateVariantImageUrl(jewelryItem.type, stringCustomizations);
-      return generatedUrl;
-    }
-    
-    // For other jewelry types or during initial load, provide a sensible default
-    console.log('📋 Using base image:', jewelryItem.baseImage);
-    
-    // If no base image and no customizations selected yet, use a default variant
+      const hasVariantStone = (customizationState.first_stone && customizationState.first_stone !== 'diamond') || customizationState.second_stone;
+      
+      if (jewelryItem.type === 'bracelet' && 
+          customizationState.chain_type && customizationState.metal && hasVariantStone) {
+        // Convert CustomizationState to string-only object for the service
+        const stringCustomizations: { [key: string]: string } = {};
+        Object.entries(customizationState).forEach(([key, value]) => {
+          if (typeof value === 'string') {
+            stringCustomizations[key] = value;
+          }
+        });
+        const generatedUrl = await CustomizationService.generateVariantImageUrl(jewelryItem.type, stringCustomizations);
+        console.log('✅ Generated bracelet variant URL:', generatedUrl);
+        setPreviewImageUrl(generatedUrl);
+        return;
+      }
+      
+      if (jewelryItem.type === 'ring' && 
+          customizationState.metal && customizationState.second_stone) {
+        // Convert CustomizationState to string-only object for the service
+        const stringCustomizations: { [key: string]: string } = {};
+        Object.entries(customizationState).forEach(([key, value]) => {
+          if (typeof value === 'string') {
+            stringCustomizations[key] = value;
+          }
+        });
+        const generatedUrl = await CustomizationService.generateVariantImageUrl(jewelryItem.type, stringCustomizations);
+        setPreviewImageUrl(generatedUrl);
+        return;
+      }
+      
+      if (jewelryItem.type === 'necklace' && 
+          customizationState.chain_type && customizationState.metal && hasVariantStone) {
+        // Convert CustomizationState to string-only object for the service
+        const stringCustomizations: { [key: string]: string } = {};
+        Object.entries(customizationState).forEach(([key, value]) => {
+          if (typeof value === 'string') {
+            stringCustomizations[key] = value;
+          }
+        });
+        const generatedUrl = await CustomizationService.generateVariantImageUrl(jewelryItem.type, stringCustomizations);
+        setPreviewImageUrl(generatedUrl);
+        return;
+      }
+      
+      // For other jewelry types or during initial load, provide a sensible default
+      console.log('📋 Using base image:', jewelryItem.baseImage);
+      
+      // If no base image and no customizations selected yet, use a default variant
       if (!jewelryItem.baseImage && Object.keys(customizationState).length === 0) {
-       if (jewelryItem.type === 'bracelet') {
-         return 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/bracelets/bracelet-black-leather-emerald-whitegold.webp';
-       }
-       if (jewelryItem.type === 'necklace') {
-         return 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/necklaces/necklace-black-leather-emerald-yellowgold.webp';
-       }
-       if (jewelryItem.type === 'ring') {
-         return 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/rings/Ring%20emerald%20white%20gold.png';
-       }
-    }
-    
-    return jewelryItem.baseImage;
+        if (jewelryItem.type === 'bracelet') {
+          setPreviewImageUrl('https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/bracelets/bracelet-black-leather-emerald-whitegold.webp');
+          return;
+        }
+        if (jewelryItem.type === 'necklace') {
+          setPreviewImageUrl('https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/necklaces/necklace-black-leather-emerald-yellowgold.webp');
+          return;
+        }
+        if (jewelryItem.type === 'ring') {
+          setPreviewImageUrl('https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/rings/Ring%20emerald%20white%20gold.png');
+          return;
+        }
+      }
+      
+      setPreviewImageUrl(jewelryItem.baseImage);
+    };
+
+    generatePreviewUrl();
   }, [customizationState, jewelryItem]);
 
 

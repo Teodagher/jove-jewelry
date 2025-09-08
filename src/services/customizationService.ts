@@ -316,8 +316,73 @@ export class CustomizationService {
     }
   }
 
+  // Get dynamic stone mappings from database
+  static async getDynamicStoneMappings(jewelryType: string): Promise<{ [key: string]: string }> {
+    try {
+      const { data: options, error } = await supabase
+        .from('customization_options')
+        .select('option_id, option_name')
+        .in('setting_id', ['first_stone', 'second_stone'])
+        .eq('is_active', true);
+
+      if (error || !options) {
+        console.error('Error fetching stone options for mapping:', error);
+        return {};
+      }
+
+      // Convert database values to filename format based on jewelry type
+      const stoneMap: { [key: string]: string } = {};
+      
+      options.forEach(option => {
+        const optionId = option.option_id;
+        const optionName = option.option_name.toLowerCase();
+        
+        // Handle special cases that apply to all jewelry types
+        let mappedName: string;
+        
+        if (optionId === 'first_stone_ruby' || (optionId === 'ruby' && optionName === 'ruby')) {
+          mappedName = 'ruby';
+        } else if (optionId === 'black_onyx') {
+          mappedName = jewelryType === 'bracelet' ? 'blackonyx' : optionName.replace(/\s+/g, '');
+        } else if (optionId === 'blue_sapphire') {
+          mappedName = jewelryType === 'bracelet' ? 'blue-sapphire' 
+                    : jewelryType === 'ring' ? 'blue sapphire' 
+                    : 'bluesapphire';
+        } else if (optionId === 'pink_sapphire') {
+          mappedName = jewelryType === 'bracelet' ? 'pink-sapphire' 
+                    : jewelryType === 'ring' ? 'pink sapphire' 
+                    : 'pinksapphire';
+        } else if (optionId === 'yellow_sapphire') {
+          mappedName = jewelryType === 'bracelet' ? 'yellow-sapphire' 
+                    : jewelryType === 'ring' ? 'yellow sapphire' 
+                    : 'yellowsapphire';
+        } else {
+          // For new stones, use the full option_id to match uploaded filenames
+          // This ensures that new stones like 'second_stone_coolstone' work correctly
+          if (jewelryType === 'bracelet') {
+            mappedName = optionId.replace(/_/g, '-');
+          } else if (jewelryType === 'ring') {
+            mappedName = optionId.replace(/_/g, ' ');
+          } else if (jewelryType === 'necklace') {
+            mappedName = optionId;
+          } else {
+            mappedName = optionId;
+          }
+        }
+        
+        stoneMap[optionId] = mappedName;
+      });
+
+      console.log(`🔧 Dynamic stone mappings for ${jewelryType}:`, stoneMap);
+      return stoneMap;
+    } catch (error) {
+      console.error('Error generating dynamic stone mappings:', error);
+      return {};
+    }
+  }
+
   // Generate dynamic variant image URL based on customization selections
-  static generateVariantImageUrl(jewelryType: string, customizations: { [key: string]: string }): string | null {
+  static async generateVariantImageUrl(jewelryType: string, customizations: { [key: string]: string }): Promise<string | null> {
     const baseUrl = 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item'
     
     console.log('🔧 CustomizationService: Generating URL for:', {
@@ -333,27 +398,11 @@ export class CustomizationService {
         'yellow_gold': 'yellowgold'
       }
       
-      const stoneMap: { [key: string]: string } = {
-        'blue_sapphire': 'blue-sapphire',
-        'pink_sapphire': 'pink-sapphire',
-        'yellow_sapphire': 'yellow-sapphire',
-        'emerald': 'emerald',
-        'ruby': 'ruby',
-        'rubyy': 'ruby', // Map rubyy variant to ruby naming
-        'black_onyx': 'blackonyx',
-        'black_onyx_emerald': 'blackonyx'  // Special case: Black Onyx + Emerald combination
-        // Note: diamond variants not available yet
-      }
+      // Get dynamic stone mappings
+      const stoneMap = await this.getDynamicStoneMappings('bracelet');
       
       // Special mapping for white gold chain (uses different naming convention)
-      const whiteGoldChainStoneMap: { [key: string]: string } = {
-        'blue_sapphire': 'bluesapphire',
-        'pink_sapphire': 'pinksapphire',
-        'yellow_sapphire': 'yellowsapphire',
-        'emerald': 'emerald',
-        'ruby': 'ruby',
-        'rubyy': 'ruby' // Map rubyy variant to ruby naming
-      }
+      const whiteGoldChainStoneMap = await this.getDynamicStoneMappings('necklace'); // Reuse necklace format for white gold chains
       
       const chainMap: { [key: string]: string } = {
         'black_leather': 'black-leather',
@@ -443,7 +492,7 @@ export class CustomizationService {
         
         // Extract actual stone names for mapping
         const actualVariantStone = extractStoneFromContextual(variantStone);
-        const stoneFilename = currentStoneMap[actualVariantStone];
+        const stoneFilename = currentStoneMap[actualVariantStone] || currentStoneMap[variantStone] || actualVariantStone;
         const metalFilename = metalMap[metal];
         const chainFilename = chainMap[chainType];
         
@@ -454,8 +503,8 @@ export class CustomizationService {
         if (usingBothStones && variantSecondStone) {
           // Dual stone combination: bracelet-{chain}-{firstStone}-{secondStone}-{metal}.webp
           const secondStoneFilename = useWhiteGoldMapping ? 
-            (whiteGoldChainStoneMap[variantSecondStone] || stoneMap[variantSecondStone] || variantSecondStone) :
-            (stoneMap[variantSecondStone] || variantSecondStone);
+            (whiteGoldChainStoneMap[variantSecondStone] || whiteGoldChainStoneMap[customizations.second_stone] || stoneMap[variantSecondStone] || stoneMap[customizations.second_stone] || variantSecondStone) :
+            (stoneMap[variantSecondStone] || stoneMap[customizations.second_stone] || variantSecondStone);
           
           filename = `bracelet-${chainFilename}-${stoneFilename}-${secondStoneFilename}-${metalFilename}.webp`;
           combinationKey = `${chainFilename}-${stoneFilename}-${secondStoneFilename}-${metalFilename}`;
@@ -507,14 +556,8 @@ export class CustomizationService {
         'yellow_gold': 'yellow gold'
       }
       
-      const stoneMap: { [key: string]: string } = {
-        'blue_sapphire': 'blue sapphire',
-        'pink_sapphire': 'pink sapphire',
-        'yellow_sapphire': 'yellow sapphire',
-        'emerald': 'emerald',
-        'ruby': 'ruby',
-        'rubyy': 'ruby' // Map rubyy variant to ruby naming
-      }
+      // Get dynamic stone mappings
+      const stoneMap = await this.getDynamicStoneMappings('ring');
       
       // Helper function to extract stone name from contextual IDs
       const extractStoneFromContextual = (stoneId: string): string => {
@@ -559,7 +602,7 @@ export class CustomizationService {
       
       if (variantStone && metal && metalMap[metal]) {
         const actualVariantStone = extractStoneFromContextual(variantStone);
-        const stoneFilename = stoneMap[actualVariantStone] || actualVariantStone;
+        const stoneFilename = stoneMap[actualVariantStone] || stoneMap[variantStone] || actualVariantStone;
         const metalFilename = metalMap[metal];
         
         console.log('🔧 Ring stone mapping debug:', {
@@ -574,7 +617,7 @@ export class CustomizationService {
         let filename: string;
         if (usingBothStones && variantSecondStone) {
           // Dual stone combination: Ring {firstStone} {secondStone} {metal}.webp
-          const secondStoneFilename = stoneMap[variantSecondStone] || variantSecondStone;
+          const secondStoneFilename = stoneMap[variantSecondStone] || stoneMap[customizations.second_stone] || variantSecondStone;
           filename = `Ring ${stoneFilename} ${secondStoneFilename} ${metalFilename}.webp`;
           console.log('🎯 Generating dual stone ring URL:', {
             firstStone: actualVariantStone,
@@ -604,14 +647,8 @@ export class CustomizationService {
         'yellow_gold': 'yellowgold'
       }
       
-      const stoneMap: { [key: string]: string } = {
-        'blue_sapphire': 'bluesapphire',
-        'pink_sapphire': 'pinksapphire',
-        'yellow_sapphire': 'yellowsapphire',
-        'emerald': 'emerald',
-        'ruby': 'ruby',
-        'rubyy': 'ruby' // Map rubyy variant to ruby naming
-      }
+      // Get dynamic stone mappings
+      const stoneMap = await this.getDynamicStoneMappings('necklace');
       
       const chainMap: { [key: string]: string } = {
         'black_leather': 'black-leather',
@@ -666,9 +703,17 @@ export class CustomizationService {
       
       if (variantStone && metal && chainType && metalMap[metal] && chainMap[chainType]) {
         const actualVariantStone = extractStoneFromContextual(variantStone);
-        const stoneFilename = stoneMap[actualVariantStone];
+        const stoneFilename = stoneMap[actualVariantStone] || stoneMap[variantStone] || actualVariantStone;
         const metalFilename = metalMap[metal];
         const chainFilename = chainMap[chainType];
+        
+        console.log('🔧 Necklace stone mapping debug:', {
+          variantStone,
+          actualVariantStone,
+          stoneFilename,
+          availableInStoneMap: Object.keys(stoneMap),
+          metalFilename
+        });
         
         // Generate filename based on stone combination
         let filename: string;
@@ -676,7 +721,7 @@ export class CustomizationService {
         
         if (usingBothStones && variantSecondStone) {
           // Dual stone combination: necklace-{chain}-{firstStone}-{secondStone}-{metal}.webp
-          const secondStoneFilename = stoneMap[variantSecondStone] || variantSecondStone;
+          const secondStoneFilename = stoneMap[variantSecondStone] || stoneMap[customizations.second_stone] || variantSecondStone;
           filename = `necklace-${chainFilename}-${stoneFilename}-${secondStoneFilename}-${metalFilename}.webp`;
           combinationKey = `${chainFilename}-${stoneFilename}-${secondStoneFilename}-${metalFilename}`;
           
@@ -834,7 +879,7 @@ export class CustomizationService {
 
   // Check if a variant image exists for given customizations
   static async checkVariantImageExists(jewelryType: string, customizations: { [key: string]: string }): Promise<boolean> {
-    const imageUrl = this.generateVariantImageUrl(jewelryType, customizations)
+    const imageUrl = await this.generateVariantImageUrl(jewelryType, customizations)
     
     if (!imageUrl) {
       return false

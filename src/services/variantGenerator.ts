@@ -769,23 +769,26 @@ export class VariantGenerator {
     try {
       const filePath = `${productType}s/${filename}`;
       
-      // Try to get the file info to check if it exists
-      const { data, error } = await this.supabaseClient.storage
-        .from('customization-item')
-        .list(productType + 's', {
-          search: filename
-        });
-
-      if (error || !data || data.length === 0) {
-        return null;
-      }
-
-      // File exists, return the public URL
+      // Get the public URL first
       const { data: urlData } = this.supabaseClient.storage
         .from('customization-item')
         .getPublicUrl(filePath);
-
-      return urlData.publicUrl;
+      
+      // Make a HEAD request to check if the file actually exists
+      // This bypasses any caching issues with storage.list()
+      try {
+        const response = await fetch(urlData.publicUrl, { method: 'HEAD' });
+        if (response.ok) {
+          console.log(`✅ Image exists: ${filename}`);
+          return urlData.publicUrl;
+        } else {
+          console.log(`❌ Image not found: ${filename} (${response.status})`);
+          return null;
+        }
+      } catch (fetchError) {
+        console.log(`❌ Network error checking ${filename}:`, fetchError);
+        return null;
+      }
     } catch (error) {
       console.error('Error checking image existence:', error);
       return null;
