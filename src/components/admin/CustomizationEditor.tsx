@@ -21,7 +21,9 @@ import {
   Palette,
   ChevronDown,
   ChevronUp,
-  AlertCircle
+  AlertCircle,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 
 interface CustomizationOption {
@@ -169,6 +171,60 @@ export default function CustomizationEditor({
     } catch (error) {
       console.error('Error updating setting display orders:', error);
     }
+  };
+
+  // Move setting up
+  const moveSettingUp = async (settingId: string) => {
+    const currentIndex = settings.findIndex(setting => setting.setting_id === settingId);
+    if (currentIndex <= 0) return; // Already at top
+
+    const newSettings = [...settings];
+    // Swap with previous setting
+    [newSettings[currentIndex - 1], newSettings[currentIndex]] = [newSettings[currentIndex], newSettings[currentIndex - 1]];
+    
+    // Update display orders
+    newSettings.forEach((setting, index) => {
+      setting.setting_display_order = index + 1;
+    });
+
+    onSettingsChange(newSettings);
+
+    // Save to database
+    await updateSettingDisplayOrders(newSettings);
+    
+    const settingName = settings.find(s => s.setting_id === settingId)?.setting_title || 'Setting';
+    addToast({
+      type: 'success',
+      title: 'Step moved',
+      message: `"${settingName}" moved up`
+    });
+  };
+
+  // Move setting down
+  const moveSettingDown = async (settingId: string) => {
+    const currentIndex = settings.findIndex(setting => setting.setting_id === settingId);
+    if (currentIndex >= settings.length - 1) return; // Already at bottom
+
+    const newSettings = [...settings];
+    // Swap with next setting
+    [newSettings[currentIndex], newSettings[currentIndex + 1]] = [newSettings[currentIndex + 1], newSettings[currentIndex]];
+    
+    // Update display orders
+    newSettings.forEach((setting, index) => {
+      setting.setting_display_order = index + 1;
+    });
+
+    onSettingsChange(newSettings);
+
+    // Save to database
+    await updateSettingDisplayOrders(newSettings);
+    
+    const settingName = settings.find(s => s.setting_id === settingId)?.setting_title || 'Setting';
+    addToast({
+      type: 'success',
+      title: 'Step moved',
+      message: `"${settingName}" moved down`
+    });
   };
 
   // Update option display orders in database
@@ -506,6 +562,8 @@ export default function CustomizationEditor({
             onToggleRequired={() => toggleRequired(setting.setting_id)}
             onToggleImageVariant={() => toggleImageVariant(setting.setting_id)}
             onDeleteSetting={() => deleteSetting(setting.setting_id)}
+            onMoveUp={() => moveSettingUp(setting.setting_id)}
+            onMoveDown={() => moveSettingDown(setting.setting_id)}
             onDragStart={() => handleSettingDragStart(setting.setting_id)}
             onDrop={() => handleSettingDrop(setting.setting_id)}
             onOptionDragStart={(optionId) => handleOptionDragStart(setting.setting_id, optionId)}
@@ -515,6 +573,8 @@ export default function CustomizationEditor({
             productId={productId}
             onSettingsChange={onSettingsChange}
             allSettings={settings}
+            isFirst={settingIndex === 0}
+            isLast={settingIndex === settings.length - 1}
           />
         ))}
       </div>
@@ -557,6 +617,8 @@ function SettingCard({
   onToggleRequired,
   onToggleImageVariant,
   onDeleteSetting,
+  onMoveUp,
+  onMoveDown,
   onDragStart,
   onDrop,
   onOptionDragStart,
@@ -565,7 +627,9 @@ function SettingCard({
   onEditOption,
   productId,
   onSettingsChange,
-  allSettings
+  allSettings,
+  isFirst,
+  isLast
 }: {
   setting: CustomizationSetting;
   settingIndex: number;
@@ -574,6 +638,8 @@ function SettingCard({
   onToggleRequired: () => void;
   onToggleImageVariant: () => void;
   onDeleteSetting?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
   onDragStart: () => void;
   onDrop: () => void;
   onOptionDragStart: (optionId: string) => void;
@@ -583,6 +649,8 @@ function SettingCard({
   productId: string;
   onSettingsChange: (settings: CustomizationSetting[]) => void;
   allSettings: CustomizationSetting[];
+  isFirst: boolean;
+  isLast: boolean;
 }) {
   const [showAddOption, setShowAddOption] = useState(false);
   const [newOption, setNewOption] = useState({
@@ -594,6 +662,22 @@ function SettingCard({
     image_file: null as File | null
   });
   const { addToast } = useToast();
+
+  // Update option display orders in database (local version for SettingCard)
+  const updateOptionDisplayOrders = async (options: CustomizationOption[]) => {
+    try {
+      const promises = options.map(option =>
+        supabase
+          .from('customization_options')
+          .update({ display_order: option.display_order })
+          .eq('id', option.id)
+      );
+
+      await Promise.all(promises);
+    } catch (error) {
+      console.error('Error updating option display orders:', error);
+    }
+  };
 
   // Upload image helper (same as in NewStepModal)
   const uploadImageFile = async (file: File): Promise<string> => {
@@ -879,6 +963,74 @@ function SettingCard({
       });
     }
   };
+
+  // Move option up
+  const moveOptionUp = async (optionToMove: CustomizationOption) => {
+    const currentIndex = setting.options.findIndex(opt => opt.id === optionToMove.id);
+    if (currentIndex <= 0) return; // Already at top
+
+    const newSettings = allSettings.map(s => {
+      if (s.setting_id === setting.setting_id) {
+        const newOptions = [...s.options];
+        // Swap with previous option
+        [newOptions[currentIndex - 1], newOptions[currentIndex]] = [newOptions[currentIndex], newOptions[currentIndex - 1]];
+        
+        // Update display orders
+        newOptions.forEach((option, index) => {
+          option.display_order = index + 1;
+        });
+
+        return { ...s, options: newOptions };
+      }
+      return s;
+    });
+
+    onSettingsChange(newSettings);
+
+    // Save to database
+    const updatedOptions = newSettings.find(s => s.setting_id === setting.setting_id)?.options || [];
+    await updateOptionDisplayOrders(updatedOptions);
+    
+    addToast({
+      type: 'success',
+      title: 'Option moved',
+      message: `"${optionToMove.option_name}" moved up`
+    });
+  };
+
+  // Move option down
+  const moveOptionDown = async (optionToMove: CustomizationOption) => {
+    const currentIndex = setting.options.findIndex(opt => opt.id === optionToMove.id);
+    if (currentIndex >= setting.options.length - 1) return; // Already at bottom
+
+    const newSettings = allSettings.map(s => {
+      if (s.setting_id === setting.setting_id) {
+        const newOptions = [...s.options];
+        // Swap with next option
+        [newOptions[currentIndex], newOptions[currentIndex + 1]] = [newOptions[currentIndex + 1], newOptions[currentIndex]];
+        
+        // Update display orders
+        newOptions.forEach((option, index) => {
+          option.display_order = index + 1;
+        });
+
+        return { ...s, options: newOptions };
+      }
+      return s;
+    });
+
+    onSettingsChange(newSettings);
+
+    // Save to database
+    const updatedOptions = newSettings.find(s => s.setting_id === setting.setting_id)?.options || [];
+    await updateOptionDisplayOrders(updatedOptions);
+    
+    addToast({
+      type: 'success',
+      title: 'Option moved',
+      message: `"${optionToMove.option_name}" moved down`
+    });
+  };
   return (
     <div 
       className="bg-white border border-gray-200 rounded-lg shadow-sm"
@@ -942,6 +1094,27 @@ function SettingCard({
             >
               {setting.affects_image_variant ? '🖼️ Affects Images' : '🚫 No Images'}
             </button>
+            
+            {/* Arrow buttons for reordering steps */}
+            <div className="flex flex-col">
+              <button
+                onClick={() => onMoveUp && onMoveUp()}
+                disabled={isFirst}
+                className="p-0.5 text-gray-400 hover:text-gray-600 disabled:text-gray-300 disabled:cursor-not-allowed"
+                title="Move step up"
+              >
+                <ArrowUp className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => onMoveDown && onMoveDown()}
+                disabled={isLast}
+                className="p-0.5 text-gray-400 hover:text-gray-600 disabled:text-gray-300 disabled:cursor-not-allowed"
+                title="Move step down"
+              >
+                <ArrowDown className="w-3 h-3" />
+              </button>
+            </div>
+            
             <button
               onClick={onToggle}
               className="p-1 text-gray-400 hover:text-gray-600"
@@ -973,12 +1146,16 @@ function SettingCard({
               isEditing={editingOption === option.id}
               onEdit={() => onEditOption(editingOption === option.id ? null : option.id)}
               onDelete={() => deleteOption(option)}
+              onMoveUp={() => moveOptionUp(option)}
+              onMoveDown={() => moveOptionDown(option)}
               onDragStart={() => onOptionDragStart(option.id)}
               onDrop={() => onOptionDrop(option.id)}
               productId={productId}
               settingId={setting.setting_id}
               onSettingsChange={onSettingsChange}
               allSettings={allSettings}
+              isFirst={optionIndex === 0}
+              isLast={optionIndex === setting.options.length - 1}
             />
           ))}
           
@@ -1089,24 +1266,32 @@ function OptionCard({
   isEditing,
   onEdit,
   onDelete,
+  onMoveUp,
+  onMoveDown,
   onDragStart,
   onDrop,
   productId,
   settingId,
   onSettingsChange,
-  allSettings
+  allSettings,
+  isFirst,
+  isLast
 }: {
   option: CustomizationOption;
   optionIndex: number;
   isEditing: boolean;
   onEdit: () => void;
   onDelete?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
   onDragStart: () => void;
   onDrop: () => void;
   productId: string;
   settingId: string;
   onSettingsChange: (settings: CustomizationSetting[]) => void;
   allSettings: CustomizationSetting[];
+  isFirst: boolean;
+  isLast: boolean;
 }) {
   const [editedOption, setEditedOption] = useState(option);
 
@@ -1267,9 +1452,31 @@ function OptionCard({
         {!option.is_active && (
           <span className="px-2 py-1 text-xs bg-red-100 text-red-600 rounded">Inactive</span>
         )}
+        
+        {/* Arrow buttons for reordering */}
+        <div className="flex flex-col">
+          <button
+            onClick={() => onMoveUp && onMoveUp()}
+            disabled={isFirst}
+            className="p-0.5 text-gray-400 hover:text-gray-600 disabled:text-gray-300 disabled:cursor-not-allowed"
+            title="Move up"
+          >
+            <ArrowUp className="w-3 h-3" />
+          </button>
+          <button
+            onClick={() => onMoveDown && onMoveDown()}
+            disabled={isLast}
+            className="p-0.5 text-gray-400 hover:text-gray-600 disabled:text-gray-300 disabled:cursor-not-allowed"
+            title="Move down"
+          >
+            <ArrowDown className="w-3 h-3" />
+          </button>
+        </div>
+        
         <button
           onClick={onEdit}
           className="p-1 text-gray-400 hover:text-gray-600"
+          title="Edit option"
         >
           <Edit className="w-4 h-4" />
         </button>
