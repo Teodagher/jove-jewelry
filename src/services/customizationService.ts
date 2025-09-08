@@ -336,8 +336,10 @@ export class CustomizationService {
       const stoneMap: { [key: string]: string } = {
         'blue_sapphire': 'blue-sapphire',
         'pink_sapphire': 'pink-sapphire',
+        'yellow_sapphire': 'yellow-sapphire',
         'emerald': 'emerald',
         'ruby': 'ruby',
+        'rubyy': 'ruby', // Map rubyy variant to ruby naming
         'black_onyx': 'blackonyx',
         'black_onyx_emerald': 'blackonyx'  // Special case: Black Onyx + Emerald combination
         // Note: diamond variants not available yet
@@ -347,8 +349,10 @@ export class CustomizationService {
       const whiteGoldChainStoneMap: { [key: string]: string } = {
         'blue_sapphire': 'bluesapphire',
         'pink_sapphire': 'pinksapphire',
+        'yellow_sapphire': 'yellowsapphire',
         'emerald': 'emerald',
-        'ruby': 'ruby'
+        'ruby': 'ruby',
+        'rubyy': 'ruby' // Map rubyy variant to ruby naming
       }
       
       const chainMap: { [key: string]: string } = {
@@ -374,17 +378,41 @@ export class CustomizationService {
       // If first_stone is diamond, use second_stone for the variant
       // If first_stone is not diamond and not black_onyx, use first_stone for the variant
       let variantStone = customizations.second_stone;
+      let usingFirstStone = false;
+      
       if (customizations.first_stone === 'black_onyx') {
         variantStone = 'black_onyx';  // Black Onyx combinations use blackonyx filename
         console.log('🖤 Black Onyx detected as first stone, using black_onyx for variant');
       } else if (customizations.first_stone && customizations.first_stone !== 'diamond') {
-        variantStone = customizations.first_stone;
+        // Extract the actual stone name from contextual ID (e.g., "first_stone_ruby" → "ruby")
+        const extractStoneFromContextual = (stoneId: string): string => {
+          if (stoneId && stoneId.includes('_')) {
+            const parts = stoneId.split('_');
+            const lastPart = parts[parts.length - 1];
+            // Try two-word stones like "blue_sapphire", "pink_sapphire", etc.
+            if (parts.length >= 2) {
+              const twoWordStone = parts.slice(-2).join('_');
+              if (['blue_sapphire', 'pink_sapphire', 'yellow_sapphire'].includes(twoWordStone)) {
+                return twoWordStone;
+              }
+            }
+            if (['ruby', 'emerald', 'diamond'].includes(lastPart)) {
+              return lastPart;
+            }
+          }
+          return stoneId;
+        };
+        
+        variantStone = extractStoneFromContextual(customizations.first_stone);
+        usingFirstStone = true;
+        console.log('🎯 Using FIRST stone for bracelet variant (not diamond):', customizations.first_stone, '→', variantStone);
       }
       
       console.log('🔍 Bracelet variant selection:', {
         firstStone: customizations.first_stone,
         secondStone: customizations.second_stone,
         selectedVariantStone: variantStone,
+        usingFirstStone: usingFirstStone,
         metal,
         originalChainType: customizations.chain_type,
         finalChainType: chainType,
@@ -441,22 +469,31 @@ export class CustomizationService {
           // NOTE: No diamond variants available for any combination
         ];
         
-        const combinationKey = `${chainFilename}-${stoneFilename}-${metalFilename}`;
+        // Add prefix for first stone variants to match VariantGenerator logic
+        const stonePrefix = usingFirstStone ? 'first-' : '';
+        const combinationKey = `${chainFilename}-${stonePrefix}${stoneFilename}-${metalFilename}`;
         
-        if (validBraceletCombinations.includes(combinationKey)) {
+        // For validation, check both prefixed and non-prefixed versions
+        const baseCombinationKey = `${chainFilename}-${stoneFilename}-${metalFilename}`;
+        
+        if (validBraceletCombinations.includes(baseCombinationKey)) {
           // Special case: ruby + yellowgold only exists as PNG (not yet converted to WebP)
-          if (combinationKey === 'black-leather-ruby-yellowgold') {
-            filename = `bracelet-${chainFilename}-${stoneFilename}-${metalFilename}.png`;
+          if (baseCombinationKey === 'black-leather-ruby-yellowgold') {
+            filename = `bracelet-${chainFilename}-${stonePrefix}${stoneFilename}-${metalFilename}.png`;
             const finalUrl = `${baseUrl}/bracelets/${filename}`;
-            console.log('🎯 Bracelet URL generated (PNG fallback):', finalUrl, '(Ruby+YellowGold needs WebP conversion)');
+            console.log('🎯 Bracelet URL generated (PNG fallback):', finalUrl, `(${usingFirstStone ? 'First stone' : 'Second stone'} variant)`);
             return finalUrl;
           }
           
           // Use compressed WebP images for much faster loading (HQ: ~50KB, 95% smaller!)
-          filename = `bracelet-${chainFilename}-${stoneFilename}-${metalFilename}.webp`;
+          filename = `bracelet-${chainFilename}-${stonePrefix}${stoneFilename}-${metalFilename}.webp`;
           
           const finalUrl = `${baseUrl}/bracelets/${filename}`;
-          console.log('🎯 Bracelet URL generated (HQ WebP):', finalUrl, '(~50KB, 95% smaller, much better quality!)');
+          console.log('🎯 Bracelet URL generated (HQ WebP):', finalUrl, `(${usingFirstStone ? 'First stone' : 'Second stone'} variant)`);
+          console.log('🔍 Generated filename:', filename);
+          console.log('🔍 Stone prefix applied:', stonePrefix);
+          console.log('🔍 Combination key:', combinationKey);
+          console.log('🔍 Base combination key:', baseCombinationKey);
           
           return finalUrl;
         } else {
@@ -498,8 +535,10 @@ export class CustomizationService {
       const stoneMap: { [key: string]: string } = {
         'blue_sapphire': 'blue sapphire',
         'pink_sapphire': 'pink sapphire',
+        'yellow_sapphire': 'yellow sapphire',
         'emerald': 'emerald',
-        'ruby': 'ruby'
+        'ruby': 'ruby',
+        'rubyy': 'ruby' // Map rubyy variant to ruby naming
       }
       
       // Get the selections
@@ -532,8 +571,10 @@ export class CustomizationService {
       const stoneMap: { [key: string]: string } = {
         'blue_sapphire': 'bluesapphire',
         'pink_sapphire': 'pinksapphire',
+        'yellow_sapphire': 'yellowsapphire',
         'emerald': 'emerald',
-        'ruby': 'ruby'
+        'ruby': 'ruby',
+        'rubyy': 'ruby' // Map rubyy variant to ruby naming
       }
       
       const chainMap: { [key: string]: string } = {

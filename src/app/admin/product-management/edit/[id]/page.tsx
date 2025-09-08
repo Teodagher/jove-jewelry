@@ -94,8 +94,12 @@ export default function EditProductPage() {
 
   // Callback when customization options change
   const handleCustomizationChange = () => {
-    console.log('🔄 Customization options changed, will refresh images on next view');
-    setImagesRefreshKey(prev => prev + 1);
+    console.log('🔄 Customization options changed, refreshing images. Previous key:', imagesRefreshKey);
+    setImagesRefreshKey(prev => {
+      const newKey = prev + 1;
+      console.log('🔄 New images refresh key:', newKey);
+      return newKey;
+    });
   };
 
 

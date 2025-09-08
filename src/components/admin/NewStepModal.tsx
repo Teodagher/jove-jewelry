@@ -69,9 +69,15 @@ export default function NewStepModal({
     }));
   };
 
-  // Generate option ID from name with uniqueness check
+  // Generate option ID from name with setting context for uniqueness
   const generateOptionId = (name: string) => {
-    const baseId = name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    const baseName = name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    
+    // Get setting context from the form data
+    const settingContext = formData.setting_id.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    
+    // Create context-aware base ID: setting_option (e.g., first_stone_ruby, second_stone_ruby)
+    const contextualBaseId = settingContext ? `${settingContext}_${baseName}` : baseName;
     
     // Collect all existing option IDs across all settings
     const existingIds = new Set<string>();
@@ -88,21 +94,28 @@ export default function NewStepModal({
       }
     });
     
-    // If base ID is available, use it
-    if (!existingIds.has(baseId)) {
-      return baseId;
+    // If contextual ID is available, use it
+    if (!existingIds.has(contextualBaseId)) {
+      console.log(`🎯 Generated contextual option ID: "${contextualBaseId}" for "${name}" in setting "${formData.setting_title}"`);
+      return contextualBaseId;
     }
     
-    // If base ID exists, try variants with incrementing numbers
+    // If contextual ID exists, try simple base ID as fallback
+    if (!existingIds.has(baseName)) {
+      console.log(`📝 Using simple option ID: "${baseName}" for "${name}"`);
+      return baseName;
+    }
+    
+    // If both exist, try variants with incrementing numbers
     let counter = 2;
-    let candidateId = `${baseId}_${counter}`;
+    let candidateId = `${baseName}_${counter}`;
     
     while (existingIds.has(candidateId)) {
       counter++;
-      candidateId = `${baseId}_${counter}`;
+      candidateId = `${baseName}_${counter}`;
     }
     
-    console.log(`⚠️ ID collision detected in NewStepModal! "${baseId}" already exists, using "${candidateId}" instead`);
+    console.log(`⚠️ ID collision detected in NewStepModal! Using fallback ID "${candidateId}" for "${name}"`);
     return candidateId;
   };
 
@@ -206,18 +219,18 @@ export default function NewStepModal({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Upload image helper with 20KB target compression using browser-image-compression
+  // Upload image helper with 30KB target compression using browser-image-compression
   const uploadImageFile = async (file: File): Promise<string> => {
     try {
-      console.log(`🔄 Compressing image to ~20KB: ${file.name} (${(file.size / 1024).toFixed(1)}KB original)`);
+      console.log(`🔄 Compressing image to ~30KB: ${file.name} (${(file.size / 1024).toFixed(1)}KB original)`);
       
-      // Aggressive compression settings to target 20KB
+      // Compression settings to target 30KB
       const options = {
-        maxSizeMB: 0.02, // 20KB target
-        maxWidthOrHeight: 800, // Max dimension
+        maxSizeMB: 0.03, // 30KB target
+        maxWidthOrHeight: 1000, // Higher max dimension for 30KB target
         useWebWorker: true, // Use web worker for performance
         fileType: 'image/webp', // Convert to WebP
-        initialQuality: 0.6, // Start with lower quality for smaller files
+        initialQuality: 0.75, // Start with better quality for 30KB target
         alwaysKeepResolution: false // Allow resolution reduction if needed
       };
 

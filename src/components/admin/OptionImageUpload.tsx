@@ -29,27 +29,66 @@ export default function OptionImageUpload({
     return await uploadImage(file);
   };
 
-  // Compress image to WebP format with 20KB target using browser-image-compression
+  // Compression to hit 30KB target with multiple passes
   const compressImage = async (file: File): Promise<Blob> => {
     try {
-      console.log(`🔄 Compressing image to ~20KB: ${file.name} (${(file.size / 1024).toFixed(1)}KB original)`);
+      console.log(`🔄 Compressing to ~30KB: ${file.name} (${(file.size / 1024).toFixed(1)}KB original)`);
       
-      // Aggressive compression settings to target 20KB for option images
-      const options = {
-        maxSizeMB: 0.02, // 20KB target
-        maxWidthOrHeight: 800, // Max dimension for option images
-        useWebWorker: true, // Use web worker for performance
-        fileType: 'image/webp', // Convert to WebP
-        initialQuality: 0.6, // Start with lower quality for smaller files
-        alwaysKeepResolution: false // Allow resolution reduction if needed
-      };
-
-      // Compress the image
-      const compressedFile = await imageCompression(file, options);
+      const targetSize = 30 * 1024; // 30KB in bytes
+      let maxDimension = 600; // Start with higher dimension for 30KB target
+      let quality = 0.5; // Start with better quality for 30KB target
       
-      console.log(`✅ Compressed to ${(compressedFile.size / 1024).toFixed(1)}KB (${((1 - compressedFile.size / file.size) * 100).toFixed(1)}% reduction)`);
+      for (let attempt = 1; attempt <= 5; attempt++) {
+        console.log(`🔄 Attempt ${attempt}: maxDimension=${maxDimension}, quality=${quality.toFixed(2)}`);
+        
+        const options = {
+          maxSizeMB: 1, // Allow larger intermediate size for 30KB target
+          maxWidthOrHeight: maxDimension,
+          useWebWorker: true,
+          fileType: 'image/webp',
+          initialQuality: quality,
+          alwaysKeepResolution: false
+        };
 
-      return compressedFile;
+        const compressed = await imageCompression(file, options);
+        const sizeKB = (compressed.size / 1024).toFixed(1);
+        
+        console.log(`📊 Attempt ${attempt} result: ${compressed.size} bytes (${sizeKB}KB)`);
+        
+        // If we hit our target, return it
+        if (compressed.size <= targetSize) {
+          console.log(`✅ SUCCESS! Final size: ${sizeKB}KB (${((1 - compressed.size / file.size) * 100).toFixed(1)}% reduction)`);
+          return compressed;
+        }
+        
+        // If this is our last attempt, return what we have
+        if (attempt === 5) {
+          console.log(`⚠️ Max attempts reached. Final size: ${sizeKB}KB (${((1 - compressed.size / file.size) * 100).toFixed(1)}% reduction)`);
+          return compressed;
+        }
+        
+        // Adjust settings for next attempt
+        const sizeRatio = compressed.size / targetSize;
+        if (sizeRatio > 8) {
+          maxDimension = Math.max(300, Math.round(maxDimension * 0.7)); // Reduce dimension moderately
+          quality = Math.max(0.2, quality * 0.6); // Reduce quality moderately
+        } else if (sizeRatio > 4) {
+          maxDimension = Math.max(350, Math.round(maxDimension * 0.75));
+          quality = Math.max(0.2, quality * 0.7);
+        } else if (sizeRatio > 2) {
+          maxDimension = Math.max(400, Math.round(maxDimension * 0.85));
+          quality = Math.max(0.2, quality * 0.8);
+        } else {
+          maxDimension = Math.max(450, Math.round(maxDimension * 0.9));
+          quality = Math.max(0.2, quality * 0.85);
+        }
+        
+        console.log(`🎯 Next attempt will use: maxDimension=${maxDimension}, quality=${quality.toFixed(2)}`);
+      }
+      
+      // Fallback (shouldn't reach here)
+      throw new Error('Compression failed after all attempts');
+      
     } catch (error) {
       console.error('❌ Image compression failed:', error);
       throw new Error(`Failed to compress image: ${error}`);
@@ -257,7 +296,7 @@ export default function OptionImageUpload({
                   {dragOver ? 'Drop image here' : 'Upload image'}
                 </p>
                 <p className="text-xs text-gray-500">
-                  PNG, JPG, GIF up to 10MB (will be compressed to WebP ~20KB)
+                  PNG, JPG, GIF up to 10MB (will be compressed to WebP ~30KB)
                 </p>
               </div>
             </div>
@@ -266,7 +305,7 @@ export default function OptionImageUpload({
       )}
       
       <p className="text-xs text-gray-500">
-        Images are automatically compressed to WebP format (~20KB) while maintaining quality
+        Images are automatically compressed to WebP format (~30KB) while maintaining quality
       </p>
     </div>
   );

@@ -93,6 +93,12 @@ export class VariantGenerator {
       });
 
       console.log(`🔄 Grouped into ${settingsMap.size} settings:`, Array.from(settingsMap.keys()));
+      
+      // Debug: Show all options for each setting
+      settingsMap.forEach((options, settingId) => {
+        const settingTitle = options[0]?.setting_title || 'Unknown';
+        console.log(`📋 Setting "${settingTitle}" (${settingId}):`, options.map(o => `${o.option_name} (${o.option_id})`));
+      });
 
       // Generate all possible combinations that pass rules validation
       const settingsArray = Array.from(settingsMap.values());
@@ -100,6 +106,11 @@ export class VariantGenerator {
       
       const allVariants = this.generateCombinations(settingsArray);
       console.log(`🔄 Generated ${allVariants.length} raw combinations, now filtering with rules...`);
+      
+      // Debug: Show first few raw combinations to verify they're being generated correctly
+      console.log(`📋 First 5 raw combinations:`, allVariants.slice(0, 5).map(variant => 
+        variant.map(o => `${o.setting_title}: ${o.option_name}`).join(' + ')
+      ));
       
       // Filter variants using rules engine
       const validVariants = this.filterVariantsWithRules(allVariants, rulesEngine, allSettings);
@@ -114,18 +125,27 @@ export class VariantGenerator {
         const filename = this.generateVariantFilename(productType, variant);
         const variantName = this.generateVariantName(variant);
         
+        // Debug: Show variant details (commented out for cleaner logs)
+        // console.log(`🔍 Variant ${i + 1}/${validVariants.length}:`, {
+        //   name: variantName,
+        //   filename: filename,
+        //   options: variant.map(o => `${o.setting_title}: ${o.option_name} (${o.option_id})`)
+        // });
+        
         // Generate unique ID based on actual options to prevent collisions
         const optionIds = variant.map(o => o.option_id).sort().join('-');
         const variantId = `${productId}_${optionIds}`;
         
-        // For necklaces, check if this filename already exists in our variants
+        // For necklaces and bracelets, check if this filename already exists in our variants
         // If so, we'll reuse the existing variant for multiple option combinations
-        if (productType === 'necklace') {
+        if (productType === 'necklace' || productType === 'bracelet') {
           const existingVariant = productVariants.find(v => v.filename === filename);
           if (existingVariant) {
             // Skip creating a duplicate variant - multiple option combinations 
-            // can share the same base image (e.g., different accent colors)
-            console.log(`⏭️ Skipping duplicate necklace variant: ${filename} (already exists for variant ${existingVariant.name})`);
+            // can share the same base image (e.g., different accent colors or stone combinations)
+            console.log(`⏭️ Skipping duplicate ${productType} variant: ${filename} (already exists for variant ${existingVariant.name})`);
+            console.log(`   Current variant options: ${variant.map(o => `${o.setting_title}:${o.option_name}`).join(', ')}`);
+            console.log(`   Existing variant options: ${existingVariant.options.map(o => `${o.setting_title}:${o.option_name}`).join(', ')}`);
             continue;
           }
         }
@@ -187,23 +207,88 @@ export class VariantGenerator {
    * Generate variant filename based on product type and options
    */
   private generateVariantFilename(productType: string, options: VariantOption[]): string {
+    console.log(`🎯 generateVariantFilename called with productType: "${productType}" (type: ${typeof productType}), options:`, options);
+    
     if (productType === 'bracelet') {
+      console.log(`📿 ✅ MATCH! Calling generateBraceletFilename for bracelet`);
       return this.generateBraceletFilename(options);
     } else if (productType === 'ring') {
+      console.log(`💍 Calling generateRingFilename for ring`);
       return this.generateRingFilename(options);
     } else if (productType === 'necklace') {
+      console.log(`📿 Calling generateNecklaceFilename for necklace`);
       return this.generateNecklaceFilename(options);
     }
     
-    // For other product types, use a generic format
-    const optionParts = options.map(opt => opt.option_id).join('-');
-    return `${productType}-${optionParts}.webp`;
+    // For other product types, use a generic format with dual stone logic
+    console.log(`❓ Unknown product type "${productType}", using generic format with dual stone logic`);
+    
+    // Apply the same dual stone logic for unknown product types
+    let firstStone = '';
+    let secondStone = '';
+    let otherOptions: string[] = [];
+    
+    options.forEach(option => {
+      const settingTitle = option.setting_title.toLowerCase();
+      const optionId = option.option_id;
+      
+      if (settingTitle.includes('stone') && settingTitle.includes('first')) {
+        firstStone = optionId;
+      } else if (settingTitle.includes('stone') && settingTitle.includes('second')) {
+        secondStone = optionId;
+      } else {
+        otherOptions.push(optionId);
+      }
+    });
+    
+    // Helper function to extract stone name from contextual IDs
+    const extractStoneFromContextual = (stoneId: string): string => {
+      if (stoneId && stoneId.includes('_')) {
+        const parts = stoneId.split('_');
+        const lastPart = parts[parts.length - 1];
+        if (['ruby', 'emerald', 'diamond', 'sapphire'].includes(lastPart)) {
+          return lastPart;
+        }
+        // Try two-word stones
+        if (parts.length >= 2) {
+          const twoWordStone = parts.slice(-2).join('_');
+          if (twoWordStone.includes('sapphire')) {
+            return twoWordStone;
+          }
+        }
+      }
+      return stoneId;
+    };
+    
+    const actualFirstStone = firstStone ? extractStoneFromContextual(firstStone) : '';
+    
+    // Build filename parts
+    let filenameParts = [productType];
+    
+    // Add stones based on dual stone logic
+    if (firstStone && actualFirstStone !== 'diamond' && secondStone) {
+      // Use both stones for non-diamond first stone combinations
+      filenameParts.push(firstStone, secondStone);
+      console.log(`🎯 Generic dual stone: ${firstStone} + ${secondStone}`);
+    } else if (secondStone) {
+      // Use second stone if available
+      filenameParts.push(secondStone);
+    } else if (firstStone) {
+      // Use first stone as fallback
+      filenameParts.push(firstStone);
+    }
+    
+    // Add other options
+    filenameParts.push(...otherOptions);
+    
+    return `${filenameParts.join('-')}.webp`;
   }
 
   /**
    * Generate bracelet-specific filename following the existing convention
    */
   private generateBraceletFilename(options: VariantOption[]): string {
+    console.log(`🚨 BRACELET FILENAME DEBUG - Starting generation for variant with ${options.length} options`);
     // Initialize variables for bracelet components
     let chainType = '';
     let metal = '';
@@ -211,6 +296,7 @@ export class VariantGenerator {
     let secondStone = '';
 
     // Extract option values based on setting types
+    console.log(`🔍 Processing bracelet options:`, options.map(o => `${o.setting_title}: ${o.option_id} (${o.option_name})`));
     options.forEach(option => {
       const settingTitle = option.setting_title.toLowerCase();
       const optionId = option.option_id;
@@ -221,10 +307,13 @@ export class VariantGenerator {
         metal = optionId;
       } else if (settingTitle.includes('stone') && settingTitle.includes('first')) {
         stone = optionId;
+        console.log(`🎯 Found FIRST stone: ${optionId} from setting "${option.setting_title}"`);
       } else if (settingTitle.includes('stone') && settingTitle.includes('second')) {
         secondStone = optionId;
+        console.log(`🎯 Found SECOND stone: ${optionId} from setting "${option.setting_title}"`);
       } else if (settingTitle.includes('stone') && !stone) {
         stone = optionId; // Fallback for single stone setting
+        console.log(`🎯 Found fallback stone: ${optionId} from setting "${option.setting_title}"`);
       }
     });
 
@@ -237,8 +326,10 @@ export class VariantGenerator {
     const stoneMap: { [key: string]: string } = {
       'blue_sapphire': 'blue-sapphire',
       'pink_sapphire': 'pink-sapphire',
+      'yellow_sapphire': 'yellow-sapphire',
       'emerald': 'emerald',
       'ruby': 'ruby',
+      'rubyy': 'ruby', // Map rubyy variant to ruby naming
       'black_onyx': 'blackonyx',
       'black_onyx_emerald': 'blackonyx', // Map Black Onyx variant to same naming
       'diamond': 'diamond'
@@ -247,8 +338,10 @@ export class VariantGenerator {
     const whiteGoldChainStoneMap: { [key: string]: string } = {
       'blue_sapphire': 'bluesapphire',
       'pink_sapphire': 'pinksapphire',
+      'yellow_sapphire': 'yellowsapphire',
       'emerald': 'emerald',
-      'ruby': 'ruby'
+      'ruby': 'ruby',
+      'rubyy': 'ruby' // Map rubyy variant to ruby naming for white gold chains
     };
 
     const chainMap: { [key: string]: string } = {
@@ -262,29 +355,98 @@ export class VariantGenerator {
       chainType = 'white_gold_chain';
     }
 
-    // For bracelets, use the second stone as the primary stone for filename
-    // The first stone is used for rules but doesn't appear in the filename
-    let finalStone = secondStone;
-    
-    // If no second stone but we have a first stone, use it (fallback)
-    if (!finalStone && stone) {
-      finalStone = stone;
-    }
+    // Helper function to extract stone name from contextual IDs (e.g., "first_stone_ruby" → "ruby")
+    const extractStoneFromContextual = (stoneId: string): string => {
+      // If it contains an underscore and ends with a known stone, extract it
+      if (stoneId.includes('_')) {
+        const parts = stoneId.split('_');
+        const lastPart = parts[parts.length - 1];
+        // Check if the last part is a known stone
+        if (stoneMap[lastPart] || whiteGoldChainStoneMap[lastPart]) {
+          return lastPart;
+        }
+        // Try two-word stones like "blue_sapphire", "pink_sapphire", etc.
+        if (parts.length >= 2) {
+          const twoWordStone = parts.slice(-2).join('_');
+          if (stoneMap[twoWordStone] || whiteGoldChainStoneMap[twoWordStone]) {
+            return twoWordStone;
+          }
+        }
+      }
+      return stoneId; // Return original if no pattern matches
+    };
 
+    // For bracelets, we need to create unique variants for first + second stone combinations
+    // Each combination should have a unique filename to represent the specific stone pairing
+    let finalStone = secondStone; // Default: use second stone
+    let finalSecondStone = '';
+    
+    // Extract actual stone names from contextual IDs for comparison
+    const actualFirstStone = stone ? extractStoneFromContextual(stone) : '';
+    const actualSecondStone = secondStone ? extractStoneFromContextual(secondStone) : '';
+    
+    let usingFirstStone = false;
+    let usingBothStones = false;
+    
+    if (actualFirstStone === 'black_onyx') {
+      finalStone = 'black_onyx';  // Black Onyx combinations use blackonyx filename
+      console.log(`🖤 Black Onyx detected as first stone, using black_onyx for variant`);
+    } else if (stone && actualFirstStone !== 'diamond') {
+      // When first stone is not diamond, we need unique variants for each first+second stone combination
+      finalStone = stone; // Use first stone
+      finalSecondStone = actualSecondStone; // Include second stone in filename
+      usingFirstStone = true;
+      usingBothStones = true;
+      console.log(`🎯 Using BOTH stones for variant: ${stone} (${actualFirstStone}) + ${secondStone} (${actualSecondStone})`);
+    } else if (secondStone) {
+      finalStone = secondStone; // Use second stone
+      console.log(`🎯 Using SECOND stone for variant: ${secondStone} → ${actualSecondStone}`);
+    }
+    
+    console.log(`🔍 Bracelet stone selection: first="${stone}" (${actualFirstStone}), second="${secondStone}" (${actualSecondStone}), final="${finalStone}"`);
+    
+    // If we have no stone at all, skip this variant
+    if (!finalStone) {
+      console.log(`⚠️ No stone found for bracelet variant, skipping`);
+      return 'bracelet-no-stone.webp'; // This will likely not match any files
+    }
+    
     // Map values to filename format
     const mappedChain = chainMap[chainType] || chainType;
     const mappedMetal = metalMap[metal] || metal;
+
+    // Stone selection is now handled above using CustomizationService logic
+
+    // Extract actual stone name from potentially contextual ID
+    const actualStone = extractStoneFromContextual(finalStone);
     
     // Use different stone mapping for white gold chain
     let mappedStone: string;
     if (chainType === 'white_gold_chain' || chainType === 'whitegold_chain') {
-      mappedStone = whiteGoldChainStoneMap[finalStone] || stoneMap[finalStone] || finalStone;
+      mappedStone = whiteGoldChainStoneMap[actualStone] || stoneMap[actualStone] || actualStone;
     } else {
-      mappedStone = stoneMap[finalStone] || finalStone;
+      mappedStone = stoneMap[actualStone] || actualStone;
     }
 
-    const filename = `bracelet-${mappedChain}-${mappedStone}-${mappedMetal}.webp`;
+    // Generate filename based on stone combination
+    let filename: string;
+    if (usingBothStones && finalSecondStone) {
+      // For dual stone combinations, include both stones in filename
+      let mappedSecondStone: string;
+      if (chainType === 'white_gold_chain' || chainType === 'whitegold_chain') {
+        mappedSecondStone = whiteGoldChainStoneMap[finalSecondStone] || stoneMap[finalSecondStone] || finalSecondStone;
+      } else {
+        mappedSecondStone = stoneMap[finalSecondStone] || finalSecondStone;
+      }
+      filename = `bracelet-${mappedChain}-${mappedStone}-${mappedSecondStone}-${mappedMetal}.webp`;
+    } else {
+      // Single stone or traditional logic
+      const stonePrefix = usingFirstStone && !usingBothStones ? 'first-' : '';
+      filename = `bracelet-${mappedChain}-${stonePrefix}${mappedStone}-${mappedMetal}.webp`;
+    }
     console.log(`🔧 Generated bracelet filename: ${filename} from chain:${chainType}, stone:${finalStone}, metal:${metal}`);
+    console.log(`🗺️ Stone extraction: ${finalStone} → ${actualStone} → ${mappedStone}`);
+    console.log(`🔍 Available in stoneMap: ${Object.keys(stoneMap).join(', ')}`);
     return filename;
   }
 
@@ -293,7 +455,8 @@ export class VariantGenerator {
    */
   private generateRingFilename(options: VariantOption[]): string {
     let metal = '';
-    let stone = '';
+    let firstStone = '';
+    let secondStone = '';
 
     // Extract relevant options (skip ring size, diamond type, stone size, engraving)
     options.forEach(option => {
@@ -302,18 +465,66 @@ export class VariantGenerator {
 
       if (settingTitle.includes('metal')) {
         metal = optionId;
-      } else if (settingTitle.includes('second stone')) {
-        // Use second stone since your images are based on second stone variants
-        stone = optionId;
+      } else if (settingTitle.includes('stone') && settingTitle.includes('first')) {
+        firstStone = optionId;
+        console.log(`🎯 Found FIRST stone for ring: ${optionId} from setting "${option.setting_title}"`);
+      } else if (settingTitle.includes('stone') && settingTitle.includes('second')) {
+        secondStone = optionId;
+        console.log(`🎯 Found SECOND stone for ring: ${optionId} from setting "${option.setting_title}"`);
       }
     });
+
+    // Apply dual stone logic for rings - create unique variants for first + second stone combinations
+    let finalStone = secondStone; // Default: use second stone
+    let finalSecondStone = '';
+    
+    // Helper function to extract stone name from contextual IDs
+    const extractStoneFromContextual = (stoneId: string): string => {
+      if (stoneId && stoneId.includes('_')) {
+        const parts = stoneId.split('_');
+        const lastPart = parts[parts.length - 1];
+        // Try two-word stones like "blue_sapphire", "pink_sapphire", etc.
+        if (parts.length >= 2) {
+          const twoWordStone = parts.slice(-2).join('_');
+          if (['blue_sapphire', 'pink_sapphire', 'yellow_sapphire'].includes(twoWordStone)) {
+            return twoWordStone;
+          }
+        }
+        if (['ruby', 'emerald', 'diamond'].includes(lastPart)) {
+          return lastPart;
+        }
+      }
+      return stoneId;
+    };
+
+    const actualFirstStone = firstStone ? extractStoneFromContextual(firstStone) : '';
+    const actualSecondStone = secondStone ? extractStoneFromContextual(secondStone) : '';
+    
+    let usingBothStones = false;
+    
+    // When first stone is not diamond, we need unique variants for each first+second stone combination
+    if (firstStone && actualFirstStone !== 'diamond') {
+      finalStone = firstStone;
+      finalSecondStone = actualSecondStone;
+      usingBothStones = true;
+      console.log(`🎯 Using BOTH stones for ring variant: ${firstStone} (${actualFirstStone}) + ${secondStone} (${actualSecondStone})`);
+    } else if (secondStone) {
+      finalStone = secondStone;
+      console.log(`🎯 Using SECOND stone for ring variant: ${secondStone} → ${actualSecondStone}`);
+    }
+
+    console.log(`🔍 Ring stone selection: first="${firstStone}" (${actualFirstStone}), second="${secondStone}" (${actualSecondStone}), final="${finalStone}"`);
+    
+    const stone = finalStone;
 
     // Map option IDs to display names for the filename
     const stoneMap: { [key: string]: string } = {
       'blue_sapphire': 'blue sapphire',
       'pink_sapphire': 'pink sapphire',
+      'yellow_sapphire': 'yellow sapphire',
       'emerald': 'emerald',
-      'ruby': 'ruby'
+      'ruby': 'ruby',
+      'rubyy': 'ruby' // Map rubyy variant to ruby naming
     };
 
     const metalMap: { [key: string]: string } = {
@@ -324,8 +535,18 @@ export class VariantGenerator {
     const stoneString = stoneMap[stone] || stone;
     const metalString = metalMap[metal] || metal;
 
-    const filename = `Ring ${stoneString} ${metalString}.webp`;
-    console.log(`🔧 Generated ring filename: "${filename}" from stone: "${stone}", metal: "${metal}"`);
+    // Generate filename based on stone combination
+    let filename: string;
+    if (usingBothStones && finalSecondStone) {
+      // For dual stone combinations, include both stones in filename
+      const secondStoneString = stoneMap[finalSecondStone] || finalSecondStone;
+      filename = `Ring ${stoneString} ${secondStoneString} ${metalString}.webp`;
+      console.log(`🔧 Generated dual stone ring filename: "${filename}" from stones: "${stone}" + "${finalSecondStone}", metal: "${metal}"`);
+    } else {
+      // Single stone or traditional logic
+      filename = `Ring ${stoneString} ${metalString}.webp`;
+      console.log(`🔧 Generated ring filename: "${filename}" from stone: "${stone}", metal: "${metal}"`);
+    }
     
     return filename;
   }
@@ -336,10 +557,10 @@ export class VariantGenerator {
   private generateNecklaceFilename(options: VariantOption[]): string {
     let chainType = '';
     let metal = '';
-    let stone = '';
+    let firstStone = '';
+    let secondStone = '';
 
-    // Extract the core options that determine the image variant (chain, stone, metal)
-    // Ignore other options like accent colors, diamond types, etc. that don't affect the base image
+    // Extract the core options that determine the image variant (chain, first stone, second stone, metal)
     options.forEach(option => {
       const settingTitle = option.setting_title.toLowerCase();
       const optionId = option.option_id;
@@ -348,11 +569,61 @@ export class VariantGenerator {
         chainType = optionId;
       } else if (settingTitle.includes('metal')) {
         metal = optionId;
-      } else if (settingTitle.includes('stone') && !settingTitle.includes('diamond')) {
-        // Use any non-diamond stone for the variant
-        stone = optionId;
+      } else if (settingTitle.includes('stone') && settingTitle.includes('first')) {
+        firstStone = optionId;
+        console.log(`🎯 Found FIRST stone for necklace: ${optionId} from setting "${option.setting_title}"`);
+      } else if (settingTitle.includes('stone') && settingTitle.includes('second')) {
+        secondStone = optionId;
+        console.log(`🎯 Found SECOND stone for necklace: ${optionId} from setting "${option.setting_title}"`);
+      } else if (settingTitle.includes('stone') && !settingTitle.includes('diamond') && !firstStone) {
+        // Fallback for single stone setting
+        firstStone = optionId;
+        console.log(`🎯 Found fallback stone for necklace: ${optionId} from setting "${option.setting_title}"`);
       }
     });
+
+    // Apply dual stone logic for necklaces
+    // Helper function to extract stone name from contextual IDs
+    const extractStoneFromContextual = (stoneId: string): string => {
+      if (stoneId && stoneId.includes('_')) {
+        const parts = stoneId.split('_');
+        const lastPart = parts[parts.length - 1];
+        // Try two-word stones like "blue_sapphire", "pink_sapphire", etc.
+        if (parts.length >= 2) {
+          const twoWordStone = parts.slice(-2).join('_');
+          if (['blue_sapphire', 'pink_sapphire', 'yellow_sapphire'].includes(twoWordStone)) {
+            return twoWordStone;
+          }
+        }
+        if (['ruby', 'emerald', 'diamond'].includes(lastPart)) {
+          return lastPart;
+        }
+      }
+      return stoneId;
+    };
+
+    const actualFirstStone = firstStone ? extractStoneFromContextual(firstStone) : '';
+    const actualSecondStone = secondStone ? extractStoneFromContextual(secondStone) : '';
+    
+    let finalStone = secondStone || firstStone; // Default: use second stone or first if no second
+    let finalSecondStone = '';
+    let usingBothStones = false;
+    
+    // When first stone is not diamond, we need unique variants for each first+second stone combination
+    if (firstStone && actualFirstStone !== 'diamond' && secondStone) {
+      finalStone = firstStone;
+      finalSecondStone = actualSecondStone;
+      usingBothStones = true;
+      console.log(`🎯 Using BOTH stones for necklace variant: ${firstStone} (${actualFirstStone}) + ${secondStone} (${actualSecondStone})`);
+    } else if (secondStone) {
+      finalStone = secondStone;
+      console.log(`🎯 Using SECOND stone for necklace variant: ${secondStone} → ${actualSecondStone}`);
+    } else if (firstStone) {
+      finalStone = firstStone;
+      console.log(`🎯 Using FIRST stone for necklace variant: ${firstStone} → ${actualFirstStone}`);
+    }
+    
+    console.log(`🔍 Necklace stone selection: first="${firstStone}" (${actualFirstStone}), second="${secondStone}" (${actualSecondStone}), final="${finalStone}"`);
 
     // Map option IDs to filename format (using original mapping)
     const metalMap: { [key: string]: string } = {
@@ -363,8 +634,10 @@ export class VariantGenerator {
     const stoneMap: { [key: string]: string } = {
       'blue_sapphire': 'bluesapphire',
       'pink_sapphire': 'pinksapphire',
+      'yellow_sapphire': 'yellowsapphire',
       'emerald': 'emerald',
-      'ruby': 'ruby'
+      'ruby': 'ruby',
+      'rubyy': 'ruby' // Map rubyy variant to ruby naming
     };
     
     const chainMap: { [key: string]: string } = {
@@ -376,10 +649,23 @@ export class VariantGenerator {
     // Map values using original format
     const mappedChain = chainMap[chainType] || chainType;
     const mappedMetal = metalMap[metal] || metal;
-    const mappedStone = stoneMap[stone] || stone;
+    
+    // Extract actual stone name from potentially contextual ID
+    const actualFinalStone = extractStoneFromContextual(finalStone);
+    const mappedStone = stoneMap[actualFinalStone] || actualFinalStone;
 
-    const filename = `necklace-${mappedChain}-${mappedStone}-${mappedMetal}.webp`;
-    console.log(`🔧 Generated necklace filename: "${filename}" from chain:${chainType}, stone:${stone}, metal:${metal}`);
+    // Generate filename based on stone combination
+    let filename: string;
+    if (usingBothStones && finalSecondStone) {
+      // For dual stone combinations, include both stones in filename
+      const mappedSecondStone = stoneMap[finalSecondStone] || finalSecondStone;
+      filename = `necklace-${mappedChain}-${mappedStone}-${mappedSecondStone}-${mappedMetal}.webp`;
+      console.log(`🔧 Generated dual stone necklace filename: "${filename}" from chain:${chainType}, stones:${finalStone}+${finalSecondStone}, metal:${metal}`);
+    } else {
+      // Single stone or traditional logic
+      filename = `necklace-${mappedChain}-${mappedStone}-${mappedMetal}.webp`;
+      console.log(`🔧 Generated necklace filename: "${filename}" from chain:${chainType}, stone:${finalStone}, metal:${metal}`);
+    }
     
     return filename;
   }
@@ -422,6 +708,8 @@ export class VariantGenerator {
 
       // Update variants with existence status and URLs
       let foundCount = 0;
+      const processedFilenames = new Set<string>(); // Track processed filenames to avoid double-counting
+      
       for (const variant of variants) {
         let foundFile = null;
         let actualFilename = null;
@@ -448,13 +736,22 @@ export class VariantGenerator {
           variant.imageUrl = urlData.publicUrl;
           variant.exists = true;
           variant.filename = actualFilename; // Update to actual filename found
-          foundCount++;
           
-          console.log(`✅ Found ${actualFilename} for variant ${variant.name}`);
+          // Track processed filenames and count unique files
+          const isFirstTimeSeeing = !processedFilenames.has(actualFilename);
+          if (isFirstTimeSeeing) {
+            processedFilenames.add(actualFilename);
+            foundCount++;
+          }
+          
+          console.log(`✅ Found ${actualFilename} for variant ${variant.name} (unique: ${isFirstTimeSeeing})`);
         } else {
           console.log(`❌ No file found for variant ${variant.name} (expected: ${variant.filename})`);
         }
       }
+      
+      console.log(`🔍 Duplicate filename check: ${variants.length} variants, ${processedFilenames.size} unique filenames, ${foundCount} actual files`);
+      console.log(`📂 Unique filenames generated:`, Array.from(new Set(variants.map(v => v.filename))).sort());
 
       console.log(`✅ Found ${foundCount} existing images out of ${variants.length} variants`);
       console.log(`📋 Generated variant filenames:`, variants.map(v => v.filename));

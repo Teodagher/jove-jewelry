@@ -683,25 +683,66 @@ function SettingCard({
     }
   };
 
-  // Upload image helper with aggressive 20KB target compression using browser-image-compression
+  // Upload image helper with 30KB compression using multiple passes
   const uploadImageFile = async (file: File): Promise<string> => {
     try {
-      console.log(`🔄 Compressing image to ~20KB: ${file.name} (${(file.size / 1024).toFixed(1)}KB original)`);
+      console.log(`🔄 Compressing to ~30KB: ${file.name} (${(file.size / 1024).toFixed(1)}KB original)`);
       
-      // Aggressive compression settings to target 20KB
-      const options = {
-        maxSizeMB: 0.02, // 20KB target
-        maxWidthOrHeight: 800, // Max dimension
-        useWebWorker: true, // Use web worker for performance
-        fileType: 'image/webp', // Convert to WebP
-        initialQuality: 0.6, // Start with lower quality for smaller files
-        alwaysKeepResolution: false // Allow resolution reduction if needed
-      };
+      const targetSize = 30 * 1024; // 30KB in bytes
+      let maxDimension = 600; // Start with higher dimension for 30KB target
+      let quality = 0.5; // Start with better quality for 30KB target
+      
+      let compressedFile: File | Blob = file;
+      
+      for (let attempt = 1; attempt <= 5; attempt++) {
+        console.log(`🔄 Attempt ${attempt}: maxDimension=${maxDimension}, quality=${quality.toFixed(2)}`);
+        
+        const options = {
+          maxSizeMB: 1, // Allow larger intermediate size for 30KB target
+          maxWidthOrHeight: maxDimension,
+          useWebWorker: true,
+          fileType: 'image/webp',
+          initialQuality: quality,
+          alwaysKeepResolution: false
+        };
 
-      // Compress the image
-      const compressedFile = await imageCompression(file, options);
-      
-      console.log(`✅ Compressed to ${(compressedFile.size / 1024).toFixed(1)}KB (${((1 - compressedFile.size / file.size) * 100).toFixed(1)}% reduction)`);
+        const compressed = await imageCompression(file, options);
+        const sizeKB = (compressed.size / 1024).toFixed(1);
+        
+        console.log(`📊 Attempt ${attempt} result: ${compressed.size} bytes (${sizeKB}KB)`);
+        
+        // If we hit our target, use this result
+        if (compressed.size <= targetSize) {
+          console.log(`✅ SUCCESS! Final size: ${sizeKB}KB (${((1 - compressed.size / file.size) * 100).toFixed(1)}% reduction)`);
+          compressedFile = compressed;
+          break;
+        }
+        
+        // If this is our last attempt, use what we have
+        if (attempt === 5) {
+          console.log(`⚠️ Max attempts reached. Final size: ${sizeKB}KB (${((1 - compressed.size / file.size) * 100).toFixed(1)}% reduction)`);
+          compressedFile = compressed;
+          break;
+        }
+        
+        // Adjust settings for next attempt
+        const sizeRatio = compressed.size / targetSize;
+        if (sizeRatio > 8) {
+          maxDimension = Math.max(300, Math.round(maxDimension * 0.7)); // Reduce dimension moderately
+          quality = Math.max(0.2, quality * 0.6); // Reduce quality moderately
+        } else if (sizeRatio > 4) {
+          maxDimension = Math.max(350, Math.round(maxDimension * 0.75));
+          quality = Math.max(0.2, quality * 0.7);
+        } else if (sizeRatio > 2) {
+          maxDimension = Math.max(400, Math.round(maxDimension * 0.85));
+          quality = Math.max(0.2, quality * 0.8);
+        } else {
+          maxDimension = Math.max(450, Math.round(maxDimension * 0.9));
+          quality = Math.max(0.2, quality * 0.85);
+        }
+        
+        console.log(`🎯 Next attempt will use: maxDimension=${maxDimension}, quality=${quality.toFixed(2)}`);
+      }
 
       // Generate filename
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.webp`;
@@ -727,9 +768,17 @@ function SettingCard({
     }
   };
 
-  // Generate option ID from name with uniqueness check
-  const generateOptionId = (name: string, allSettings: CustomizationSetting[]) => {
-    const baseId = name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+  // Generate option ID from name with setting context for uniqueness
+  const generateOptionId = (name: string, allSettings: CustomizationSetting[], currentSetting?: CustomizationSetting) => {
+    const baseName = name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+    
+    // Create context-aware base ID: setting_option (e.g., first_stone_ruby, second_stone_ruby)
+    let contextualBaseId = baseName;
+    
+    if (currentSetting?.setting_id) {
+      const settingContext = currentSetting.setting_id.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+      contextualBaseId = `${settingContext}_${baseName}`;
+    }
     
     // Collect all existing option IDs across all settings
     const existingIds = new Set<string>();
@@ -739,27 +788,34 @@ function SettingCard({
       });
     });
     
-    // If base ID is available, use it
-    if (!existingIds.has(baseId)) {
-      return baseId;
+    // If contextual ID is available, use it
+    if (!existingIds.has(contextualBaseId)) {
+      console.log(`🎯 Generated contextual option ID: "${contextualBaseId}" for "${name}"${currentSetting ? ` in setting "${currentSetting.setting_title}"` : ''}`);
+      return contextualBaseId;
     }
     
-    // If base ID exists, try variants with incrementing numbers
+    // If contextual ID exists, try simple base ID as fallback
+    if (!existingIds.has(baseName)) {
+      console.log(`📝 Using simple option ID: "${baseName}" for "${name}"`);
+      return baseName;
+    }
+    
+    // If both exist, try variants with incrementing numbers
     let counter = 2;
-    let candidateId = `${baseId}_${counter}`;
+    let candidateId = `${baseName}_${counter}`;
     
     while (existingIds.has(candidateId)) {
       counter++;
-      candidateId = `${baseId}_${counter}`;
+      candidateId = `${baseName}_${counter}`;
     }
     
-    console.log(`⚠️ ID collision detected! "${baseId}" already exists, using "${candidateId}" instead`);
+    console.log(`⚠️ ID collision detected! Using fallback ID "${candidateId}" for "${name}"`);
     return candidateId;
   };
 
   // Handle option name change and auto-generate ID
   const handleOptionNameChange = (name: string) => {
-    const optionId = generateOptionId(name, allSettings);
+    const optionId = generateOptionId(name, allSettings, setting);
     setNewOption(prev => ({
       ...prev,
       option_name: name,
@@ -790,7 +846,7 @@ function SettingCard({
       }
 
       // Ensure unique ID right before insertion (double-check)
-      const finalOptionId = generateOptionId(newOption.option_name, allSettings);
+      const finalOptionId = generateOptionId(newOption.option_name, allSettings, setting);
       
       const optionToInsert = {
         jewelry_item_id: productId,
@@ -865,8 +921,11 @@ function SettingCard({
         message: `"${newOption.option_name}" has been added to ${setting.setting_title}`
       });
       
-      // Notify parent that options changed
-      onOptionsChange?.();
+      // Notify parent that options changed (with small delay to ensure DB commit)
+      setTimeout(() => {
+        console.log('🔄 Notifying parent that new option was added, should refresh variants');
+        onOptionsChange?.();
+      }, 100);
 
     } catch (error) {
       console.error('Error adding option:', error);

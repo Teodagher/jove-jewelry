@@ -55,6 +55,7 @@ export default function ProductImages({ productId, productType, productSlug, ref
   const { addToast } = useToast();
 
   useEffect(() => {
+    console.log('🎯 ProductImages useEffect triggered. RefreshTrigger:', refreshTrigger);
     generateVariants();
   }, [productId, productType, refreshTrigger]);
 
@@ -124,9 +125,9 @@ export default function ProductImages({ productId, productType, productSlug, ref
         [variantId]: { ...prev[variantId], progress: 25 }
       }));
 
-      // Compress image to target size (~20KB) using browser-image-compression
+      // Compress image to target size (~10KB) using browser-image-compression
       const options = {
-        maxSizeMB: 0.02, // 20KB target
+        maxSizeMB: 0.01, // 10KB target
         maxWidthOrHeight: 1920, // Max dimension for product images
         useWebWorker: true, // Use web worker for performance
         fileType: 'image/webp', // Convert to WebP
