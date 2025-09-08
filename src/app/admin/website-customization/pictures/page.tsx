@@ -16,7 +16,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase/client';
-import { compressImage, generateOptimizedFileName, formatFileSize as formatSize } from '@/lib/imageCompression';
+import { formatFileSize as formatSize } from '@/lib/imageCompression';
+import imageCompression from 'browser-image-compression';
 
 interface HeroImage {
   name: string;
@@ -162,15 +163,19 @@ export default function PicturesManagementPage() {
       setCompressionInfo(null);
       setCompressing(true);
 
-      // Compress image to WebP
+      // Compress image to WebP using browser-image-compression
       console.log('🗜️ Compressing image:', file.name, `(${formatSize(file.size)})`);
       
-      const compressedBlob = await compressImage(file, {
-        maxWidth: 2560,
-        maxHeight: 1440,
-        quality: 0.95,
-        format: 'webp'
-      });
+      const options = {
+        maxSizeMB: 1, // Allow larger files for hero images (1MB)
+        maxWidthOrHeight: 2560, // High quality for hero images
+        useWebWorker: true,
+        fileType: 'image/webp',
+        initialQuality: 0.95,
+        alwaysKeepResolution: false
+      };
+
+      const compressedBlob = await imageCompression(file, options);
 
       const originalSize = file.size;
       const compressedSize = compressedBlob.size;
@@ -194,7 +199,14 @@ export default function PicturesManagementPage() {
       // Generate optimized file name with order prefix
       const nextOrderNumber = heroImages.length + 1;
       const orderPrefix = String(nextOrderNumber).padStart(3, '0');
-      const baseFileName = generateOptimizedFileName(file.name);
+      
+      // Generate optimized filename
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(2);
+      const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+      const cleanName = nameWithoutExt.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase();
+      const baseFileName = `${timestamp}-${cleanName}-${randomId}.webp`;
+      
       const fileName = `${orderPrefix}-${baseFileName}`;
 
       // Upload compressed image
