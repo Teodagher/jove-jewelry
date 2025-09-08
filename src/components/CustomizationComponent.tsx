@@ -53,7 +53,6 @@ export default function CustomizationComponent({
         
         // Apply rules immediately to the current state to prevent flicker
         if (engine) {
-          console.log('🔧 Applying rules immediately to current state:', customizationState);
           const settings = jewelryItem.settings.map(setting => ({
             id: setting.id,
             title: setting.title,
@@ -66,8 +65,8 @@ export default function CustomizationComponent({
               option_name: option.name,
               price: option.price || 0,
               price_lab_grown: option.priceLabGrown ?? null,
-              image_url: option.image ?? option.imageUrl ?? null, // Use image field first, then imageUrl
-              color_gradient: option.color ?? option.colorGradient ?? null, // Use color field first, then colorGradient
+              image_url: option.image ?? option.imageUrl ?? null,
+              color_gradient: option.color ?? option.colorGradient ?? null,
               display_order: 0,
               is_active: true
             }))
@@ -80,20 +79,17 @@ export default function CustomizationComponent({
             }
           });
 
-          console.log('🔧 Applying rules with settings:', settings.length, 'and state:', stateForRules);
           const result = engine.applyRules(settings, stateForRules);
           setAppliedRules(result);
 
           // Apply auto-selections if any
           if (result.autoSelections && Object.keys(result.autoSelections).length > 0) {
-            console.log('🎯 Initial auto-selections to apply:', result.autoSelections);
             setCustomizationState(prevState => {
               const newState = { ...prevState };
               let hasChanges = false;
 
               Object.entries(result.autoSelections).forEach(([settingId, optionId]) => {
                 if (newState[settingId] !== optionId) {
-                  console.log(`🎯 Initially auto-selecting "${optionId}" for "${settingId}"`);
                   newState[settingId] = optionId;
                   hasChanges = true;
                 }
@@ -104,7 +100,6 @@ export default function CustomizationComponent({
           }
         }
       } catch (error) {
-        console.error('Error initializing rules engine:', error);
       } finally {
         setRulesLoading(false);
       }
@@ -171,7 +166,6 @@ export default function CustomizationComponent({
     
     // Set all defaults at once to trigger preview image immediately
     if (Object.keys(updates).length > 0) {
-      console.log('🚀 Initializing customization state with defaults:', updates);
       setCustomizationState(updates);
     }
   }, [jewelryItem.settings, jewelryItem.id, customizationState]);
@@ -186,17 +180,13 @@ export default function CustomizationComponent({
       link.crossOrigin = 'anonymous';
       
       link.onload = () => {
-        console.log('📦 Preloaded successfully:', url);
         document.head.removeChild(link);
       };
       
       link.onerror = () => {
         document.head.removeChild(link);
         if (retries > 0) {
-          console.warn(`🔄 Preload retry (${4-retries}/3):`, url);
           setTimeout(() => preloadWithRetry(url, retries - 1), 1000);
-        } else {
-          console.error('❌ Preload failed after retries:', url);
         }
       };
       
@@ -323,14 +313,12 @@ export default function CustomizationComponent({
 
       // Apply auto-selections if any
       if (result.autoSelections && Object.keys(result.autoSelections).length > 0) {
-        console.log('🎯 Auto-selections to apply:', result.autoSelections);
         setCustomizationState(prevState => {
           const newState = { ...prevState };
           let hasChanges = false;
 
           Object.entries(result.autoSelections).forEach(([settingId, optionId]) => {
             if (newState[settingId] !== optionId) {
-              console.log(`🎯 Auto-selecting "${optionId}" for "${settingId}"`);
               newState[settingId] = optionId;
               hasChanges = true;
             }
@@ -340,7 +328,6 @@ export default function CustomizationComponent({
         });
       }
     } catch (error) {
-      console.error('Error applying rules:', error);
     }
   }, [rulesEngine, customizationState, jewelryItem.settings]);
 
@@ -358,12 +345,6 @@ export default function CustomizationComponent({
 
   useEffect(() => {
     const generatePreviewUrl = async () => {
-      console.log('🔍 CustomizationComponent: Generating preview URL for:', {
-        jewelryType: jewelryItem.type,
-        customizationState,
-        timestamp: new Date().toISOString()
-      });
-
       const hasVariantStone = (customizationState.first_stone && customizationState.first_stone !== 'diamond') || customizationState.second_stone;
       
       if (jewelryItem.type === 'bracelet' && 
@@ -376,7 +357,6 @@ export default function CustomizationComponent({
           }
         });
         const generatedUrl = await CustomizationService.generateVariantImageUrl(jewelryItem.type, stringCustomizations);
-        console.log('✅ Generated bracelet variant URL:', generatedUrl);
         setPreviewImageUrl(generatedUrl);
         return;
       }
@@ -410,7 +390,6 @@ export default function CustomizationComponent({
       }
       
       // For other jewelry types or during initial load, provide a sensible default
-      console.log('📋 Using base image:', jewelryItem.baseImage);
       
       // If no base image and no customizations selected yet, use a default variant
       if (!jewelryItem.baseImage && Object.keys(customizationState).length === 0) {
@@ -469,23 +448,19 @@ export default function CustomizationComponent({
     if (settingId === 'first_stone' && optionId === 'black_onyx') {
       // Automatically select the Black Onyx + Emerald combination for second stone
       newState.second_stone = 'black_onyx_emerald';
-      console.log('🖤 Auto-selected Black Onyx + Emerald combination for second stone');
       
       // Auto-select default black onyx stone size (small)
       newState.black_onyx_stone_size = 'small_onyx_08ct';
-      console.log('🖤 Auto-selected small Black Onyx stone size');
       
       // Clear diamond size selection if it was set
       delete newState.diamond_size;
       
       // Force natural diamond type for Black Onyx (Black Onyx only available as natural)
       setSelectedDiamondType('natural');
-      console.log('💎 Forced Natural diamond type for Black Onyx selection');
       
       // Force black leather chain type for Black Onyx (only leather cords compatible)
       if (newState.chain_type === 'gold_cord') {
         newState.chain_type = 'black_leather';
-        console.log('🖤 Switched to black leather cord for Black Onyx compatibility');
       }
     }
     
@@ -493,11 +468,9 @@ export default function CustomizationComponent({
     if (settingId === 'first_stone' && optionId === 'diamond' && customizationState.first_stone === 'black_onyx') {
       // Reset to default emerald when switching from Black Onyx to Diamond
       newState.second_stone = 'emerald';
-      console.log('💎 Switched to Diamond, reset second stone to emerald');
       
       // Auto-select default diamond size (small)
       newState.diamond_size = 'small_015ct';
-      console.log('💎 Auto-selected small diamond size');
       
       // Clear black onyx stone size selection if it was set
       delete newState.black_onyx_stone_size;
@@ -510,7 +483,6 @@ export default function CustomizationComponent({
   // Get settings to render (filtered by rules or original)
   const getSettingsToRender = () => {
     if (appliedRules?.filteredSettings) {
-      console.log('🎯 Using filtered settings from rules engine:', appliedRules.filteredSettings.map(s => s.id));
       // Transform rules engine format back to component format
       return appliedRules.filteredSettings.map(setting => ({
         ...setting,
@@ -526,18 +498,12 @@ export default function CustomizationComponent({
         }))
       }));
     }
-    console.log('📋 Using original settings (no rules applied)');
     return jewelryItem.settings;
   };
 
   // Check if all required settings are selected
   const isComplete = useMemo(() => {
     const settingsToCheck = getSettingsToRender();
-    console.log('Checking completeness. All settings:', settingsToCheck.map(s => ({ 
-      id: s.id, 
-      required: s.required,
-      selected: customizationState[s.id] 
-    })));
     
     return settingsToCheck
       .filter(setting => {        
@@ -611,7 +577,6 @@ export default function CustomizationComponent({
       // Redirect to cart
       router.push('/cart');
     } catch (error) {
-      console.error('Error adding to cart:', error);
       alert('Failed to add item to cart. Please try again.');
     } finally {
       setAddingToCart(false);
@@ -641,7 +606,6 @@ export default function CustomizationComponent({
       // Go straight to checkout
       router.push('/checkout');
     } catch (error) {
-      console.error('Error proceeding to checkout:', error);
       alert('Failed to proceed to checkout. Please try again.');
     } finally {
       setAddingToCart(false);
@@ -712,7 +676,7 @@ export default function CustomizationComponent({
                 height={320}
                 className="w-full h-full"
                 enableZoom={false}
-                priority={true}
+                priority={false} // Only prioritize desktop version
               />
               <RealLifeImageViewer 
                      jewelryType={jewelryItem.type as 'bracelet' | 'ring' | 'necklace'}
@@ -801,7 +765,7 @@ export default function CustomizationComponent({
                     height={384}
                     className="w-96 h-96"
                     enableZoom={true}
-                    priority={true}
+                    priority={true} // Prioritize desktop version
                   />
                   <RealLifeImageViewer 
                      jewelryType={jewelryItem.type as 'bracelet' | 'ring' | 'necklace'}

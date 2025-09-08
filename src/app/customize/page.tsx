@@ -36,13 +36,11 @@ export default function CustomizePage() {
         .order('display_order', { ascending: true });
 
       if (error) {
-        console.error('Error fetching jewelry items:', error);
         return;
       }
 
       setJewelryItems(data || []);
     } catch (error) {
-      console.error('Error fetching jewelry items:', error);
     } finally {
       setLoading(false);
     }
@@ -112,9 +110,6 @@ export default function CustomizePage() {
               <h3 className="text-lg sm:text-xl md:text-2xl font-light text-zinc-900 group-hover:text-zinc-700 transition-colors tracking-wide text-center">
                 {item.name}
               </h3>
-              <p className="text-sm text-gray-600 mt-2 text-center">
-                From ${item.base_price}
-              </p>
             </Link>
           ))}
         </div>

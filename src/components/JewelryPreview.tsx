@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
+import Image from 'next/image';
 
 interface JewelryPreviewProps {
   imageUrl: string | null;
@@ -28,27 +29,41 @@ export default function JewelryPreview({
   const [imageError, setImageError] = useState(false);
   const [loadTimeout, setLoadTimeout] = useState<NodeJS.Timeout | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const imageRef = React.useRef<HTMLImageElement>(null);
 
-  // Log when component mounts and imageUrl changes
   React.useEffect(() => {
     if (!imageUrl) {
-      console.log('⚠️ JewelryPreview: No image URL provided - showing "not available" state');
       setImageLoading(false);
       setImageError(false);
       return;
     }
     
-            setImageLoading(true);
-        setImageError(false);
-        setLoadStartTime(Date.now());
+    setImageLoading(true);
+    setImageError(false);
+    setLoadStartTime(Date.now());
 
-    // Set a timeout for slow loading images (shorter for retries)
+    // Set timeout for slow loading images
     const timeoutDuration = retryCount > 0 ? 2000 : 3000;
     const timeout = setTimeout(() => {
-      if (imageLoading) {
-        setImageLoading(false); // Just show the image
-      }
+      setImageLoading(false);
     }, timeoutDuration);
+    
+    // Quick check for cached images
+    const quickCheck = setTimeout(() => {
+      if (imageLoading && imageRef.current) {
+        const img = imageRef.current;
+        if (img.complete && img.naturalWidth > 0) {
+          setImageLoading(false);
+        }
+      }
+    }, 200);
+    
+    // Additional check for network images
+    const networkCheck = setTimeout(() => {
+      if (imageLoading) {
+        setImageLoading(false);
+      }
+    }, 1000);
 
     setLoadTimeout(timeout);
 
@@ -56,35 +71,32 @@ export default function JewelryPreview({
       if (timeout) {
         clearTimeout(timeout);
       }
+      if (quickCheck) {
+        clearTimeout(quickCheck);
+      }
+      if (networkCheck) {
+        clearTimeout(networkCheck);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageUrl, retryCount]); // imageLoading is intentionally excluded to prevent infinite re-render loop
 
-  const handleImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+  const handleImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    if (!imageLoading) return;
+    
     if (loadTimeout) {
       clearTimeout(loadTimeout);
-    }
-    const loadTime = Date.now() - loadStartTime;
-    
-    if (loadTime > 0 && loadTime < 100000) { // Only log reasonable load times
-      if (loadTime > 1000) {
-        console.warn(`🐌 SLOW LOAD: Image took ${loadTime}ms (${(loadTime/1000).toFixed(1)}s):`, imageUrl);
-      } else if (loadTime > 200) {
-        console.log(`✅ Image loaded in ${loadTime}ms:`, imageUrl);
-      }
     }
     
     setImageLoading(false);
     setImageError(false);
-    setRetryCount(0); // Reset retry count on successful load
-  }, [imageUrl, loadStartTime, loadTimeout]);
+    setRetryCount(0);
+  }, [imageUrl, loadStartTime, loadTimeout, imageLoading]);
 
-  const handleImageError = useCallback(() => {
+  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     if (loadTimeout) {
       clearTimeout(loadTimeout);
     }
-    const loadTime = Date.now() - loadStartTime;
-    console.error(`❌ Image failed to load after ${loadTime}ms:`, imageUrl);
     setImageLoading(false);
     setImageError(true);
   }, [imageUrl, loadStartTime, loadTimeout]);
@@ -154,21 +166,29 @@ export default function JewelryPreview({
         
         {/* Main Image */}
         {!imageError && imageUrl && (
-          <img
-            key={imageUrl} // Force remount on URL change
-            src={imageUrl}
-            alt={alt}
-            className={`absolute inset-0 object-contain w-full h-full p-4 sm:p-6 md:p-8 transition-opacity duration-300 ease-in-out ${
-              imageLoading ? 'opacity-50' : 'opacity-100'
-            }`}
-            onLoad={handleImageLoad}
-            onError={handleImageError}
-            style={{ width: '100%', height: '100%' }}
-            crossOrigin="anonymous"
-            decoding="async"
-            fetchPriority={priority ? "high" : "auto"}
-            referrerPolicy="no-referrer"
-          />
+          <div className="absolute inset-0 p-4 sm:p-6 md:p-8">
+            <Image
+              key={imageUrl} // Force remount on URL change
+              src={imageUrl}
+              alt={alt}
+              fill
+              className={`object-contain transition-opacity duration-300 ease-in-out ${
+                imageLoading ? 'opacity-30' : 'opacity-100'
+              }`}
+              onLoad={() => {
+                handleImageLoad({} as any);
+              }}
+              onLoadingComplete={() => {
+                handleImageLoad({} as any);
+              }}
+              onError={() => {
+                handleImageError({} as any);
+              }}
+              priority={priority}
+              quality={85}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            />
+          </div>
         )}
       </div>
 
@@ -176,16 +196,17 @@ export default function JewelryPreview({
       {enableZoom && isHovering && !imageLoading && imageUrl && (
         <div className="absolute bottom-4 right-4 w-32 h-32 bg-white border-2 border-gray-300 rounded-lg shadow-lg overflow-hidden z-50 pointer-events-none">
           <div className="relative w-full h-full">
-            <img
+            <Image
               src={imageUrl}
               alt={`${alt} zoomed`}
-              className="absolute object-contain transition-transform duration-150 ease-out"
+              fill
+              className="object-contain transition-transform duration-150 ease-out"
               style={{
                 transform: `translate(-${mousePosition.x * 1.5 - 50}%, -${mousePosition.y * 1.5 - 50}%) scale(2)`,
-                transformOrigin: 'center',
-                width: '200%',
-                height: '200%'
+                transformOrigin: 'center'
               }}
+              quality={90}
+              sizes="128px"
             />
           </div>
           

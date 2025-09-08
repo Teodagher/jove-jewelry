@@ -5,7 +5,10 @@ const nextConfig = {
     removeConsole: false,
   },
   images: {
-    unoptimized: true, // Disable optimization for external images to avoid timeouts
+    unoptimized: false, // Enable optimization for better performance
+    minimumCacheTTL: 604800, // Cache images for 1 week (604800 seconds)
+    dangerouslyAllowSVG: false,
+    contentDispositionType: 'attachment',
     domains: [
       "source.unsplash.com",
       "images.unsplash.com", 
