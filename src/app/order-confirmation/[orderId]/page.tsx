@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { CheckCircle } from 'lucide-react';
 
@@ -26,7 +26,6 @@ export default function OrderConfirmationPage() {
 
   const fetchOrder = useCallback(async () => {
     try {
-      const supabase = createClient();
       
       const { data, error } = await (supabase
         .from('orders') as any)

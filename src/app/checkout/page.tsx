@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { MapPin, CreditCard, Truck, Clock } from 'lucide-react';
 import PaymentMethodCard from '@/components/ui/payment-method-card';
 import { useToast } from '@/contexts/ToastContext';
@@ -266,7 +266,6 @@ export default function CheckoutPage() {
     setSubmitting(true);
 
     try {
-      const supabase = createClient();
 
       console.log('🛒 Starting order creation...', {
         itemCount: items.length,

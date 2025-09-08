@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/client'
 import { Search, Mail, Phone, ShoppingBag, DollarSign, Calendar, User, Filter, ArrowUpDown } from 'lucide-react'
 
 interface Customer {
@@ -34,7 +34,6 @@ export default function CustomersPage() {
   const loadCustomers = async () => {
     try {
       setLoading(true)
-      const supabase = createClient()
 
       // Single query with aggregated order stats using PostgreSQL
       const { data: customersWithStats, error } = await supabase.rpc('get_customers_with_order_stats')

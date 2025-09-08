@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { JewelryItem, CustomizationState, CustomizationOption, DiamondType } from '@/types/customization';
 import type { CustomizationSetting } from '@/types/customization';
 import { CustomizationService } from '@/services/customizationService';
+import LogicRulesEngine, { type RulesEngineResult } from '@/services/logicRulesEngine';
 import JewelryPreview from './JewelryPreview';
 import RingSizeSelector from './RingSizeSelector';
 import RealLifeImageViewer from './RealLifeImageViewer';
@@ -36,16 +37,92 @@ export default function CustomizationComponent({
   const [customizationState, setCustomizationState] = useState<CustomizationState>({});
   const [addingToCart, setAddingToCart] = useState(false);
   const [selectedDiamondType, setSelectedDiamondType] = useState<DiamondType>('natural');
+  const [rulesEngine, setRulesEngine] = useState<LogicRulesEngine | null>(null);
+  const [appliedRules, setAppliedRules] = useState<RulesEngineResult | null>(null);
+  const [rulesLoading, setRulesLoading] = useState(true);
   const { addCustomJewelryToCart } = useCart();
   const router = useRouter();
 
-  // Initialize with diamond selected for first stone and black leather for chain type by default
+  // Initialize the rules engine for this product
   useEffect(() => {
+    const initRulesEngine = async () => {
+      try {
+        setRulesLoading(true);
+        const engine = await LogicRulesEngine.create(jewelryItem.id);
+        setRulesEngine(engine);
+        
+        // Apply rules immediately to the current state to prevent flicker
+        if (engine) {
+          console.log('🔧 Applying rules immediately to current state:', customizationState);
+          const settings = jewelryItem.settings.map(setting => ({
+            id: setting.id,
+            title: setting.title,
+            description: setting.description ?? undefined,
+            type: setting.type,
+            required: setting.required,
+            options: setting.options.map(option => ({
+              id: option.id,
+              option_id: option.id,
+              option_name: option.name,
+              price: option.price || 0,
+              price_lab_grown: option.priceLabGrown ?? null,
+              image_url: option.image ?? option.imageUrl ?? null, // Use image field first, then imageUrl
+              color_gradient: option.color ?? option.colorGradient ?? null, // Use color field first, then colorGradient
+              display_order: 0,
+              is_active: true
+            }))
+          }));
+
+          const stateForRules: Record<string, string> = {};
+          Object.entries(customizationState).forEach(([key, value]) => {
+            if (typeof value === 'string') {
+              stateForRules[key] = value;
+            }
+          });
+
+          console.log('🔧 Applying rules with settings:', settings.length, 'and state:', stateForRules);
+          const result = engine.applyRules(settings, stateForRules);
+          setAppliedRules(result);
+
+          // Apply auto-selections if any
+          if (result.autoSelections && Object.keys(result.autoSelections).length > 0) {
+            console.log('🎯 Initial auto-selections to apply:', result.autoSelections);
+            setCustomizationState(prevState => {
+              const newState = { ...prevState };
+              let hasChanges = false;
+
+              Object.entries(result.autoSelections).forEach(([settingId, optionId]) => {
+                if (newState[settingId] !== optionId) {
+                  console.log(`🎯 Initially auto-selecting "${optionId}" for "${settingId}"`);
+                  newState[settingId] = optionId;
+                  hasChanges = true;
+                }
+              });
+
+              return hasChanges ? newState : prevState;
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error initializing rules engine:', error);
+      } finally {
+        setRulesLoading(false);
+      }
+    };
+
+    initRulesEngine();
+  }, [jewelryItem.id]);
+
+  // Initialize with default selections for immediate preview
+  useEffect(() => {
+    // Only initialize if we haven't set any values yet (prevents overriding user selections)
+    if (Object.keys(customizationState).length > 0) return;
+    
     const updates: { [key: string]: string } = {};
     
     // Auto-select diamond for first stone
     const firstStoneSetting = jewelryItem.settings.find(setting => setting.id === 'first_stone');
-    if (firstStoneSetting && !customizationState.first_stone) {
+    if (firstStoneSetting) {
       const diamondOption = firstStoneSetting.options.find(option => option.id === 'diamond');
       if (diamondOption) {
         updates.first_stone = 'diamond';
@@ -54,7 +131,7 @@ export default function CustomizationComponent({
     
     // Auto-select chain type based on jewelry type
     const chainTypeSetting = jewelryItem.settings.find(setting => setting.id === 'chain_type');
-    if (chainTypeSetting && !customizationState.chain_type) {
+    if (chainTypeSetting) {
       if (jewelryItem.id === 'bracelet') {
         // For bracelets, default to black leather cord
         const blackLeatherOption = chainTypeSetting.options.find(option => option.id === 'black_leather');
@@ -62,9 +139,12 @@ export default function CustomizationComponent({
           updates.chain_type = 'black_leather';
         }
       } else {
-        // For other jewelry types, default to white gold chain
+        // For other jewelry types, default to black leather first (most common image)
+        const blackLeatherOption = chainTypeSetting.options.find(option => option.id === 'black_leather');
         const whiteGoldChainOption = chainTypeSetting.options.find(option => option.id === 'white_gold_chain');
-        if (whiteGoldChainOption) {
+        if (blackLeatherOption) {
+          updates.chain_type = 'black_leather';
+        } else if (whiteGoldChainOption) {
           updates.chain_type = 'white_gold_chain';
         }
       }
@@ -72,50 +152,29 @@ export default function CustomizationComponent({
     
     // Auto-select metal based on chain type for better image matching
     const metalSetting = jewelryItem.settings.find(setting => setting.id === 'metal');
-    if (metalSetting && !customizationState.metal) {
-      // If yellow gold chain is selected, prefer yellow gold metal
-      if (updates.chain_type === 'yellow_gold_chain_real') {
-        const yellowGoldOption = metalSetting.options.find(option => option.id === 'yellow_gold');
-        if (yellowGoldOption) {
-          updates.metal = 'yellow_gold';
-        }
-      } else if (jewelryItem.id === 'bracelet' && updates.chain_type === 'black_leather') {
-        // For bracelets with black leather, default to white gold
-        const whiteGoldOption = metalSetting.options.find(option => option.id === 'white_gold');
-        if (whiteGoldOption) {
-          updates.metal = 'white_gold';
-        }
-      } else if (jewelryItem.id === 'bracelet' && updates.chain_type === 'gold_cord') {
-        // For bracelets with gold cord, must use yellow gold
-        const yellowGoldOption = metalSetting.options.find(option => option.id === 'yellow_gold');
-        if (yellowGoldOption) {
-          updates.metal = 'yellow_gold';
-        }
-      } else {
-        // Default to white gold for other chain types
-        const whiteGoldOption = metalSetting.options.find(option => option.id === 'white_gold');
-        if (whiteGoldOption) {
-          updates.metal = 'white_gold';
-        }
+    if (metalSetting) {
+      // Default to white gold for most consistent image availability
+      const whiteGoldOption = metalSetting.options.find(option => option.id === 'white_gold');
+      if (whiteGoldOption) {
+        updates.metal = 'white_gold';
       }
     }
     
-    // Auto-select emerald for second stone (to show dynamic preview immediately)
+    // Auto-select emerald for second stone (most available image variant)
     const secondStoneSetting = jewelryItem.settings.find(setting => setting.id === 'second_stone');
-    if (secondStoneSetting && !customizationState.second_stone) {
+    if (secondStoneSetting) {
       const emeraldOption = secondStoneSetting.options.find(option => option.id === 'emerald');
       if (emeraldOption) {
         updates.second_stone = 'emerald';
       }
     }
     
+    // Set all defaults at once to trigger preview image immediately
     if (Object.keys(updates).length > 0) {
-      setCustomizationState(prev => ({
-        ...prev,
-        ...updates
-      }));
+      console.log('🚀 Initializing customization state with defaults:', updates);
+      setCustomizationState(updates);
     }
-  }, [jewelryItem.settings, jewelryItem.id, customizationState.first_stone, customizationState.chain_type, customizationState.metal, customizationState.second_stone]);
+  }, [jewelryItem.settings, jewelryItem.id, customizationState]);
 
   // Aggressively preload common variant images for better performance
   useEffect(() => {
@@ -164,7 +223,7 @@ export default function CustomizationComponent({
         const preloadUrl = `https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/bracelets/${filename}`;
         preloadWithRetry(preloadUrl);
       });
-    } else if (jewelryItem.id === 'necklace') {
+      } else if (jewelryItem.type === 'necklace') {
       // Preload only existing necklace combinations
       const existingNecklaces = [
         'necklace-black-leather-emerald-whitegold.webp',
@@ -181,7 +240,7 @@ export default function CustomizationComponent({
         const preloadUrl = `https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/necklaces/${filename}`;
         preloadWithRetry(preloadUrl);
       });
-    } else if (jewelryItem.id === 'ring') {
+      } else if (jewelryItem.type === 'ring') {
       // Preload all ring combinations (HQ WebP)
       const existingRings = [
         'Ring blue sapphire white gold.webp',
@@ -199,7 +258,7 @@ export default function CustomizationComponent({
         preloadWithRetry(preloadUrl);
       });
     }
-  }, [jewelryItem.id]);
+  }, [jewelryItem.type]);
 
   // Calculate total prices for both diamond types
   const totalPriceNatural = useMemo(() => {
@@ -226,6 +285,65 @@ export default function CustomizationComponent({
     return CustomizationService.calculateTotalPrice(jewelryItem, plainCustomizations, 'lab_grown');
   }, [customizationState, jewelryItem]);
 
+  // Apply rules whenever customization state changes
+  useEffect(() => {
+    if (!rulesEngine) return;
+
+    try {
+      // Convert JewelryItem settings to the format expected by rules engine
+      const settings = jewelryItem.settings.map(setting => ({
+        id: setting.id,
+        title: setting.title,
+        description: setting.description ?? undefined,
+        type: setting.type,
+        required: setting.required,
+        options: setting.options.map(option => ({
+          id: option.id,
+          option_id: option.id, // Use same value for both
+          option_name: option.name,
+          price: option.price || 0,
+          price_lab_grown: option.priceLabGrown ?? null,
+          image_url: option.image ?? option.imageUrl ?? null, // Use image field first, then imageUrl
+          color_gradient: option.color ?? option.colorGradient ?? null, // Use color field first, then colorGradient
+          display_order: 0, // Default order
+          is_active: true
+        }))
+      }));
+
+      // Convert CustomizationState to Record<string, string> for rules engine
+      const stateForRules: Record<string, string> = {};
+      Object.entries(customizationState).forEach(([key, value]) => {
+        if (typeof value === 'string') {
+          stateForRules[key] = value;
+        }
+      });
+
+      const result = rulesEngine.applyRules(settings, stateForRules);
+      setAppliedRules(result);
+
+      // Apply auto-selections if any
+      if (result.autoSelections && Object.keys(result.autoSelections).length > 0) {
+        console.log('🎯 Auto-selections to apply:', result.autoSelections);
+        setCustomizationState(prevState => {
+          const newState = { ...prevState };
+          let hasChanges = false;
+
+          Object.entries(result.autoSelections).forEach(([settingId, optionId]) => {
+            if (newState[settingId] !== optionId) {
+              console.log(`🎯 Auto-selecting "${optionId}" for "${settingId}"`);
+              newState[settingId] = optionId;
+              hasChanges = true;
+            }
+          });
+
+          return hasChanges ? newState : prevState;
+        });
+      }
+    } catch (error) {
+      console.error('Error applying rules:', error);
+    }
+  }, [rulesEngine, customizationState, jewelryItem.settings]);
+
   // Check if Lab Grown option should be available
   const isLabGrownAvailable = useMemo(() => {
     // Black Onyx is only available as Natural diamonds
@@ -237,16 +355,16 @@ export default function CustomizationComponent({
 
   // Generate preview image URL based on customization state
   const previewImageUrl = useMemo(() => {
-    console.log('🔍 CustomizationComponent: Generating preview URL for:', {
-      jewelryType: jewelryItem.id,
-      customizationState,
+      console.log('🔍 CustomizationComponent: Generating preview URL for:', {
+        jewelryType: jewelryItem.type,
+        customizationState,
       timestamp: new Date().toISOString()
     });
 
     const hasVariantStone = (customizationState.first_stone && customizationState.first_stone !== 'diamond') || customizationState.second_stone;
     
-    if (jewelryItem.id === 'bracelet' && 
-        customizationState.chain_type && customizationState.metal && hasVariantStone) {
+     if (jewelryItem.type === 'bracelet' && 
+         customizationState.chain_type && customizationState.metal && hasVariantStone) {
       // Convert CustomizationState to string-only object for the service
       const stringCustomizations: { [key: string]: string } = {};
       Object.entries(customizationState).forEach(([key, value]) => {
@@ -254,12 +372,12 @@ export default function CustomizationComponent({
           stringCustomizations[key] = value;
         }
       });
-      const generatedUrl = CustomizationService.generateVariantImageUrl(jewelryItem.id, stringCustomizations);
+       const generatedUrl = CustomizationService.generateVariantImageUrl(jewelryItem.type, stringCustomizations);
       console.log('✅ Generated bracelet variant URL:', generatedUrl);
       return generatedUrl;
     }
     
-    if (jewelryItem.id === 'ring' && 
+    if (jewelryItem.type === 'ring' && 
         customizationState.metal && customizationState.second_stone) {
       // Convert CustomizationState to string-only object for the service
       const stringCustomizations: { [key: string]: string } = {};
@@ -268,12 +386,12 @@ export default function CustomizationComponent({
           stringCustomizations[key] = value;
         }
       });
-      const generatedUrl = CustomizationService.generateVariantImageUrl(jewelryItem.id, stringCustomizations);
+       const generatedUrl = CustomizationService.generateVariantImageUrl(jewelryItem.type, stringCustomizations);
       return generatedUrl;
     }
     
-    if (jewelryItem.id === 'necklace' && 
-        customizationState.chain_type && customizationState.metal && hasVariantStone) {
+     if (jewelryItem.type === 'necklace' && 
+         customizationState.chain_type && customizationState.metal && hasVariantStone) {
       // Convert CustomizationState to string-only object for the service
       const stringCustomizations: { [key: string]: string } = {};
       Object.entries(customizationState).forEach(([key, value]) => {
@@ -281,7 +399,7 @@ export default function CustomizationComponent({
           stringCustomizations[key] = value;
         }
       });
-      const generatedUrl = CustomizationService.generateVariantImageUrl(jewelryItem.id, stringCustomizations);
+       const generatedUrl = CustomizationService.generateVariantImageUrl(jewelryItem.type, stringCustomizations);
       return generatedUrl;
     }
     
@@ -289,16 +407,16 @@ export default function CustomizationComponent({
     console.log('📋 Using base image:', jewelryItem.baseImage);
     
     // If no base image and no customizations selected yet, use a default variant
-    if (!jewelryItem.baseImage && Object.keys(customizationState).length === 0) {
-      if (jewelryItem.id === 'bracelet') {
-        return 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/bracelets/bracelet-black-leather-emerald-whitegold.webp';
-      }
-      if (jewelryItem.id === 'necklace') {
-        return 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/necklaces/necklace-black-leather-emerald-yellowgold.webp';
-      }
-      if (jewelryItem.id === 'ring') {
-        return 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/rings/Ring%20emerald%20white%20gold.png';
-      }
+      if (!jewelryItem.baseImage && Object.keys(customizationState).length === 0) {
+       if (jewelryItem.type === 'bracelet') {
+         return 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/bracelets/bracelet-black-leather-emerald-whitegold.webp';
+       }
+       if (jewelryItem.type === 'necklace') {
+         return 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/necklaces/necklace-black-leather-emerald-yellowgold.webp';
+       }
+       if (jewelryItem.type === 'ring') {
+         return 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/rings/Ring%20emerald%20white%20gold.png';
+       }
     }
     
     return jewelryItem.baseImage;
@@ -377,17 +495,44 @@ export default function CustomizationComponent({
     onCustomizationChange?.(newState, totalPrice);
   };
 
+  // Get settings to render (filtered by rules or original)
+  const getSettingsToRender = () => {
+    if (appliedRules?.filteredSettings) {
+      console.log('🎯 Using filtered settings from rules engine:', appliedRules.filteredSettings.map(s => s.id));
+      // Transform rules engine format back to component format
+      return appliedRules.filteredSettings.map(setting => ({
+        ...setting,
+        options: setting.options.map(option => ({
+          id: option.id,
+          name: option.option_name,
+          image: option.image_url || undefined,
+          imageUrl: option.image_url || undefined,
+          color: option.color_gradient || undefined,
+          colorGradient: option.color_gradient || undefined,
+          price: option.price,
+          priceLabGrown: option.price_lab_grown
+        }))
+      }));
+    }
+    console.log('📋 Using original settings (no rules applied)');
+    return jewelryItem.settings;
+  };
+
   // Check if all required settings are selected
   const isComplete = useMemo(() => {
-    return jewelryItem.settings
-      .filter(setting => {
-        // Skip engraving as it's optional
-        if (setting.id === 'engraving') return false;
-        
+    const settingsToCheck = getSettingsToRender();
+    console.log('Checking completeness. All settings:', settingsToCheck.map(s => ({ 
+      id: s.id, 
+      required: s.required,
+      selected: customizationState[s.id] 
+    })));
+    
+    return settingsToCheck
+      .filter(setting => {        
         // Only check required settings that have visible options
         if (!setting.required) return false;
         
-        // Apply same filtering logic as in CustomizationSetting component
+        // Apply conditional logic for context-dependent settings
         // Stone size settings are only required if the corresponding stone is selected
         if (setting.id === 'diamond_size') {
           return customizationState.first_stone === 'diamond';
@@ -406,7 +551,7 @@ export default function CustomizationComponent({
         return true;
       })
       .every(setting => customizationState[setting.id]);
-  }, [customizationState, jewelryItem.settings]);
+  }, [customizationState, jewelryItem.settings, appliedRules]);
 
   // Generate customization summary for human reading
   const generateCustomizationSummary = () => {
@@ -558,25 +703,27 @@ export default function CustomizationComponent({
                 priority={true}
               />
               <RealLifeImageViewer 
-                jewelryType={jewelryItem.id as 'bracelet' | 'ring' | 'necklace'}
+                     jewelryType={jewelryItem.type as 'bracelet' | 'ring' | 'necklace'}
               />
             </div>
           </div>
 
           {/* Product Description - Mobile */}
           <div className="mb-8">
-            <ProductDescription productType={jewelryItem.id} customizationState={customizationState} />
+                   <ProductDescription productType={jewelryItem.type} customizationState={customizationState} />
           </div>
 
           {/* Customization Settings - Mobile */}
           <div className="space-y-12 sm:space-y-16">
-            {jewelryItem.settings.map((setting, index) => (
+            {getSettingsToRender().map((setting, index) => (
               <CustomizationSetting
                 key={setting.id}
                 setting={setting}
                 selectedValue={customizationState[setting.id] as string}
                 onSelect={(optionId) => handleOptionSelect(setting.id, optionId)}
                 customizationState={customizationState}
+                appliedRules={appliedRules}
+                rulesLoading={rulesLoading}
               />
             ))}
           </div>
@@ -603,13 +750,15 @@ export default function CustomizationComponent({
             {/* Left Column - Customization Settings */}
             <div className="flex flex-col">
               <div className="space-y-16 flex-1">
-                {jewelryItem.settings.map((setting, index) => (
+                {getSettingsToRender().map((setting, index) => (
                   <CustomizationSetting
                     key={setting.id}
                     setting={setting}
                     selectedValue={customizationState[setting.id] as string}
                     onSelect={(optionId) => handleOptionSelect(setting.id, optionId)}
                     customizationState={customizationState}
+                    appliedRules={appliedRules}
+                    rulesLoading={rulesLoading}
                   />
                 ))}
               </div>
@@ -643,13 +792,13 @@ export default function CustomizationComponent({
                     priority={true}
                   />
                   <RealLifeImageViewer 
-                    jewelryType={jewelryItem.id as 'bracelet' | 'ring' | 'necklace'}
+                     jewelryType={jewelryItem.type as 'bracelet' | 'ring' | 'necklace'}
                   />
                 </div>
                 
                 {/* Product Description - Desktop */}
                 <div className="mb-8 w-full max-w-sm">
-                  <ProductDescription productType={jewelryItem.id} customizationState={customizationState} />
+                   <ProductDescription productType={jewelryItem.type} customizationState={customizationState} />
                 </div>
                 
                 {/* Desktop buttons (show on desktop only) */}
@@ -682,13 +831,17 @@ interface CustomizationSettingProps {
   selectedValue?: string;
   onSelect: (optionId: string) => void;
   customizationState: CustomizationState;  // Add this to access other selections
+  appliedRules: RulesEngineResult | null;  // Add rules engine results
+  rulesLoading: boolean;  // Add rules loading state
 }
 
 function CustomizationSetting({ 
   setting, 
   selectedValue, 
   onSelect, 
-  customizationState 
+  customizationState,
+  appliedRules,
+  rulesLoading
 }: CustomizationSettingProps) {
   // Use specialized RingSizeSelector for ring size options
   if (setting.id === 'ring_size') {
@@ -728,74 +881,27 @@ function CustomizationSetting({
     );
   }
 
-  // Filter options based on selection context
+  // Filter options based on rules engine results (replaces hardcoded logic)
   const getFilteredOptions = () => {
-    // For metal options in necklaces, filter based on chain selection
-    if (setting.id === 'metal' && customizationState.chain_type) {
-      const chainType = customizationState.chain_type;
-      
-      // Yellow gold chain only supports yellow gold metal
-      if (chainType === 'yellow_gold_chain_real') {
-        console.log('🔗 Filtering metals for yellow gold chain: showing only yellow gold');
-        return setting.options.filter(option => option.id === 'yellow_gold');
-      }
-      
-      // White gold chain only supports white gold metal
-      if (chainType === 'white_gold_chain') {
-        console.log('🔗 Filtering metals for white gold chain: showing only white gold');
-        return setting.options.filter(option => option.id === 'white_gold');
-      }
-      
-      // Black leather supports both metals (no filtering needed)
-      // Fall through to show all options
-    }
-    
-    // For chain type options, filter based on first stone selection for bracelets
-    if (setting.id === 'chain_type' && customizationState.first_stone === 'black_onyx') {
-      // If Black Onyx is selected as first stone, only show leather cord options (no gold cord)
-      return setting.options.filter(option => 
-        option.id === 'black_leather' || option.id.includes('leather')
-      );
-    }
-    
-    // For second stone options, filter based on first stone selection
-    if (setting.id === 'second_stone') {
-      const firstStone = customizationState.first_stone;
-      
-      // If Black Onyx is selected as first stone, only show Black Onyx + Emerald combination
-      if (firstStone === 'black_onyx') {
-        return setting.options.filter(option => option.id === 'black_onyx_emerald');
-      }
-      
-      // If Diamond is selected as first stone, show all normal second stones (excluding Black Onyx combinations)
-      if (firstStone === 'diamond') {
-        return setting.options.filter(option => 
-          !option.id.includes('black_onyx') && option.id !== 'black_onyx_emerald'
-        );
+    // If rules engine results are available, use them
+    if (appliedRules) {
+      const filteredSetting = appliedRules.filteredSettings.find(s => s.id === setting.id);
+      if (filteredSetting) {
+        // Convert back to the CustomizationOption format
+        return filteredSetting.options.map(option => ({
+          id: option.option_id,
+          name: option.option_name,
+          price: option.price,
+          priceLabGrown: option.price_lab_grown ?? undefined,
+          image: option.image_url ?? undefined,
+          imageUrl: option.image_url ?? undefined,
+          color: option.color_gradient ?? undefined,
+          colorGradient: option.color_gradient ?? undefined
+        }));
       }
     }
-    
-    // For stone size options, show appropriate sizes based on first stone selection
-    if (setting.id === 'diamond_size' || setting.id === 'black_onyx_stone_size') {
-      const firstStone = customizationState.first_stone;
-      
-      // If Black Onyx is selected as first stone, show Black Onyx stone sizes
-      if (firstStone === 'black_onyx' && setting.id === 'black_onyx_stone_size') {
-        return setting.options; // Show all black onyx stone size options
-      }
-      
-      // If Diamond is selected as first stone, show Diamond stone sizes
-      if (firstStone === 'diamond' && setting.id === 'diamond_size') {
-        return setting.options; // Show all diamond stone size options
-      }
-      
-      // Hide the option if it doesn't match the selected first stone
-      if ((firstStone === 'black_onyx' && setting.id === 'diamond_size') ||
-          (firstStone === 'diamond' && setting.id === 'black_onyx_stone_size')) {
-        return []; // Hide this setting completely
-      }
-    }
-    
+
+    // Fallback to original options if no rules applied or rules engine not ready
     return setting.options;
   };
 

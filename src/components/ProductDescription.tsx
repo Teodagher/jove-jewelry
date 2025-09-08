@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/client'
 
 interface ProductDescriptionProps {
   productType: string
@@ -62,7 +62,6 @@ export default function ProductDescription({ productType, customizationState = {
   useEffect(() => {
     const fetchDescription = async () => {
       try {
-        const supabase = createClient()
         const mappedProductType = getProductDescriptionType(productType)
         
         const { data, error } = await supabase

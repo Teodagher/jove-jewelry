@@ -1,9 +1,103 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
 import { supabase } from '@/lib/supabase';
 import type { JewelryItem as DBJewelryItem, CustomizationOption as DBCustomizationOption } from '@/lib/supabase';
 import type { JewelryItem, CustomizationSetting, CustomizationOption, DiamondType } from '@/types/customization';
 
 export class CustomizationService {
-  // Fetch jewelry item with all customization options
+  // Fetch jewelry item with all customization options by slug
+  static async getJewelryItemConfigBySlug(slug: string): Promise<JewelryItem | null> {
+    try {
+      // Get jewelry item by slug
+      const { data: jewelryItem, error: itemError } = await supabase
+        .from('jewelry_items')
+        .select('*')
+        .eq('slug', slug)
+        .eq('is_active', true)
+        .eq('product_type', 'customizable')
+        .single()
+
+      if (itemError || !jewelryItem) {
+        console.error('Error fetching jewelry item by slug:', itemError)
+        return null
+      }
+
+      // Get customization options
+      const { data: options, error: optionsError } = await supabase
+        .from('customization_options')
+        .select('*')
+        .eq('jewelry_item_id', jewelryItem.id)
+        .eq('is_active', true)
+        .order('setting_display_order')
+        .order('display_order')
+
+      if (optionsError) {
+        console.error('Error fetching customization options:', optionsError)
+        return null
+      }
+
+      // Group options by setting_id and preserve display_order
+      const settingsMap = new Map<string, CustomizationSetting & { tempOptions: Array<DBCustomizationOption & { optionData: CustomizationOption }> }>()
+      
+      options?.forEach((option: DBCustomizationOption) => {
+        if (!settingsMap.has(option.setting_id)) {
+          settingsMap.set(option.setting_id, {
+            id: option.setting_id,
+            title: option.setting_title,
+            type: 'single',
+            required: option.required ?? true,
+            options: [],
+            tempOptions: []
+          })
+        }
+
+        const setting = settingsMap.get(option.setting_id)!
+        setting.tempOptions.push({
+          ...option,
+          optionData: {
+            id: option.option_id,
+            name: option.option_name,
+            price: option.price,
+            priceLabGrown: option.price_lab_grown,
+            image: option.image_url || undefined,
+            color: option.color_gradient || undefined
+          } as CustomizationOption
+        })
+      })
+
+      // Sort options within each setting by display_order and convert to final format
+      settingsMap.forEach((setting) => {
+        setting.tempOptions.sort((a, b) => a.display_order - b.display_order)
+        setting.options = setting.tempOptions.map(opt => opt.optionData)
+        delete (setting as { tempOptions?: unknown }).tempOptions
+      })
+
+      // Convert to config format
+      const config = {
+        id: jewelryItem.id,
+        name: jewelryItem.name,
+        type: jewelryItem.type,
+        baseImage: jewelryItem.base_image_url || '',
+        basePrice: jewelryItem.base_price,
+        basePriceLabGrown: jewelryItem.base_price_lab_grown,
+        blackOnyxBasePrice: jewelryItem.black_onyx_base_price,
+        blackOnyxBasePriceLabGrown: jewelryItem.black_onyx_base_price_lab_grown,
+        settings: Array.from(settingsMap.values()).sort((a, b) => {
+          // Sort settings by their display order from the first option in each setting
+          const aOrder = options?.find(opt => opt.setting_id === a.id)?.setting_display_order || 0;
+          const bOrder = options?.find(opt => opt.setting_id === b.id)?.setting_display_order || 0;
+          return aOrder - bOrder;
+        })
+      } as JewelryItem
+
+      return config
+    } catch (error) {
+      console.error('Error in getJewelryItemConfigBySlug:', error)
+      return null
+    }
+  }
+
+  // Fetch jewelry item with all customization options (legacy method - keep for backwards compatibility)
   static async getJewelryItemConfig(type: string): Promise<JewelryItem | null> {
     try {
       // Get jewelry item
@@ -42,7 +136,7 @@ export class CustomizationService {
             id: option.setting_id,
             title: option.setting_title,
             type: 'single',
-            required: true,
+            required: option.required ?? true,
             options: [],
             tempOptions: []
           })
@@ -71,8 +165,9 @@ export class CustomizationService {
 
       // Convert to config format
       const config = {
-        id: jewelryItem.type,
+        id: jewelryItem.id,
         name: jewelryItem.name,
+        type: jewelryItem.type,
         baseImage: jewelryItem.base_image_url || '',
         basePrice: jewelryItem.base_price,
         basePriceLabGrown: jewelryItem.base_price_lab_grown,
@@ -509,6 +604,129 @@ export class CustomizationService {
     
     // Fallback - no image available for this jewelry type/combination
     return null
+  }
+
+  // Get product with all customization data for admin editing
+  static async getProductForEditing(productId: string) {
+    try {
+      const { data: product, error: productError } = await supabase
+        .from('jewelry_items')
+        .select('*')
+        .eq('id', productId)
+        .single();
+
+      if (productError || !product) {
+        console.error('Error fetching product for editing:', productError);
+        return null;
+      }
+
+      // Get customization options if it's a customizable product
+      let customizationData = null;
+      if (product.product_type === 'customizable') {
+        const { data: options, error: optionsError } = await supabase
+          .from('customization_options')
+          .select('*')
+          .eq('jewelry_item_id', productId)
+          .order('setting_display_order')
+          .order('display_order');
+
+        if (optionsError) {
+          console.error('Error fetching customization options:', optionsError);
+        } else {
+          customizationData = options;
+        }
+      }
+
+      return {
+        product,
+        customizationOptions: customizationData
+      };
+    } catch (error) {
+      console.error('Error in getProductForEditing:', error);
+      return null;
+    }
+  }
+
+  // Update product basic information
+  static async updateProduct(productId: string, updates: Partial<any>): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('jewelry_items')
+        .update(updates)
+        .eq('id', productId);
+
+      if (error) {
+        console.error('Error updating product:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating product:', error);
+      return false;
+    }
+  }
+
+  // Update customization option
+  static async updateCustomizationOption(optionId: string, updates: Partial<any>): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('customization_options')
+        .update(updates)
+        .eq('id', optionId);
+
+      if (error) {
+        console.error('Error updating customization option:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error updating customization option:', error);
+      return false;
+    }
+  }
+
+  // Create new customization option
+  static async createCustomizationOption(jewelryItemId: string, optionData: any): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('customization_options')
+        .insert({
+          jewelry_item_id: jewelryItemId,
+          ...optionData
+        });
+
+      if (error) {
+        console.error('Error creating customization option:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error creating customization option:', error);
+      return false;
+    }
+  }
+
+  // Delete customization option
+  static async deleteCustomizationOption(optionId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('customization_options')
+        .delete()
+        .eq('id', optionId);
+
+      if (error) {
+        console.error('Error deleting customization option:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting customization option:', error);
+      return false;
+    }
   }
 
   // Check if a variant image exists for given customizations

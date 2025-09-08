@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 
 interface JoveAccountFormProps {
   onSuccess: () => void;
@@ -100,7 +100,6 @@ export default function JoveAccountForm({ onSuccess }: JoveAccountFormProps) {
     }
 
     try {
-      const supabase = createClient();
 
       // Create the user
       const { data: authData, error: authError } = await supabase.auth.signUp({

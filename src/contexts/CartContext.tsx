@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { CartItem, CartItemInsert, CartItemUpdate } from '@/types/ecommerce';
 
@@ -56,7 +56,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const supabase = createClient();
       const sessionId = getSessionId();
       
       const { data, error } = await supabase
@@ -95,7 +94,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
 
     try {
-      const supabase = createClient();
       const sessionId = getSessionId();
       
       // Update cart items to include user_id
@@ -128,7 +126,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addCustomJewelryToCart = async (jewelryData: CustomJewelryData, quantity = 1) => {
     try {
-      const supabase = createClient();
       const sessionId = getSessionId();
       
       const cartItemData: CartItemInsert = {
@@ -177,7 +174,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const removeFromCart = async (cartItemId: string) => {
     try {
-      const supabase = createClient();
 
       const { error } = await supabase
         .from('cart_items')
@@ -199,7 +195,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      const supabase = createClient();
 
       const updateData: CartItemUpdate = { quantity };
       const { error } = await (supabase
@@ -223,7 +218,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = async () => {
     try {
-      const supabase = createClient();
       const sessionId = getSessionId();
       
       const { error } = await supabase

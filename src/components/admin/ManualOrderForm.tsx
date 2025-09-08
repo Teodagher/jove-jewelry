@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { 
   Package, 
@@ -69,7 +69,6 @@ export default function ManualOrderForm({ onSuccess, onCancel }: ManualOrderForm
   const [deliveryFee, setDeliveryFee] = useState(50); // Default delivery fee
   const [total, setTotal] = useState(0);
 
-  const supabase = createClient();
 
   const calculatePricing = useCallback(() => {
     const newSubtotal = orderItems.reduce((sum, item) => sum + (item.total_price * item.quantity), 0);

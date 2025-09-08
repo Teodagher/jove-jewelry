@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/client'
 import { Save, Eye, EyeOff, FileText, Edit } from 'lucide-react'
 
 interface ProductDescription {
@@ -30,7 +30,6 @@ export default function ProductDescriptionsPage() {
   const loadDescriptions = async () => {
     try {
       setLoading(true)
-      const supabase = createClient()
 
       const { data, error } = await supabase
         .from('product_descriptions')
@@ -56,7 +55,6 @@ export default function ProductDescriptionsPage() {
   const updateDescription = async (productType: string, title: string, description: string, isActive: boolean) => {
     try {
       setSaving(productType)
-      const supabase = createClient()
 
       // Clean the data - if title or description is empty, set to null
       const cleanTitle = title.trim() || null

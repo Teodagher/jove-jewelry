@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import logger from '@/lib/logger';
 import {
   Home,
@@ -16,7 +16,8 @@ import {
   LogOut,
   Palette,
   UserPlus,
-  FileText
+  FileText,
+  Settings
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -25,6 +26,7 @@ interface AdminLayoutProps {
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: Home },
+  { name: 'Product Management', href: '/admin/product-management', icon: Settings },
   {
     name: 'Pricing',
     href: '/admin/pricing',
@@ -68,7 +70,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   // Handle auth state
   useEffect(() => {
-    const supabase = createClient();
     
     // Get initial user
     supabase.auth.getUser().then(({ data }) => {
@@ -151,7 +152,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const handleSignOut = async () => {
     try {
       logger.log('🏗️ Signing out user');
-      const supabase = createClient();
       await supabase.auth.signOut();
       router.push('/');
     } catch (error) {

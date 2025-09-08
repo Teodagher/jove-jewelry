@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { UserPlus, Download, Search, Calendar, Mail, Phone, MapPin } from 'lucide-react';
 
 interface Lead {
@@ -21,7 +21,6 @@ export default function LeadsManagementPage() {
   const [sourceFilter, setSourceFilter] = useState('all');
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = createClient();
 
   const fetchLeads = useCallback(async () => {
     try {

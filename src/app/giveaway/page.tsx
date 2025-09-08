@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import GiveawaySpinner from '../../components/GiveawaySpinner';
@@ -20,7 +20,6 @@ export default function GiveawayPage() {
   const [error, setError] = useState<string | null>(null);
   const [winner, setWinner] = useState<string | null>(null);
 
-  const supabase = createClient();
   const router = useRouter();
 
   const fetchEventLeads = useCallback(async () => {

@@ -2,14 +2,17 @@ export interface CustomizationOption {
   id: string;
   name: string;
   image?: string;
+  imageUrl?: string;
   color?: string;
+  colorGradient?: string;
   price?: number;
-  priceLabGrown?: number; // Lab grown option price
+  priceLabGrown?: number | null; // Lab grown option price
 }
 
 export interface CustomizationSetting {
   id: string;
   title: string;
+  description?: string;
   type: 'single' | 'multiple';
   options: CustomizationOption[];
   required: boolean;
@@ -18,6 +21,7 @@ export interface CustomizationSetting {
 export interface JewelryItem {
   id: string;
   name: string;
+  type: string; // Product type (bracelet, ring, necklace, earrings)
   baseImage: string | null;
   settings: CustomizationSetting[];
   basePrice: number;

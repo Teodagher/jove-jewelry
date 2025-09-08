@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/client'
 import logger from '@/lib/logger'
 
 export default function AdminLoginForm() {
@@ -17,7 +17,6 @@ export default function AdminLoginForm() {
   const router = useRouter()
 
   useEffect(() => {
-    const supabase = createClient()
     
     // Get initial user
     supabase.auth.getUser().then(({ data }) => {
@@ -50,7 +49,6 @@ export default function AdminLoginForm() {
     setError(null)
 
     try {
-      const supabase = createClient()
       logger.log('🔐 AdminLogin: Attempting login for:', email)
       
       // Sign in user

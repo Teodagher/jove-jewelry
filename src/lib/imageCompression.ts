@@ -99,3 +99,85 @@ export const generateOptimizedFileName = (originalName: string): string => {
   
   return `${timestamp}-${cleanName}-${randomId}.webp`;
 };
+
+/**
+ * Compress image to target around 100KB while maintaining quality
+ * Uses progressive quality reduction until target size is reached
+ */
+export const compressToTargetSize = async (
+  file: File,
+  targetSizeKB: number = 100,
+  options: CompressionOptions = {}
+): Promise<Blob> => {
+  const {
+    maxWidth = 1920,
+    maxHeight = 1080,
+    format = 'webp'
+  } = options;
+
+  let quality = 0.95; // Start with high quality
+  let compressedBlob: Blob;
+  let attempts = 0;
+  const maxAttempts = 8;
+
+  do {
+    try {
+      compressedBlob = await compressImage(file, {
+        maxWidth,
+        maxHeight,
+        quality,
+        format
+      });
+
+      const sizeKB = compressedBlob.size / 1024;
+      
+      // If we're within 10% of target or below target, we're good
+      if (sizeKB <= targetSizeKB || sizeKB <= targetSizeKB * 1.1) {
+        break;
+      }
+
+      // Reduce quality for next attempt
+      if (sizeKB > targetSizeKB * 2) {
+        quality -= 0.15; // Bigger reduction for much larger files
+      } else if (sizeKB > targetSizeKB * 1.5) {
+        quality -= 0.1;
+      } else {
+        quality -= 0.05;
+      }
+
+      attempts++;
+    } catch (error) {
+      throw new Error(`Compression failed: ${error}`);
+    }
+  } while (quality > 0.1 && attempts < maxAttempts);
+
+  return compressedBlob;
+};
+
+/**
+ * Get estimated file size after compression
+ */
+export const getEstimatedCompressedSize = (
+  originalSize: number,
+  quality: number = 0.85,
+  format: 'webp' | 'jpeg' | 'png' = 'webp'
+): number => {
+  // Rough estimation based on format and quality
+  let compressionRatio: number;
+  
+  switch (format) {
+    case 'webp':
+      compressionRatio = quality * 0.3 + 0.1; // WebP is very efficient
+      break;
+    case 'jpeg':
+      compressionRatio = quality * 0.5 + 0.2;
+      break;
+    case 'png':
+      compressionRatio = 0.8; // PNG compression is limited
+      break;
+    default:
+      compressionRatio = 0.5;
+  }
+  
+  return originalSize * compressionRatio;
+};

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { 
   DollarSign, 
   Package, 
@@ -101,7 +101,6 @@ export default function AdminDashboard() {
   });
   const [loading, setLoading] = useState(true);
 
-  const supabase = createClient();
 
   const fetchDashboardData = useCallback(async () => {
     try {

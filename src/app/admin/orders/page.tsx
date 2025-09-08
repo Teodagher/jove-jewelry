@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { 
   Package, 
   Search, 
@@ -95,7 +95,6 @@ export default function AdminOrdersPage() {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [showManualOrderForm, setShowManualOrderForm] = useState(false);
 
-  const supabase = createClient();
 
   const fetchOrders = useCallback(async () => {
     try {

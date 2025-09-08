@@ -15,7 +15,7 @@ import {
   GripVertical
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { compressImage, generateOptimizedFileName, formatFileSize as formatSize } from '@/lib/imageCompression';
 
 interface HeroImage {
@@ -42,7 +42,6 @@ export default function PicturesManagementPage() {
   const [reordering, setReordering] = useState(false);
   
   // Initialize Supabase client
-  const supabase = createClient();
 
   // Load hero images from Supabase
   const loadHeroImages = useCallback(async () => {

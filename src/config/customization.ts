@@ -6,6 +6,7 @@ export const customizationConfig: CustomizationConfig = {
   necklaces: {
     id: 'necklaces',
     name: 'Necklace',
+    type: 'necklace',
     baseImage: `${SUPABASE_URL}/customization-item/necklace.png`,
     basePrice: 299,
     settings: [
@@ -131,6 +132,7 @@ export const customizationConfig: CustomizationConfig = {
   rings: {
     id: 'rings',
     name: 'Ring',
+    type: 'ring',
     baseImage: `${SUPABASE_URL}/item-pictures/ring-preview.jpg`,
     basePrice: 199,
     settings: []
@@ -138,6 +140,7 @@ export const customizationConfig: CustomizationConfig = {
   bracelets: {
     id: 'bracelets',
     name: 'Bracelet',
+    type: 'bracelet',
     baseImage: `${SUPABASE_URL}/item-pictures/bracelet-preview.jpg`,
     basePrice: 149,
     settings: []
@@ -145,6 +148,7 @@ export const customizationConfig: CustomizationConfig = {
   earrings: {
     id: 'earrings',
     name: 'Earrings',
+    type: 'earring',
     baseImage: `${SUPABASE_URL}/item-pictures/earring-preview.jpg`,
     basePrice: 129,
     settings: []
