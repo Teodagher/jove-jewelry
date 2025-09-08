@@ -36,7 +36,7 @@ export default function CustomizationComponent({
 }: CustomizationComponentProps) {
   const [customizationState, setCustomizationState] = useState<CustomizationState>({});
   const [addingToCart, setAddingToCart] = useState(false);
-  const [selectedDiamondType, setSelectedDiamondType] = useState<DiamondType>('natural');
+  const [selectedDiamondType, setSelectedDiamondType] = useState<DiamondType>('lab_grown');
   const [rulesEngine, setRulesEngine] = useState<LogicRulesEngine | null>(null);
   const [appliedRules, setAppliedRules] = useState<RulesEngineResult | null>(null);
   const [rulesLoading, setRulesLoading] = useState(true);

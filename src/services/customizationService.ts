@@ -373,39 +373,47 @@ export class CustomizationService {
         console.log('🔗 Smart mapping: gold_cord + white_gold → white_gold_chain');
       }
       
-      // For bracelets: Handle different stone combinations
-      // If first_stone is black_onyx, use black_onyx for the variant (Black Onyx + Emerald combination)
-      // If first_stone is diamond, use second_stone for the variant
-      // If first_stone is not diamond and not black_onyx, use first_stone for the variant
+      // For bracelets: Handle dual stone combinations (updated to match VariantGenerator logic)
       let variantStone = customizations.second_stone;
+      let variantSecondStone = '';
       let usingFirstStone = false;
+      let usingBothStones = false;
+      
+      // Helper function to extract stone name from contextual ID
+      const extractStoneFromContextual = (stoneId: string): string => {
+        if (stoneId && stoneId.includes('_')) {
+          const parts = stoneId.split('_');
+          const lastPart = parts[parts.length - 1];
+          // Try two-word stones like "blue_sapphire", "pink_sapphire", etc.
+          if (parts.length >= 2) {
+            const twoWordStone = parts.slice(-2).join('_');
+            if (['blue_sapphire', 'pink_sapphire', 'yellow_sapphire'].includes(twoWordStone)) {
+              return twoWordStone;
+            }
+          }
+          if (['ruby', 'emerald', 'diamond'].includes(lastPart)) {
+            return lastPart;
+          }
+        }
+        return stoneId;
+      };
+      
+      const actualFirstStone = customizations.first_stone ? extractStoneFromContextual(customizations.first_stone) : '';
+      const actualSecondStone = customizations.second_stone ? extractStoneFromContextual(customizations.second_stone) : '';
       
       if (customizations.first_stone === 'black_onyx') {
         variantStone = 'black_onyx';  // Black Onyx combinations use blackonyx filename
         console.log('🖤 Black Onyx detected as first stone, using black_onyx for variant');
-      } else if (customizations.first_stone && customizations.first_stone !== 'diamond') {
-        // Extract the actual stone name from contextual ID (e.g., "first_stone_ruby" → "ruby")
-        const extractStoneFromContextual = (stoneId: string): string => {
-          if (stoneId && stoneId.includes('_')) {
-            const parts = stoneId.split('_');
-            const lastPart = parts[parts.length - 1];
-            // Try two-word stones like "blue_sapphire", "pink_sapphire", etc.
-            if (parts.length >= 2) {
-              const twoWordStone = parts.slice(-2).join('_');
-              if (['blue_sapphire', 'pink_sapphire', 'yellow_sapphire'].includes(twoWordStone)) {
-                return twoWordStone;
-              }
-            }
-            if (['ruby', 'emerald', 'diamond'].includes(lastPart)) {
-              return lastPart;
-            }
-          }
-          return stoneId;
-        };
-        
-        variantStone = extractStoneFromContextual(customizations.first_stone);
+      } else if (customizations.first_stone && actualFirstStone !== 'diamond') {
+        // When first stone is not diamond, use dual stone combination
+        variantStone = customizations.first_stone;
+        variantSecondStone = actualSecondStone;
         usingFirstStone = true;
-        console.log('🎯 Using FIRST stone for bracelet variant (not diamond):', customizations.first_stone, '→', variantStone);
+        usingBothStones = true;
+        console.log('🎯 Using BOTH stones for bracelet variant:', customizations.first_stone, '(', actualFirstStone, ') +', customizations.second_stone, '(', actualSecondStone, ')');
+      } else if (customizations.second_stone) {
+        variantStone = customizations.second_stone;
+        console.log('🎯 Using SECOND stone for bracelet variant:', customizations.second_stone, '→', actualSecondStone);
       }
       
       console.log('🔍 Bracelet variant selection:', {
@@ -433,84 +441,51 @@ export class CustomizationService {
           return null;
         }
         
-        const stoneFilename = currentStoneMap[variantStone]
-        const metalFilename = metalMap[metal]
-        const chainFilename = chainMap[chainType]
+        // Extract actual stone names for mapping
+        const actualVariantStone = extractStoneFromContextual(variantStone);
+        const stoneFilename = currentStoneMap[actualVariantStone];
+        const metalFilename = metalMap[metal];
+        const chainFilename = chainMap[chainType];
         
-        // New naming convention: bracelet-[chain]-[stone]-[metal]
-        // Handle mixed case extensions based on specific combinations
+        // Generate filename based on stone combination (matching VariantGenerator logic)
         let filename: string;
+        let combinationKey: string;
         
-        // Only generate URLs for combinations that actually exist  
-        // Based on our storage and high-quality compression output, these are the valid bracelet combinations:
-        const validBraceletCombinations = [
-          // Black leather combinations (both metals supported)
-          'black-leather-blue-sapphire-whitegold',
-          'black-leather-blue-sapphire-yellowgold',
-          'black-leather-emerald-whitegold',
-          'black-leather-emerald-yellowgold',
-          'black-leather-pink-sapphire-whitegold',
-          'black-leather-pink-sapphire-yellowgold',
-          'black-leather-ruby-whitegold',
-          'black-leather-ruby-yellowgold',
-          // Black Onyx combinations (both metals supported)
-          'black-leather-blackonyx-whitegold',
-          'black-leather-blackonyx-yellowgold',
-          // Gold cord combinations (ONLY yellow gold metal supported)
-          'gold-cord-blue-sapphire-yellowgold',
-          'gold-cord-emerald-yellowgold',
-          'gold-cord-pink-sapphire-yellowgold',
-          'gold-cord-ruby-yellowgold',
-          // White gold chain combinations (ONLY white gold metal supported)
-          'whitegold-chain-bluesapphire-whitegold',
-          'whitegold-chain-emerald-whitegold',
-          'whitegold-chain-pinksapphire-whitegold',
-          'whitegold-chain-ruby-whitegold'
-          // NOTE: No diamond variants available for any combination
-        ];
-        
-        // Add prefix for first stone variants to match VariantGenerator logic
-        const stonePrefix = usingFirstStone ? 'first-' : '';
-        const combinationKey = `${chainFilename}-${stonePrefix}${stoneFilename}-${metalFilename}`;
-        
-        // For validation, check both prefixed and non-prefixed versions
-        const baseCombinationKey = `${chainFilename}-${stoneFilename}-${metalFilename}`;
-        
-        if (validBraceletCombinations.includes(baseCombinationKey)) {
-          // Special case: ruby + yellowgold only exists as PNG (not yet converted to WebP)
-          if (baseCombinationKey === 'black-leather-ruby-yellowgold') {
-            filename = `bracelet-${chainFilename}-${stonePrefix}${stoneFilename}-${metalFilename}.png`;
-            const finalUrl = `${baseUrl}/bracelets/${filename}`;
-            console.log('🎯 Bracelet URL generated (PNG fallback):', finalUrl, `(${usingFirstStone ? 'First stone' : 'Second stone'} variant)`);
-            return finalUrl;
-          }
+        if (usingBothStones && variantSecondStone) {
+          // Dual stone combination: bracelet-{chain}-{firstStone}-{secondStone}-{metal}.webp
+          const secondStoneFilename = useWhiteGoldMapping ? 
+            (whiteGoldChainStoneMap[variantSecondStone] || stoneMap[variantSecondStone] || variantSecondStone) :
+            (stoneMap[variantSecondStone] || variantSecondStone);
           
-          // Use compressed WebP images for much faster loading (HQ: ~50KB, 95% smaller!)
-          filename = `bracelet-${chainFilename}-${stonePrefix}${stoneFilename}-${metalFilename}.webp`;
+          filename = `bracelet-${chainFilename}-${stoneFilename}-${secondStoneFilename}-${metalFilename}.webp`;
+          combinationKey = `${chainFilename}-${stoneFilename}-${secondStoneFilename}-${metalFilename}`;
           
-          const finalUrl = `${baseUrl}/bracelets/${filename}`;
-          console.log('🎯 Bracelet URL generated (HQ WebP):', finalUrl, `(${usingFirstStone ? 'First stone' : 'Second stone'} variant)`);
-          console.log('🔍 Generated filename:', filename);
-          console.log('🔍 Stone prefix applied:', stonePrefix);
-          console.log('🔍 Combination key:', combinationKey);
-          console.log('🔍 Base combination key:', baseCombinationKey);
-          
-          return finalUrl;
+          console.log('🎯 Generating dual stone bracelet URL:', {
+            firstStone: actualVariantStone,
+            secondStone: variantSecondStone,
+            filename,
+            combinationKey
+          });
         } else {
-          console.warn('⚠️ Bracelet combination not available:', combinationKey);
-          console.log('📋 Available combinations for reference:', validBraceletCombinations);
+          // Single stone or traditional logic
+          const stonePrefix = usingFirstStone && !usingBothStones ? 'first-' : '';
+          filename = `bracelet-${chainFilename}-${stonePrefix}${stoneFilename}-${metalFilename}.webp`;
+          combinationKey = `${chainFilename}-${stonePrefix}${stoneFilename}-${metalFilename}`;
           
-          // Special handling for common invalid combinations  
-          if (customizations.chain_type === 'gold_cord' && metal === 'white_gold' && chainType === 'white_gold_chain') {
-            console.warn('❌ White gold chain variant not found - may need to upload more images');
-          }
-          if (customizations.first_stone === 'diamond' && !customizations.second_stone) {
-            console.warn('❌ Diamond variant requires a second stone selection');
-          }
-          
-          console.log('📋 Image not available for this combination');
-          return null; // Return null to indicate no image available
+          console.log('🎯 Generating single stone bracelet URL:', {
+            stone: actualVariantStone,
+            filename,
+            combinationKey,
+            stonePrefix
+          });
         }
+        
+        const finalUrl = `${baseUrl}/bracelets/${filename}`;
+        console.log('🎯 Bracelet URL generated (Dual Stone WebP):', finalUrl);
+        console.log('🔍 Generated filename:', filename);
+        console.log('🔍 Combination key:', combinationKey);
+        
+        return finalUrl;
       } else {
         console.log('❌ Bracelet conditions not met:', {
           variantStone,
@@ -541,21 +516,74 @@ export class CustomizationService {
         'rubyy': 'ruby' // Map rubyy variant to ruby naming
       }
       
+      // Helper function to extract stone name from contextual IDs
+      const extractStoneFromContextual = (stoneId: string): string => {
+        if (stoneId && stoneId.includes('_')) {
+          const parts = stoneId.split('_');
+          const lastPart = parts[parts.length - 1];
+          // Try two-word stones like "blue_sapphire", "pink_sapphire", etc.
+          if (parts.length >= 2) {
+            const twoWordStone = parts.slice(-2).join('_');
+            if (['blue_sapphire', 'pink_sapphire', 'yellow_sapphire'].includes(twoWordStone)) {
+              return twoWordStone;
+            }
+          }
+          if (['ruby', 'emerald', 'diamond'].includes(lastPart)) {
+            return lastPart;
+          }
+        }
+        return stoneId;
+      };
+
       // Get the selections
       const metal = customizations.metal
       
-      // For rings: Use second_stone for the variant (first_stone is always diamond)
-      const variantStone = customizations.second_stone
+      // Apply dual stone logic for rings (matching VariantGenerator logic)
+      let variantStone = customizations.second_stone;
+      let variantSecondStone = '';
+      let usingBothStones = false;
       
-      if (variantStone && metal && metalMap[metal] && stoneMap[variantStone]) {
-        const stoneFilename = stoneMap[variantStone]
-        const metalFilename = metalMap[metal]
+      const actualFirstStone = customizations.first_stone ? extractStoneFromContextual(customizations.first_stone) : '';
+      const actualSecondStone = customizations.second_stone ? extractStoneFromContextual(customizations.second_stone) : '';
+      
+      // When first stone is not diamond, use dual stone combination
+      if (customizations.first_stone && actualFirstStone !== 'diamond') {
+        variantStone = customizations.first_stone;
+        variantSecondStone = actualSecondStone;
+        usingBothStones = true;
+        console.log('🎯 Using BOTH stones for ring variant:', customizations.first_stone, '(', actualFirstStone, ') +', customizations.second_stone, '(', actualSecondStone, ')');
+      } else if (customizations.second_stone) {
+        variantStone = customizations.second_stone;
+        console.log('🎯 Using SECOND stone for ring variant:', customizations.second_stone, '→', actualSecondStone);
+      }
+      
+      if (variantStone && metal && metalMap[metal]) {
+        const actualVariantStone = extractStoneFromContextual(variantStone);
+        const stoneFilename = stoneMap[actualVariantStone];
+        const metalFilename = metalMap[metal];
         
-        // Ring naming convention: Ring [stone] [metal].webp (compressed)
-        const filename = `Ring ${stoneFilename} ${metalFilename}.webp`;
+        // Generate filename based on stone combination
+        let filename: string;
+        if (usingBothStones && variantSecondStone) {
+          // Dual stone combination: Ring {firstStone} {secondStone} {metal}.webp
+          const secondStoneFilename = stoneMap[variantSecondStone] || variantSecondStone;
+          filename = `Ring ${stoneFilename} ${secondStoneFilename} ${metalFilename}.webp`;
+          console.log('🎯 Generating dual stone ring URL:', {
+            firstStone: actualVariantStone,
+            secondStone: variantSecondStone,
+            filename
+          });
+        } else {
+          // Single stone or traditional logic
+          filename = `Ring ${stoneFilename} ${metalFilename}.webp`;
+          console.log('🎯 Generating single stone ring URL:', {
+            stone: actualVariantStone,
+            filename
+          });
+        }
         
         const finalUrl = `${baseUrl}/rings/${filename}`;
-        console.log('💍 Ring URL generated (HQ WebP):', finalUrl, '(~50KB, 95% smaller, crisp details!)');
+        console.log('💍 Ring URL generated (Dual Stone WebP):', finalUrl);
         
         return finalUrl
       }
@@ -583,63 +611,89 @@ export class CustomizationService {
         'yellow_gold_chain_real': 'yellow-gold'
       }
       
+      // Helper function to extract stone name from contextual IDs
+      const extractStoneFromContextual = (stoneId: string): string => {
+        if (stoneId && stoneId.includes('_')) {
+          const parts = stoneId.split('_');
+          const lastPart = parts[parts.length - 1];
+          // Try two-word stones like "blue_sapphire", "pink_sapphire", etc.
+          if (parts.length >= 2) {
+            const twoWordStone = parts.slice(-2).join('_');
+            if (['blue_sapphire', 'pink_sapphire', 'yellow_sapphire'].includes(twoWordStone)) {
+              return twoWordStone;
+            }
+          }
+          if (['ruby', 'emerald', 'diamond'].includes(lastPart)) {
+            return lastPart;
+          }
+        }
+        return stoneId;
+      };
+
       // Get the selections
       const metal = customizations.metal
       const chainType = customizations.chain_type
       
-      // For necklaces: Use any non-diamond stone for the variant
-      // Check first_stone first, then second_stone
-      let variantStone = customizations.second_stone;
-      if (customizations.first_stone && customizations.first_stone !== 'diamond') {
+      // Apply dual stone logic for necklaces (matching VariantGenerator logic)
+      let variantStone = customizations.second_stone || customizations.first_stone;
+      let variantSecondStone = '';
+      let usingBothStones = false;
+      
+      const actualFirstStone = customizations.first_stone ? extractStoneFromContextual(customizations.first_stone) : '';
+      const actualSecondStone = customizations.second_stone ? extractStoneFromContextual(customizations.second_stone) : '';
+      
+      // When first stone is not diamond and we have a second stone, use dual stone combination
+      if (customizations.first_stone && actualFirstStone !== 'diamond' && customizations.second_stone) {
         variantStone = customizations.first_stone;
+        variantSecondStone = actualSecondStone;
+        usingBothStones = true;
+        console.log('🎯 Using BOTH stones for necklace variant:', customizations.first_stone, '(', actualFirstStone, ') +', customizations.second_stone, '(', actualSecondStone, ')');
+      } else if (customizations.second_stone) {
+        variantStone = customizations.second_stone;
+        console.log('🎯 Using SECOND stone for necklace variant:', customizations.second_stone, '→', actualSecondStone);
+      } else if (customizations.first_stone) {
+        variantStone = customizations.first_stone;
+        console.log('🎯 Using FIRST stone for necklace variant:', customizations.first_stone, '→', actualFirstStone);
       }
       
-      if (variantStone && metal && chainType && metalMap[metal] && stoneMap[variantStone] && chainMap[chainType]) {
-        const stoneFilename = stoneMap[variantStone]
-        const metalFilename = metalMap[metal]
-        const chainFilename = chainMap[chainType]
+      if (variantStone && metal && chainType && metalMap[metal] && chainMap[chainType]) {
+        const actualVariantStone = extractStoneFromContextual(variantStone);
+        const stoneFilename = stoneMap[actualVariantStone];
+        const metalFilename = metalMap[metal];
+        const chainFilename = chainMap[chainType];
         
-        // Chain type is already mapped correctly in chainMap
-        const finalChainType = chainFilename;
+        // Generate filename based on stone combination
+        let filename: string;
+        let combinationKey: string;
         
-        // Only generate URLs for combinations that actually exist
-        // Based on our compression script output, these are the valid combinations:
-        const validCombinations = [
-          // Black leather combinations
-          'black-leather-bluesapphire-whitegold',
-          'black-leather-bluesapphire-yellowgold', 
-          'black-leather-emerald-whitegold',
-          'black-leather-emerald-yellowgold',
-          'black-leather-pinksapphire-whitegold',
-          'black-leather-pinksapphire-yellowgold',
-          'black-leather-ruby-whitegold',
-          'black-leather-ruby-yellowgold',
-          // White gold chain combinations (only with white gold metal)
-          'white-gold-bluesapphire-whitegold',
-          'white-gold-emerald-whitegold',
-          'white-gold-pinksapphire-whitegold',
-          'white-gold-ruby-whitegold',
-          // Yellow gold chain combinations (only with yellow gold metal)
-          'yellow-gold-bluesapphire-yellowgold',
-          'yellow-gold-emerald-yellowgold',
-          'yellow-gold-pinksapphire-yellowgold',
-          'yellow-gold-ruby-yellowgold'
-        ];
-        
-        const combinationKey = `${finalChainType}-${stoneFilename}-${metalFilename}`;
-        
-        if (validCombinations.includes(combinationKey)) {
-          // Necklace naming convention: necklace-[chain]-[stone]-[metal].webp (compressed)
-          const filename = `necklace-${finalChainType}-${stoneFilename}-${metalFilename}.webp`;
-          const finalUrl = `${baseUrl}/necklaces/${filename}`;
+        if (usingBothStones && variantSecondStone) {
+          // Dual stone combination: necklace-{chain}-{firstStone}-{secondStone}-{metal}.webp
+          const secondStoneFilename = stoneMap[variantSecondStone] || variantSecondStone;
+          filename = `necklace-${chainFilename}-${stoneFilename}-${secondStoneFilename}-${metalFilename}.webp`;
+          combinationKey = `${chainFilename}-${stoneFilename}-${secondStoneFilename}-${metalFilename}`;
           
-          console.log('✨ Necklace URL generated:', finalUrl, '(Compressed WebP: ~25KB - 98% smaller!)');
-          
-          return finalUrl;
+          console.log('🎯 Generating dual stone necklace URL:', {
+            firstStone: actualVariantStone,
+            secondStone: variantSecondStone,
+            filename,
+            combinationKey
+          });
         } else {
-          console.warn('⚠️ Necklace combination not available:', combinationKey);
-          console.log('📋 Using base image instead');
+          // Single stone or traditional logic
+          filename = `necklace-${chainFilename}-${stoneFilename}-${metalFilename}.webp`;
+          combinationKey = `${chainFilename}-${stoneFilename}-${metalFilename}`;
+          
+          console.log('🎯 Generating single stone necklace URL:', {
+            stone: actualVariantStone,
+            filename,
+            combinationKey
+          });
         }
+        
+        const finalUrl = `${baseUrl}/necklaces/${filename}`;
+        console.log('✨ Necklace URL generated (Dual Stone WebP):', finalUrl);
+        
+        return finalUrl;
       }
     }
     

@@ -674,18 +674,40 @@ function VariantImageCard({
         <h4 className="font-medium text-gray-900 mb-1 truncate">{variant.name}</h4>
         <p className="text-sm text-gray-500 mb-2 truncate">{variant.filename}</p>
         
-        {/* Status Badge */}
-        {variant.exists ? (
-          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
-            <Check className="w-3 h-3 mr-1" />
-            Uploaded
-          </span>
-        ) : (
-          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-orange-100 text-orange-700 rounded-full">
-            <AlertCircle className="w-3 h-3 mr-1" />
-            Missing
-          </span>
-        )}
+        {/* Status Badge and Actions */}
+        <div className="flex items-center justify-between">
+          {variant.exists ? (
+            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
+              <Check className="w-3 h-3 mr-1" />
+              Uploaded
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-orange-100 text-orange-700 rounded-full">
+              <AlertCircle className="w-3 h-3 mr-1" />
+              Missing
+            </span>
+          )}
+          
+          {/* Quick Actions for uploaded images */}
+          {variant.exists && (
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={onView}
+                className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                title="View Image"
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+              <button
+                onClick={onDelete}
+                className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                title="Delete Image"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Upload Error */}
         {uploadStatus?.error && (
