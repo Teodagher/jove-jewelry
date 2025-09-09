@@ -125,13 +125,13 @@ export default function ProductImages({ productId, productType, productSlug, ref
         [variantId]: { ...prev[variantId], progress: 25 }
       }));
 
-      // Compress image to target size (~10KB) using browser-image-compression
+      // Compress image with better quality (~50KB target) using browser-image-compression
       const options = {
-        maxSizeMB: 0.01, // 10KB target
+        maxSizeMB: 0.05, // 50KB target for better quality
         maxWidthOrHeight: 1920, // Max dimension for product images
         useWebWorker: true, // Use web worker for performance
         fileType: 'image/webp', // Convert to WebP
-        initialQuality: 0.6, // Start with lower quality for smaller files
+        initialQuality: 0.8, // Higher quality for better image appearance
         alwaysKeepResolution: false // Allow resolution reduction if needed
       };
 
@@ -342,7 +342,7 @@ export default function ProductImages({ productId, productType, productSlug, ref
         <div>
           <h3 className="text-lg font-medium text-gray-900">Product Images</h3>
           <p className="text-gray-600 text-sm">
-            Upload images for each product variant. Images will be automatically compressed to WebP format (~100KB).
+            Upload images for each product variant. Images will be automatically compressed to WebP format (~50KB).
           </p>
         </div>
         <button
@@ -560,10 +560,23 @@ function VariantImageCard({
               type="file"
               accept="image/*"
               onChange={onFileInputChange}
+              data-variant-id={variant.id}
               className="hidden"
             />
             <button
-              onClick={() => fileInputRef(null)?.click()}
+              onClick={() => {
+                const inputElement = document.querySelector(`input[data-variant-id="${variant.id}"]`) as HTMLInputElement;
+                if (inputElement) {
+                  inputElement.click();
+                } else {
+                  // Fallback: trigger the file input change manually
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/*';
+                  input.onchange = (e) => onFileInputChange(e as any);
+                  input.click();
+                }
+              }}
               disabled={uploadStatus?.uploading}
               className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
               title="Upload Image"
