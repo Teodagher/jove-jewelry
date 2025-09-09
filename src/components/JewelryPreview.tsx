@@ -178,9 +178,6 @@ export default function JewelryPreview({
               onLoad={() => {
                 handleImageLoad({} as any);
               }}
-              onLoadingComplete={() => {
-                handleImageLoad({} as any);
-              }}
               onError={() => {
                 handleImageError({} as any);
               }}

@@ -12,6 +12,15 @@ export class DynamicFilenameService {
   private static cache = new Map<string, FilenameMapping[]>();
   private static cacheExpiry = new Map<string, number>();
   private static CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  
+  // Force cache clear on startup to ensure fresh data after database changes
+  static {
+    if (typeof window !== 'undefined') {
+      console.log('🔄 Clearing DynamicFilenameService cache on startup (bracelet slugs updated)');
+      this.cache.clear();
+      this.cacheExpiry.clear();
+    }
+  }
 
   /**
    * Get filename mappings for a specific jewelry type
@@ -20,12 +29,13 @@ export class DynamicFilenameService {
     const cacheKey = `mappings_${jewelryType}`;
     const now = Date.now();
 
-    // Check if we have valid cached data
+    // Check if we have valid cached data (reduced cache duration for debugging)
     if (
       this.cache.has(cacheKey) && 
       this.cacheExpiry.has(cacheKey) && 
       now < this.cacheExpiry.get(cacheKey)!
     ) {
+      console.log(`📋 Using cached mappings for ${jewelryType}`);
       return this.cache.get(cacheKey)!;
     }
 
@@ -246,3 +256,11 @@ export class DynamicFilenameService {
 }
 
 export const dynamicFilenameService = new DynamicFilenameService();
+
+// Make cache clearing available globally for debugging
+if (typeof window !== 'undefined') {
+  (window as any).clearFilenameCache = (jewelryType?: string) => {
+    DynamicFilenameService.clearCache(jewelryType);
+    console.log(`🔄 Cache cleared${jewelryType ? ` for ${jewelryType}` : ' for all jewelry types'}`);
+  };
+}

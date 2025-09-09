@@ -271,17 +271,78 @@ export class VariantGenerator {
         let foundFile = null;
         let actualFilename = null;
         
-        // Check for multiple file extensions (webp preferred, but fallback to PNG/png)
+        // Check for multiple file extensions and naming formats
         const baseFilename = variant.filename.replace(/\.[^/.]+$/, ""); // Remove extension
         const possibleExtensions = ['.webp', '.PNG', '.png'];
         
+        // For rings, also check the legacy format with spaces and capital R
+        // For bracelets, also check legacy formats with different separators
+        let legacyFilenames: string[] = [];
+        
+        if (productType === 'ring') {
+          // Legacy ring format: "Ring blue sapphire white gold"
+          const legacyRing = baseFilename.replace('ring-', 'Ring ').replace(/_/g, ' ').replace(/-/g, ' ');
+          legacyFilenames.push(legacyRing);
+        } else if (productType === 'bracelet') {
+          // Legacy bracelet formats with different combinations
+          const parts = baseFilename.replace('bracelet-', '').split('-');
+          if (parts.length >= 3) {
+            // Try all combinations of legacy formats found in storage
+            const chain = parts[0];
+            const stone = parts[1]; 
+            const metal = parts[2];
+            
+            // Generate all possible legacy combinations
+            const chainVariants = [
+              chain, // current: gold_cord
+              chain.replace('_', '-') // legacy: gold-cord
+            ];
+            
+            const stoneVariants = [
+              stone, // current: blue_sapphire
+              stone.replace('_', '-') // legacy: blue-sapphire
+            ];
+            
+            const metalVariants = [
+              metal, // current: yellow_gold
+              metal.replace('white_gold', 'whitegold').replace('yellow_gold', 'yellowgold'), // legacy: whitegold/yellowgold
+              metal.replace('_', '-') // alternative: yellow-gold
+            ];
+            
+            // Generate all combinations
+            for (const chainVar of chainVariants) {
+              for (const stoneVar of stoneVariants) {
+                for (const metalVar of metalVariants) {
+                  const legacyCombo = `bracelet-${chainVar}-${stoneVar}-${metalVar}`;
+                  if (legacyCombo !== baseFilename) { // Don't add the original
+                    legacyFilenames.push(legacyCombo);
+                  }
+                }
+              }
+            }
+          }
+        }
+        
         for (const ext of possibleExtensions) {
+          // Try current filename first
           const testFilename = baseFilename + ext;
           if (existingFiles.has(testFilename)) {
             foundFile = testFilename;
             actualFilename = testFilename;
             break;
           }
+          
+          // Try legacy formats
+          for (const legacyName of legacyFilenames) {
+            const legacyTestFilename = legacyName + ext;
+            if (existingFiles.has(legacyTestFilename)) {
+              foundFile = legacyTestFilename;
+              actualFilename = legacyTestFilename;
+              console.log(`✅ Found legacy format: ${legacyTestFilename} for variant ${variant.name}`);
+              break;
+            }
+          }
+          if (foundFile) break; // Exit extension loop if found
         }
         
         if (foundFile) {
@@ -303,7 +364,11 @@ export class VariantGenerator {
           
           console.log(`✅ Found ${actualFilename} for variant ${variant.name} (unique: ${isFirstTimeSeeing})`);
         } else {
-          console.log(`❌ No file found for variant ${variant.name} (expected: ${variant.filename})`);
+          console.log(`❌ No file found for variant ${variant.name}`);
+          console.log(`   Expected: ${variant.filename}`);
+          if (legacyFilenames.length > 0) {
+            console.log(`   Legacy attempts: ${legacyFilenames.slice(0, 5).join(', ')}${legacyFilenames.length > 5 ? '...' : ''}`);
+          }
         }
       }
       
