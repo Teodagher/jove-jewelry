@@ -5,6 +5,7 @@ import { JewelryItem, CustomizationState, CustomizationOption, DiamondType } fro
 import type { CustomizationSetting } from '@/types/customization';
 import { CustomizationService } from '@/services/customizationService';
 import LogicRulesEngine, { type RulesEngineResult } from '@/services/logicRulesEngine';
+import { supabase } from '@/lib/supabase/client';
 import JewelryPreview from './JewelryPreview';
 import RingSizeSelector from './RingSizeSelector';
 import RealLifeImageViewer from './RealLifeImageViewer';
@@ -342,54 +343,80 @@ export default function CustomizationComponent({
 
   // Generate preview image URL based on customization state (async)
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(jewelryItem.baseImage);
+  const [imageVariantSettings, setImageVariantSettings] = useState<Set<string>>(new Set());
+
+  // Load which settings affect image variants from database
+  useEffect(() => {
+    const loadImageVariantSettings = async () => {
+      try {
+        const { data: settingsData, error } = await supabase
+          .from('customization_options')
+          .select('setting_id')
+          .eq('jewelry_item_id', jewelryItem.id)
+          .eq('affects_image_variant', true)
+          .eq('is_active', true);
+
+        if (error) {
+          console.error('Error fetching image variant settings:', error);
+          return;
+        }
+
+        const variantSettingIds = new Set((settingsData as any[])?.map((item: any) => item.setting_id) || []);
+        setImageVariantSettings(variantSettingIds);
+        console.log(`🖼️ Loaded image variant settings for ${jewelryItem.type}:`, Array.from(variantSettingIds));
+      } catch (error) {
+        console.error('Error loading image variant settings:', error);
+      }
+    };
+
+    loadImageVariantSettings();
+  }, [jewelryItem.id, jewelryItem.type]);
 
   useEffect(() => {
     const generatePreviewUrl = async () => {
-      const hasVariantStone = (customizationState.first_stone && customizationState.first_stone !== 'diamond') || customizationState.second_stone;
-      
-      if (jewelryItem.type === 'bracelet' && 
-          customizationState.chain_type && customizationState.metal && hasVariantStone) {
-        // Convert CustomizationState to string-only object for the service
-        const stringCustomizations: { [key: string]: string } = {};
-        Object.entries(customizationState).forEach(([key, value]) => {
-          if (typeof value === 'string') {
-            stringCustomizations[key] = value;
-          }
-        });
-        const generatedUrl = await CustomizationService.generateVariantImageUrl(jewelryItem.type, stringCustomizations);
-        setPreviewImageUrl(generatedUrl);
+      // Check if we have any image variant settings loaded
+      if (imageVariantSettings.size === 0) {
+        // If no variant settings loaded yet, use base image
+        setPreviewImageUrl(jewelryItem.baseImage);
         return;
       }
-      
-      if (jewelryItem.type === 'ring' && 
-          customizationState.metal && customizationState.second_stone) {
-        // Convert CustomizationState to string-only object for the service
+
+      // Check if all required image variant settings have values selected
+      const requiredSettingsWithValues = Array.from(imageVariantSettings).filter(settingId => {
+        const settingValue = customizationState[settingId];
+        return settingValue && settingValue !== '';
+      });
+
+      const hasAllRequiredImageVariants = requiredSettingsWithValues.length === imageVariantSettings.size;
+
+      console.log(`🔍 Image variant check for ${jewelryItem.type}:`, {
+        allVariantSettings: Array.from(imageVariantSettings),
+        settingsWithValues: requiredSettingsWithValues,
+        hasAllRequired: hasAllRequiredImageVariants,
+        customizationState
+      });
+
+      // Only generate variant URL if we have values for ALL settings that affect image variants
+      if (hasAllRequiredImageVariants) {
+        // Convert CustomizationState to string-only object for the service, but only include image variant settings
         const stringCustomizations: { [key: string]: string } = {};
-        Object.entries(customizationState).forEach(([key, value]) => {
-          if (typeof value === 'string') {
-            stringCustomizations[key] = value;
+        Array.from(imageVariantSettings).forEach(settingId => {
+          const value = customizationState[settingId];
+          if (typeof value === 'string' && value !== '') {
+            stringCustomizations[settingId] = value;
           }
         });
+
+        console.log(`✅ Generating variant URL for ${jewelryItem.type} with customizations:`, stringCustomizations);
+
         const generatedUrl = await CustomizationService.generateVariantImageUrl(jewelryItem.type, stringCustomizations);
-        setPreviewImageUrl(generatedUrl);
-        return;
+        if (generatedUrl) {
+          setPreviewImageUrl(generatedUrl);
+          return;
+        }
       }
       
-      if (jewelryItem.type === 'necklace' && 
-          customizationState.chain_type && customizationState.metal && hasVariantStone) {
-        // Convert CustomizationState to string-only object for the service
-        const stringCustomizations: { [key: string]: string } = {};
-        Object.entries(customizationState).forEach(([key, value]) => {
-          if (typeof value === 'string') {
-            stringCustomizations[key] = value;
-          }
-        });
-        const generatedUrl = await CustomizationService.generateVariantImageUrl(jewelryItem.type, stringCustomizations);
-        setPreviewImageUrl(generatedUrl);
-        return;
-      }
-      
-      // For other jewelry types or during initial load, provide a sensible default
+      // Fallback logic for initial load or when not all variant settings are selected
       
       // If no base image and no customizations selected yet, use a default variant
       if (!jewelryItem.baseImage && Object.keys(customizationState).length === 0) {
@@ -411,7 +438,7 @@ export default function CustomizationComponent({
     };
 
     generatePreviewUrl();
-  }, [customizationState, jewelryItem]);
+  }, [customizationState, jewelryItem, imageVariantSettings]);
 
 
 

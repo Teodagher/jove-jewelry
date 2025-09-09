@@ -16,7 +16,7 @@ export class DynamicFilenameService {
   // Force cache clear on startup to ensure fresh data after database changes
   static {
     if (typeof window !== 'undefined') {
-      console.log('🔄 Clearing DynamicFilenameService cache on startup (ring+bracelet slugs updated)');
+      console.log('🔄 Clearing DynamicFilenameService cache on startup (bracelet slugs fixed to match files)');
       this.cache.clear();
       this.cacheExpiry.clear();
     }
