@@ -277,7 +277,7 @@ export class VariantGenerator {
         
         // For rings, also check the legacy format with spaces and capital R
         // For bracelets, also check legacy formats with different separators
-        let legacyFilenames: string[] = [];
+        const legacyFilenames: string[] = [];
         
         if (productType === 'ring') {
           // Legacy ring format: "Ring blue sapphire white gold"

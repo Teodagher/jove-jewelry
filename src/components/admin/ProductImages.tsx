@@ -2,7 +2,7 @@
 // @ts-nocheck
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/components/ui/toast-provider';
 import { variantGenerator, type ProductVariant, type VariantGenerationResult } from '@/services/variantGenerator';
@@ -57,9 +57,9 @@ export default function ProductImages({ productId, productType, productSlug, ref
   useEffect(() => {
     console.log('🎯 ProductImages useEffect triggered. RefreshTrigger:', refreshTrigger);
     generateVariants();
-  }, [productId, productType, refreshTrigger]);
+  }, [productId, productType, refreshTrigger, generateVariants]);
 
-  const generateVariants = async () => {
+  const generateVariants = useCallback(async () => {
     try {
       setLoading(true);
       console.log('🚀 Starting variant generation for product:', productId, 'type:', productType, 'refresh trigger:', refreshTrigger);
@@ -101,7 +101,7 @@ export default function ProductImages({ productId, productType, productSlug, ref
     } finally {
       setLoading(false);
     }
-  };
+  }, [productId, productType, refreshTrigger, addToast]);
 
   const handleFileSelect = async (variantId: string, file: File) => {
     const variant = variants.find(v => v.id === variantId);
