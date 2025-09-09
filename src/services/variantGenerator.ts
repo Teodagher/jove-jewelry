@@ -279,11 +279,7 @@ export class VariantGenerator {
         // For bracelets, also check legacy formats with different separators
         const legacyFilenames: string[] = [];
         
-        if (productType === 'ring') {
-          // Legacy ring format: "Ring blue sapphire white gold"
-          const legacyRing = baseFilename.replace('ring-', 'Ring ').replace(/_/g, ' ').replace(/-/g, ' ');
-          legacyFilenames.push(legacyRing);
-        } else if (productType === 'bracelet') {
+        if (productType === 'bracelet') {
           // Legacy bracelet formats with different combinations
           const parts = baseFilename.replace('bracelet-', '').split('-');
           if (parts.length >= 3) {

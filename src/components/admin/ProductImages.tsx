@@ -54,11 +54,6 @@ export default function ProductImages({ productId, productType, productSlug, ref
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const { addToast } = useToast();
 
-  useEffect(() => {
-    console.log('🎯 ProductImages useEffect triggered. RefreshTrigger:', refreshTrigger);
-    generateVariants();
-  }, [productId, productType, refreshTrigger, generateVariants]);
-
   const generateVariants = useCallback(async () => {
     try {
       setLoading(true);
@@ -102,6 +97,11 @@ export default function ProductImages({ productId, productType, productSlug, ref
       setLoading(false);
     }
   }, [productId, productType, refreshTrigger, addToast]);
+
+  useEffect(() => {
+    console.log('🎯 ProductImages useEffect triggered. RefreshTrigger:', refreshTrigger);
+    generateVariants();
+  }, [productId, productType, refreshTrigger]);
 
   const handleFileSelect = async (variantId: string, file: File) => {
     const variant = variants.find(v => v.id === variantId);
