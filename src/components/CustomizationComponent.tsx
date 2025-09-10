@@ -14,6 +14,9 @@ import { useRouter } from 'next/navigation';
 import { BuyNowButton } from '@/components/ui/buy-now-button';
 import ProductDescription from '@/components/ProductDescription';
 import PoweredByAstryCustomization from '@/components/PoweredByAstryCustomization';
+import DiamondLoader from '@/components/ui/DiamondLoader';
+import { useImagePreloader } from '@/hooks/useImagePreloader';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Preload critical images for faster UX
 const preloadImage = (src: string) => {
@@ -43,6 +46,28 @@ export default function CustomizationComponent({
   const [rulesLoading, setRulesLoading] = useState(true);
   const { addCustomJewelryToCart } = useCart();
   const router = useRouter();
+
+  // Extract all image URLs from customization options for preloading
+  const allOptionImageUrls = useMemo(() => {
+    const urls: string[] = [];
+    jewelryItem.settings.forEach(setting => {
+      setting.options.forEach(option => {
+        if (option.image) {
+          urls.push(option.image);
+        } else if (option.imageUrl) {
+          urls.push(option.imageUrl);
+        }
+      });
+    });
+    return urls;
+  }, [jewelryItem.settings]);
+
+  // Use image preloader hook for progressive loading with 1 second minimum
+  const { 
+    allLoaded: allImagesLoaded, 
+    getImageState, 
+    progress: imageLoadingProgress 
+  } = useImagePreloader(allOptionImageUrls, 1000);
 
   // Initialize the rules engine for this product
   useEffect(() => {
@@ -507,6 +532,18 @@ export default function CustomizationComponent({
     onCustomizationChange?.(newState, totalPrice);
   };
 
+  // Check if a setting's images are loaded - must have ALL option images loaded
+  const isSettingImagesLoaded = (setting: CustomizationSetting) => {
+    // Check each option's image loading state - ALL must be loaded (no error fallback)
+    return setting.options.every(option => {
+      const imageUrl = option.image || option.imageUrl;
+      if (!imageUrl) return true; // No image means it's "loaded"
+      
+      const imageState = getImageState(imageUrl);
+      return imageState.loaded; // Only consider actually loaded, not errors
+    });
+  };
+
   // Get settings to render (filtered by rules or original)
   const getSettingsToRender = () => {
     if (appliedRules?.filteredSettings) {
@@ -526,6 +563,11 @@ export default function CustomizationComponent({
       }));
     }
     return jewelryItem.settings;
+  };
+
+  // Get settings that are ready to be displayed (images loaded)
+  const getLoadedSettings = () => {
+    return getSettingsToRender().filter(setting => isSettingImagesLoaded(setting));
   };
 
   // Check if all required settings are selected
@@ -718,17 +760,77 @@ export default function CustomizationComponent({
 
           {/* Customization Settings - Mobile */}
           <div className="space-y-12 sm:space-y-16">
-            {getSettingsToRender().map((setting, index) => (
-              <CustomizationSetting
-                key={setting.id}
-                setting={setting}
-                selectedValue={customizationState[setting.id] as string}
-                onSelect={(optionId) => handleOptionSelect(setting.id, optionId)}
-                customizationState={customizationState}
-                appliedRules={appliedRules}
-                rulesLoading={rulesLoading}
-              />
-            ))}
+            <AnimatePresence mode="wait">
+              {!allImagesLoaded ? (
+                <motion.div 
+                  key="loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ 
+                    opacity: 0, 
+                    y: -20,
+                    scale: 0.95,
+                    transition: { duration: 0.4, ease: "easeInOut" }
+                  }}
+                  className="py-16"
+                >
+                  <DiamondLoader 
+                    size="lg"
+                    text="Loading the Jové experience"
+                    showText={true}
+                  />
+                  <div className="mt-6 text-center">
+                    <div className="w-full max-w-xs mx-auto bg-gray-200 rounded-full h-2">
+                      <motion.div 
+                        className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
+                        initial={{ width: "0%" }}
+                        animate={{ width: `${imageLoadingProgress}%` }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    </div>
+                    <p className="text-sm text-gray-600 mt-2">
+                      Loading customization options... {imageLoadingProgress}%
+                    </p>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="settings"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ 
+                    duration: 0.6, 
+                    ease: "easeOut",
+                    delay: 0.2
+                  }}
+                  className="space-y-12 sm:space-y-16"
+                >
+                  <AnimatePresence>
+                    {getLoadedSettings().map((setting, index) => (
+                      <motion.div 
+                        key={setting.id}
+                        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ 
+                          duration: 0.6,
+                          delay: 0.4 + (index * 0.1),
+                          ease: "easeOut"
+                        }}
+                      >
+                        <CustomizationSetting
+                          setting={setting}
+                          selectedValue={customizationState[setting.id] as string}
+                          onSelect={(optionId) => handleOptionSelect(setting.id, optionId)}
+                          customizationState={customizationState}
+                          appliedRules={appliedRules}
+                          rulesLoading={rulesLoading}
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Actions - Mobile */}
@@ -753,17 +855,77 @@ export default function CustomizationComponent({
             {/* Left Column - Customization Settings */}
             <div className="flex flex-col">
               <div className="space-y-16 flex-1">
-                {getSettingsToRender().map((setting, index) => (
-                  <CustomizationSetting
-                    key={setting.id}
-                    setting={setting}
-                    selectedValue={customizationState[setting.id] as string}
-                    onSelect={(optionId) => handleOptionSelect(setting.id, optionId)}
-                    customizationState={customizationState}
-                    appliedRules={appliedRules}
-                    rulesLoading={rulesLoading}
-                  />
-                ))}
+                <AnimatePresence mode="wait">
+                  {!allImagesLoaded ? (
+                    <motion.div 
+                      key="loading"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ 
+                        opacity: 0, 
+                        y: -20,
+                        scale: 0.95,
+                        transition: { duration: 0.4, ease: "easeInOut" }
+                      }}
+                      className="py-16"
+                    >
+                      <DiamondLoader 
+                        size="lg"
+                        text="Loading the Jové experience"
+                        showText={true}
+                      />
+                      <div className="mt-6 text-center">
+                        <div className="w-full max-w-xs mx-auto bg-gray-200 rounded-full h-2">
+                          <motion.div 
+                            className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
+                            initial={{ width: "0%" }}
+                            animate={{ width: `${imageLoadingProgress}%` }}
+                            transition={{ duration: 0.3 }}
+                          />
+                        </div>
+                        <p className="text-sm text-gray-600 mt-2">
+                          Loading customization options... {imageLoadingProgress}%
+                        </p>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="settings"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ 
+                        duration: 0.6, 
+                        ease: "easeOut",
+                        delay: 0.2
+                      }}
+                      className="space-y-16"
+                    >
+                      <AnimatePresence>
+                        {getLoadedSettings().map((setting, index) => (
+                          <motion.div 
+                            key={setting.id}
+                            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{ 
+                              duration: 0.6,
+                              delay: 0.4 + (index * 0.1),
+                              ease: "easeOut"
+                            }}
+                          >
+                            <CustomizationSetting
+                              setting={setting}
+                              selectedValue={customizationState[setting.id] as string}
+                              onSelect={(optionId) => handleOptionSelect(setting.id, optionId)}
+                              customizationState={customizationState}
+                              appliedRules={appliedRules}
+                              rulesLoading={rulesLoading}
+                            />
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
               
               {/* Mobile buttons only - Desktop has buttons under preview */}
