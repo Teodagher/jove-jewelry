@@ -1,7 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
-import { supabase } from '@/lib/supabase';
-import type { JewelryItem as DBJewelryItem, CustomizationOption as DBCustomizationOption } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
+import type { JewelryItem as DBJewelryItem, CustomizationOption as DBCustomizationOption } from '@/lib/supabase/types';
 import type { JewelryItem, CustomizationSetting, CustomizationOption, DiamondType } from '@/types/customization';
 import { DynamicFilenameService } from './dynamicFilenameService';
 

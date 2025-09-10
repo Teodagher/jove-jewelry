@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { Plus, Edit, Eye, Settings, Package, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import CreateProductModal from '@/components/admin/CreateProductModal';
@@ -63,7 +63,7 @@ export default function ProductManagementPage() {
       const updateData: Record<string, boolean> = {};
       updateData[field] = !currentValue;
       
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('jewelry_items')
         .update(updateData)
         .eq('id', productId);

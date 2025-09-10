@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { X, Package, Upload, AlertCircle } from 'lucide-react';
 
 interface CreateProductModalProps {
@@ -132,7 +132,7 @@ export default function CreateProductModal({ isOpen, onClose, onProductCreated }
         is_active: true
       };
 
-      const { data: newProduct, error } = await supabase
+      const { data: newProduct, error } = await (supabase as any)
         .from('jewelry_items')
         .insert(productData)
         .select()

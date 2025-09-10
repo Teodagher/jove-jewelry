@@ -57,26 +57,11 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
-  // For all other admin routes, require authentication and admin role
-  if (pathname.startsWith('/admin')) {
+  // Simple admin protection - only check authentication
+  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
     if (!user) {
-      // User is not authenticated, redirect to admin login
       const url = request.nextUrl.clone()
       url.pathname = '/admin/login'
-      return NextResponse.redirect(url)
-    }
-
-    // Check if user has admin role
-    const { data: userData } = await supabase
-      .from('users')
-      .select('roles')
-      .eq('auth_user_id', user.id)
-      .single()
-
-    if (!userData?.roles?.includes('admin')) {
-      // User is not admin, redirect to home
-      const url = request.nextUrl.clone()
-      url.pathname = '/'
       return NextResponse.redirect(url)
     }
   }

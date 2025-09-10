@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase/client'
 
 /**
  * Fetches all images from the hero-pictures bucket

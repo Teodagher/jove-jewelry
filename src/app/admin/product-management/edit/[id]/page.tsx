@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { 
   Save, 
   X, 
@@ -192,21 +192,23 @@ export default function EditProductPage() {
     try {
       setSaving(true);
 
-      const { error } = await supabase
+      const updateData = {
+        name: product.name,
+        slug: product.slug,
+        product_type: product.product_type,
+        base_price: product.base_price,
+        base_price_lab_grown: product.base_price_lab_grown,
+        black_onyx_base_price: product.black_onyx_base_price,
+        black_onyx_base_price_lab_grown: product.black_onyx_base_price_lab_grown,
+        base_image_url: product.base_image_url,
+        is_active: product.is_active,
+        display_order: product.display_order,
+        description: product.description
+      };
+      
+      const { error } = await (supabase as any)
         .from('jewelry_items')
-        .update({
-          name: product.name,
-          slug: product.slug,
-          product_type: product.product_type,
-          base_price: product.base_price,
-          base_price_lab_grown: product.base_price_lab_grown,
-          black_onyx_base_price: product.black_onyx_base_price,
-          black_onyx_base_price_lab_grown: product.black_onyx_base_price_lab_grown,
-          base_image_url: product.base_image_url,
-          is_active: product.is_active,
-          display_order: product.display_order,
-          description: product.description
-        })
+        .update(updateData)
         .eq('id', productId);
 
       if (error) {

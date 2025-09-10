@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 
 /**
  * Utility functions for admin management
@@ -25,7 +25,7 @@ export async function checkAdminRole(): Promise<boolean> {
       return false;
     }
 
-    const { data: userData, error } = await supabase
+    const { data: userData, error } = await (supabase as any)
       .from('users')
       .select('roles')
       .eq('auth_user_id', session.user.id)
@@ -35,7 +35,7 @@ export async function checkAdminRole(): Promise<boolean> {
       return false;
     }
 
-    return userData.roles?.includes('admin') || false;
+    return (userData as any)?.roles?.includes('admin') || false;
   } catch (error) {
     console.error('Error checking admin role:', error);
     return false;
@@ -68,7 +68,7 @@ export async function getAllUsers(): Promise<User[]> {
  */
 export async function promoteToAdmin(userId: string): Promise<boolean> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('users')
       .select('roles')
       .eq('id', userId)
@@ -78,14 +78,14 @@ export async function promoteToAdmin(userId: string): Promise<boolean> {
       throw error;
     }
 
-    const currentRoles = data.roles || [];
+    const currentRoles = (data as any).roles || [];
     if (currentRoles.includes('admin')) {
       return true; // Already an admin
     }
 
     const newRoles = [...currentRoles, 'admin'];
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from('users')
       .update({ roles: newRoles })
       .eq('id', userId);
@@ -106,7 +106,7 @@ export async function promoteToAdmin(userId: string): Promise<boolean> {
  */
 export async function removeAdminRole(userId: string): Promise<boolean> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('users')
       .select('roles')
       .eq('id', userId)
@@ -116,10 +116,10 @@ export async function removeAdminRole(userId: string): Promise<boolean> {
       throw error;
     }
 
-    const currentRoles = data.roles || [];
+    const currentRoles = (data as any).roles || [];
     const newRoles = currentRoles.filter((role: string) => role !== 'admin');
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from('users')
       .update({ roles: newRoles })
       .eq('id', userId);

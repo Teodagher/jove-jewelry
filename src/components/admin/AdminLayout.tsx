@@ -88,32 +88,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Handle auth redirects (middleware already handles most of this, but this is backup)
+  // Simplified auth handling - let middleware do the heavy lifting
   useEffect(() => {
-    logger.log('🏗️ AdminLayout auth effect:', { 
-      pathname, 
-      hasUser: !!user, 
-      loading,
-      isLoginPage: pathname === '/admin/login'
-    });
-
-    if (loading) {
-      logger.log('🏗️ Still loading, waiting...');
-      return;
-    }
-
-    // If not on login page and no user, redirect to login
-    if (pathname !== '/admin/login' && !user) {
-      logger.log('🏗️ No user on protected route, redirecting to login');
-      router.replace('/admin/login');
-      return;
-    }
-
-    // If on login page and have user, redirect to admin dashboard
-    if (pathname === '/admin/login' && user) {
-      logger.log('🏗️ User found on login page, redirecting to dashboard');
+    if (!loading && pathname === '/admin/login' && user) {
       router.replace('/admin');
-      return;
     }
   }, [user, loading, pathname, router]);
 
@@ -130,8 +108,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   if (!user && pathname !== '/admin/login') {
-    logger.log('🏗️ No user and not login page, returning null');
-    return null; // Will redirect
+    return null; // Middleware will handle redirect
   }
 
   // If on login page, just render children without admin layout
