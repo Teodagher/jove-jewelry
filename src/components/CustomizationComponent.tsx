@@ -570,6 +570,20 @@ export default function CustomizationComponent({
     return getSettingsToRender().filter(setting => isSettingImagesLoaded(setting));
   };
 
+  // Check if we have any settings ready to show (used for transition timing)
+  const hasSettingsReady = getLoadedSettings().length > 0;
+  
+  // Only hide loading screen when we actually have settings ready to show
+  const shouldShowLoadingScreen = !allImagesLoaded || !hasSettingsReady;
+
+  // Calculate more accurate progress that considers both image loading and step readiness
+  const totalSettings = getSettingsToRender().length;
+  const loadedSettings = getLoadedSettings().length;
+  const stepProgress = totalSettings > 0 ? (loadedSettings / totalSettings) * 100 : 0;
+  
+  // Combine image loading progress with step readiness for more accurate display
+  const combinedProgress = Math.min(imageLoadingProgress, stepProgress);
+
   // Check if all required settings are selected
   const isComplete = useMemo(() => {
     const settingsToCheck = getSettingsToRender();
@@ -761,7 +775,7 @@ export default function CustomizationComponent({
           {/* Customization Settings - Mobile */}
           <div className="space-y-12 sm:space-y-16">
             <AnimatePresence mode="wait">
-              {!allImagesLoaded ? (
+              {shouldShowLoadingScreen ? (
                 <motion.div 
                   key="loading"
                   initial={{ opacity: 0 }}
@@ -784,12 +798,12 @@ export default function CustomizationComponent({
                       <motion.div 
                         className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
                         initial={{ width: "0%" }}
-                        animate={{ width: `${imageLoadingProgress}%` }}
+                        animate={{ width: `${Math.round(combinedProgress)}%` }}
                         transition={{ duration: 0.3 }}
                       />
                     </div>
                     <p className="text-sm text-gray-600 mt-2">
-                      Loading customization options... {imageLoadingProgress}%
+                      Loading customization options... {Math.round(combinedProgress)}%
                     </p>
                   </div>
                 </motion.div>
@@ -856,7 +870,7 @@ export default function CustomizationComponent({
             <div className="flex flex-col">
               <div className="space-y-16 flex-1">
                 <AnimatePresence mode="wait">
-                  {!allImagesLoaded ? (
+                  {shouldShowLoadingScreen ? (
                     <motion.div 
                       key="loading"
                       initial={{ opacity: 0 }}
@@ -879,12 +893,12 @@ export default function CustomizationComponent({
                           <motion.div 
                             className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
                             initial={{ width: "0%" }}
-                            animate={{ width: `${imageLoadingProgress}%` }}
+                            animate={{ width: `${Math.round(combinedProgress)}%` }}
                             transition={{ duration: 0.3 }}
                           />
                         </div>
                         <p className="text-sm text-gray-600 mt-2">
-                          Loading customization options... {imageLoadingProgress}%
+                          Loading customization options... {Math.round(combinedProgress)}%
                         </p>
                       </div>
                     </motion.div>
