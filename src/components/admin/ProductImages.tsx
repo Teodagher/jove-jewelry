@@ -125,13 +125,13 @@ export default function ProductImages({ productId, productType, productSlug, ref
         [variantId]: { ...prev[variantId], progress: 25 }
       }));
 
-      // Compress image with better quality (~50KB target) using browser-image-compression
+      // Compress image with reduced compression (~100KB target) using browser-image-compression
       const options = {
-        maxSizeMB: 0.05, // 50KB target for better quality
-        maxWidthOrHeight: 1920, // Max dimension for product images
+        maxSizeMB: 0.1, // 100KB target for better quality (reduced compression)
+        maxWidthOrHeight: 2048, // Higher max dimension for product images
         useWebWorker: true, // Use web worker for performance
         fileType: 'image/webp', // Convert to WebP
-        initialQuality: 0.8, // Higher quality for better image appearance
+        initialQuality: 0.9, // Even higher quality for better image appearance
         alwaysKeepResolution: false // Allow resolution reduction if needed
       };
 
@@ -342,7 +342,7 @@ export default function ProductImages({ productId, productType, productSlug, ref
         <div>
           <h3 className="text-lg font-medium text-gray-900">Product Images</h3>
           <p className="text-gray-600 text-sm">
-            Upload images for each product variant. Images will be automatically compressed to WebP format (~50KB).
+            Upload images for each product variant. Images will be automatically compressed to WebP format (~100KB).
           </p>
         </div>
         <button
