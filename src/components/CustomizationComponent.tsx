@@ -124,6 +124,27 @@ export default function CustomizationComponent({
               return hasChanges ? newState : prevState;
             });
           }
+
+          // Apply proposed selections if any (sets value but allows user to change it later)
+          if (result.proposedSelections && Object.keys(result.proposedSelections).length > 0) {
+            console.log('📋 Received proposedSelections:', result.proposedSelections);
+            setCustomizationState(prevState => {
+              console.log('📋 Current state before applying proposed selections:', prevState);
+              const newState = { ...prevState };
+              let hasChanges = false;
+
+              Object.entries(result.proposedSelections).forEach(([settingId, optionId]) => {
+                console.log(`📋 Applying proposed selection: ${settingId} = ${optionId}`);
+                if (newState[settingId] !== optionId) {
+                  newState[settingId] = optionId;
+                  hasChanges = true;
+                }
+              });
+
+              console.log('📋 New state after proposed selections:', newState);
+              return hasChanges ? newState : prevState;
+            });
+          }
         }
       } catch (error) {
       } finally {
@@ -350,6 +371,27 @@ export default function CustomizationComponent({
             }
           });
 
+          return hasChanges ? newState : prevState;
+        });
+      }
+
+      // Apply proposed selections if any (sets value but allows user to change it later)
+      if (result.proposedSelections && Object.keys(result.proposedSelections).length > 0) {
+        console.log('🔄 Received proposedSelections in rules effect:', result.proposedSelections);
+        setCustomizationState(prevState => {
+          console.log('🔄 Current state before applying proposed selections:', prevState);
+          const newState = { ...prevState };
+          let hasChanges = false;
+
+          Object.entries(result.proposedSelections).forEach(([settingId, optionId]) => {
+            console.log(`🔄 Applying proposed selection: ${settingId} = ${optionId}`);
+            if (newState[settingId] !== optionId) {
+              newState[settingId] = optionId;
+              hasChanges = true;
+            }
+          });
+
+          console.log('🔄 New state after proposed selections:', newState);
           return hasChanges ? newState : prevState;
         });
       }

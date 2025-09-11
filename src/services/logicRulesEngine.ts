@@ -7,7 +7,7 @@ interface LogicRule {
   is_active: boolean;
   condition_setting_id: string;
   condition_option_id: string;
-  action_type: 'exclude_options' | 'include_only' | 'set_required' | 'set_optional' | 'set_price_multiplier' | 'exclude_setting' | 'auto_select';
+  action_type: 'exclude_options' | 'include_only' | 'set_required' | 'set_optional' | 'set_price_multiplier' | 'exclude_setting' | 'auto_select' | 'propose_selection';
   target_setting_id: string;
   target_option_ids: string[];
   price_multiplier: number | null;
@@ -45,6 +45,7 @@ export interface RulesEngineResult {
   appliedRules: AppliedRule[];
   priceMultipliers: Record<string, number>;
   autoSelections: Record<string, string>; // settingId -> optionId to auto-select
+  proposedSelections: Record<string, string>; // settingId -> optionId to propose-select
 }
 
 export class LogicRulesEngine {
@@ -99,6 +100,7 @@ export class LogicRulesEngine {
     const appliedRules: AppliedRule[] = [];
     const priceMultipliers: Record<string, number> = {};
     const autoSelections: Record<string, string> = {};
+    const proposedSelections: Record<string, string> = {};
     
     // Start with a deep copy of the original settings
     let filteredSettings = JSON.parse(JSON.stringify(settings)) as CustomizationSetting[];
@@ -111,7 +113,7 @@ export class LogicRulesEngine {
       if (conditionMet) {
         console.log(`✅ Rule "${rule.rule_name}" condition met, applying action...`);
         
-        const result = this.applyRuleAction(rule, filteredSettings, priceMultipliers, autoSelections);
+        const result = this.applyRuleAction(rule, filteredSettings, priceMultipliers, autoSelections, proposedSelections);
         filteredSettings = result.settings;
         
         appliedRules.push({
@@ -141,7 +143,8 @@ export class LogicRulesEngine {
       filteredSettings,
       appliedRules,
       priceMultipliers,
-      autoSelections
+      autoSelections,
+      proposedSelections
     };
   }
 
@@ -163,8 +166,9 @@ export class LogicRulesEngine {
   private applyRuleAction(
     rule: LogicRule, 
     settings: CustomizationSetting[], 
-    currentMultipliers: Record<string, number>,
-    autoSelections: Record<string, string>
+    priceMultipliers: Record<string, number>,
+    autoSelections: Record<string, string>,
+    proposedSelections: Record<string, string>
   ): { settings: CustomizationSetting[]; priceMultiplier?: number } {
     const targetSettingIndex = settings.findIndex(s => s.id === rule.target_setting_id);
     
@@ -221,6 +225,16 @@ export class LogicRulesEngine {
         }
         break;
 
+      case 'propose_selection':
+        if (rule.target_option_ids.length > 0) {
+          const optionToPropose = rule.target_option_ids[0]; // Use first option for propose-select
+          console.log(`💡 Proposing option "${optionToPropose}" in "${targetSetting.title}" (setting: ${rule.target_setting_id})`);
+          console.log(`💡 Current proposedSelections:`, proposedSelections);
+          proposedSelections[rule.target_setting_id] = optionToPropose;
+          console.log(`💡 Updated proposedSelections:`, proposedSelections);
+        }
+        break;
+
       default:
         console.warn(`⚠️ Unknown action type: ${rule.action_type}`);
     }
@@ -260,6 +274,8 @@ export class LogicRulesEngine {
         return `hide entire setting ${rule.target_setting_id}`;
       case 'auto_select':
         return `auto-select [${targetOptions}] in ${rule.target_setting_id}`;
+      case 'propose_selection':
+        return `propose [${targetOptions}] in ${rule.target_setting_id}`;
       default:
         return 'unknown action';
     }

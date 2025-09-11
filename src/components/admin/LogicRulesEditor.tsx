@@ -37,7 +37,7 @@ interface LogicRule {
   is_active: boolean;
   condition_setting_id: string;
   condition_option_id: string;
-  action_type: 'exclude_options' | 'include_only' | 'set_required' | 'set_optional' | 'set_price_multiplier';
+  action_type: 'exclude_options' | 'include_only' | 'set_required' | 'set_optional' | 'set_price_multiplier' | 'exclude_setting' | 'auto_select' | 'propose_selection';
   target_setting_id: string;
   target_option_ids: string[];
   price_multiplier: number | null;
@@ -202,6 +202,12 @@ export default function LogicRulesEditor({ productId, settings }: LogicRulesEdit
         return `Make ${targetSetting} optional`;
       case 'set_price_multiplier':
         return `Apply ${rule.price_multiplier}x price multiplier to ${targetSetting}`;
+      case 'exclude_setting':
+        return `Hide entire ${targetSetting} setting`;
+      case 'auto_select':
+        return `Auto-select "${targetOptions}" in ${targetSetting}`;
+      case 'propose_selection':
+        return `Propose "${targetOptions}" in ${targetSetting}`;
       default:
         return 'Unknown action';
     }
@@ -475,10 +481,14 @@ function NewRuleForm({
       onSuccess();
     } catch (error) {
       console.error('Error creating rule:', error);
+      const errorMessage = error && typeof error === 'object' && 'message' in error 
+        ? (error as any).message 
+        : 'Could not create the logic rule';
+      
       addToast({
         type: 'error',
         title: 'Failed to create rule',
-        message: 'Could not create the logic rule'
+        message: errorMessage
       });
     } finally {
       setLoading(false);
@@ -600,6 +610,7 @@ function NewRuleForm({
                 <option value="include_only">Show only specific options</option>
                 <option value="exclude_setting">Hide entire setting</option>
                 <option value="auto_select">Auto-select option</option>
+                <option value="propose_selection">Propose option</option>
                 <option value="set_required">Make setting required</option>
                 <option value="set_optional">Make setting optional</option>
                 <option value="set_price_multiplier">Apply price multiplier</option>
@@ -628,7 +639,7 @@ function NewRuleForm({
               </select>
             </div>
 
-            {(['exclude_options', 'include_only', 'auto_select'].includes(formData.action_type)) && (
+            {(['exclude_options', 'include_only', 'auto_select', 'propose_selection'].includes(formData.action_type)) && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Target Options *
@@ -878,6 +889,7 @@ function RuleEditor({
                 <option value="include_only">Show only specific options</option>
                 <option value="exclude_setting">Hide entire setting</option>
                 <option value="auto_select">Auto-select option</option>
+                <option value="propose_selection">Propose option</option>
                 <option value="set_required">Make setting required</option>
                 <option value="set_optional">Make setting optional</option>
                 <option value="set_price_multiplier">Apply price multiplier</option>
@@ -906,7 +918,7 @@ function RuleEditor({
               </select>
             </div>
 
-            {(['exclude_options', 'include_only', 'auto_select'].includes(formData.action_type)) && (
+            {(['exclude_options', 'include_only', 'auto_select', 'propose_selection'].includes(formData.action_type)) && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Target Options *
