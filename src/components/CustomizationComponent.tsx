@@ -44,6 +44,7 @@ export default function CustomizationComponent({
   const [rulesEngine, setRulesEngine] = useState<LogicRulesEngine | null>(null);
   const [appliedRules, setAppliedRules] = useState<RulesEngineResult | null>(null);
   const [rulesLoading, setRulesLoading] = useState(true);
+  const [userSelections, setUserSelections] = useState<Set<string>>(new Set()); // Track user-made selections
   const { addCustomJewelryToCart } = useCart();
   const router = useRouter();
 
@@ -134,10 +135,14 @@ export default function CustomizationComponent({
               let hasChanges = false;
 
               Object.entries(result.proposedSelections).forEach(([settingId, optionId]) => {
-                console.log(`📋 Applying proposed selection: ${settingId} = ${optionId}`);
-                if (newState[settingId] !== optionId) {
+                console.log(`📋 Checking proposed selection: ${settingId} = ${optionId}, userSelections:`, userSelections);
+                // Only apply proposed selection if user hasn't manually selected this setting
+                if (!userSelections.has(settingId) && newState[settingId] !== optionId) {
+                  console.log(`📋 Applying proposed selection: ${settingId} = ${optionId}`);
                   newState[settingId] = optionId;
                   hasChanges = true;
+                } else {
+                  console.log(`📋 Skipping proposed selection for ${settingId} - user has made manual selection`);
                 }
               });
 
@@ -384,10 +389,14 @@ export default function CustomizationComponent({
           let hasChanges = false;
 
           Object.entries(result.proposedSelections).forEach(([settingId, optionId]) => {
-            console.log(`🔄 Applying proposed selection: ${settingId} = ${optionId}`);
-            if (newState[settingId] !== optionId) {
+            console.log(`🔄 Checking proposed selection: ${settingId} = ${optionId}, userSelections:`, userSelections);
+            // Only apply proposed selection if user hasn't manually selected this setting
+            if (!userSelections.has(settingId) && newState[settingId] !== optionId) {
+              console.log(`🔄 Applying proposed selection: ${settingId} = ${optionId}`);
               newState[settingId] = optionId;
               hasChanges = true;
+            } else {
+              console.log(`🔄 Skipping proposed selection for ${settingId} - user has made manual selection`);
             }
           });
 
@@ -511,6 +520,10 @@ export default function CustomizationComponent({
 
   // Handle option selection
   const handleOptionSelect = (settingId: string, optionId: string) => {
+    // Track that user manually selected this setting
+    setUserSelections(prev => new Set([...prev, settingId]));
+    console.log(`👤 User manually selected: ${settingId} = ${optionId}`);
+    
     const newState = {
       ...customizationState,
       [settingId]: optionId
