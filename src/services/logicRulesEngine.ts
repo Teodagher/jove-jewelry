@@ -213,6 +213,10 @@ export class LogicRulesEngine {
 
       case 'exclude_setting':
         console.log(`🙈 Excluding entire setting "${targetSetting.title}"`);
+        // Mark the setting as not required before removing it
+        // This prevents checkout issues with hidden required fields
+        targetSetting.required = false;
+        console.log(`✅ Automatically set "${targetSetting.title}" to optional (was required: ${settings[targetSettingIndex].required})`);
         // Remove the entire setting from the list
         settings.splice(targetSettingIndex, 1);
         break;
