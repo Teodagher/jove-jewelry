@@ -4,43 +4,38 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { Save, Eye, EyeOff, FileText, Edit } from 'lucide-react'
 
-interface ProductDescription {
+interface JewelryProduct {
   id: string
-  product_type: string
-  title: string | null
+  name: string
+  type: string
+  slug: string
   description: string | null
   is_active: boolean
-  updated_at: string
+  base_image_url: string | null
+  display_order: number
 }
 
 export default function ProductDescriptionsPage() {
-  const [descriptions, setDescriptions] = useState<ProductDescription[]>([])
+  const [products, setProducts] = useState<JewelryProduct[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
 
-  const productTypes = [
-    { type: 'necklaces', label: 'Necklaces', icon: '📿' },
-    { type: 'rings', label: 'Rings', icon: '💍' },
-    { type: 'bracelets', label: 'Bracelets', icon: '⚙️' },
-    { type: 'earrings', label: 'Earrings', icon: '👂' },
-  ]
-
-  // Load descriptions
-  const loadDescriptions = async () => {
+  // Load products
+  const loadProducts = async () => {
     try {
       setLoading(true)
 
       const { data, error } = await supabase
-        .from('product_descriptions')
-        .select('*')
-        .order('product_type', { ascending: true })
+        .from('jewelry_items')
+        .select('id, name, type, slug, description, is_active, base_image_url, display_order')
+        .order('display_order', { ascending: true })
 
       if (error) throw error
 
-      setDescriptions(data || [])
+      setProducts(data || [])
     } catch (err) {
-      console.error('Error loading descriptions:', err)
+      console.error('Error loading products:', err)
       setError((err as Error).message)
     } finally {
       setLoading(false)
@@ -48,34 +43,29 @@ export default function ProductDescriptionsPage() {
   }
 
   useEffect(() => {
-    loadDescriptions()
+    loadProducts()
   }, [])
 
-  // Update description
-  const updateDescription = async (productType: string, title: string, description: string, isActive: boolean) => {
+  // Update product description
+  const updateDescription = async (productId: string, description: string) => {
     try {
-      setSaving(productType)
+      setSaving(productId)
 
-      // Clean the data - if title or description is empty, set to null
-      const cleanTitle = title.trim() || null
+      // Clean the data - if description is empty, set to null
       const cleanDescription = description.trim() || null
 
-      const { error } = await (supabase
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .from('product_descriptions') as any)
+      const { error } = await (supabase as any)
+        .from('jewelry_items')
         .update({
-          title: cleanTitle,
-          description: cleanDescription,
-          is_active: isActive,
-          updated_at: new Date().toISOString()
+          description: cleanDescription
         })
-        .eq('product_type', productType)
+        .eq('id', productId)
 
       if (error) throw error
 
-      // Reload descriptions to get latest data
-      await loadDescriptions()
-      
+      // Reload products to get latest data
+      await loadProducts()
+
     } catch (err) {
       console.error('Error updating description:', err)
       setError((err as Error).message)
@@ -85,16 +75,14 @@ export default function ProductDescriptionsPage() {
   }
 
   // Handle form submission
-  const handleSubmit = async (e: React.FormEvent, productType: string) => {
+  const handleSubmit = async (e: React.FormEvent, productId: string) => {
     e.preventDefault()
     const form = e.target as HTMLFormElement
     const formData = new FormData(form)
-    
-    const title = formData.get('title') as string
-    const description = formData.get('description') as string
-    const isActive = formData.get('is_active') === 'on'
 
-    await updateDescription(productType, title, description, isActive)
+    const description = formData.get('description') as string
+
+    await updateDescription(productId, description)
   }
 
   if (loading) {
@@ -109,9 +97,9 @@ export default function ProductDescriptionsPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-red-600 mb-4">Error loading descriptions: {error}</p>
+          <p className="text-red-600 mb-4">Error loading products: {error}</p>
           <button
-            onClick={loadDescriptions}
+            onClick={loadProducts}
             className="px-4 py-2 bg-zinc-900 text-white rounded hover:bg-zinc-700"
           >
             Retry
@@ -127,11 +115,11 @@ export default function ProductDescriptionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-light text-zinc-900">Product Descriptions</h1>
-          <p className="text-zinc-600 mt-1">Manage descriptions that appear on your product customization pages</p>
+          <p className="text-zinc-600 mt-1">Manage descriptions for all your jewelry products</p>
         </div>
         <div className="flex items-center space-x-2 text-sm text-zinc-500">
           <FileText className="h-4 w-4" />
-          <span>{descriptions.filter(d => d.is_active && (d.title || d.description)).length} active descriptions</span>
+          <span>{products.filter(p => p.description && p.description.trim()).length} products with descriptions</span>
         </div>
       </div>
 
@@ -139,88 +127,64 @@ export default function ProductDescriptionsPage() {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h3 className="text-sm font-medium text-blue-900 mb-2">💡 How it works</h3>
         <ul className="text-sm text-blue-800 space-y-1">
-          <li>• Descriptions appear between the product image and the "Add to Cart" button</li>
-          <li>• If both title and description are empty, nothing will be shown on the product page</li>
-          <li>• Toggle "Active" to show/hide descriptions without deleting content</li>
-          <li>• Use <code className="bg-blue-200 px-1 rounded">{"{selected-stone-size}"}</code> to dynamically show the selected stone size (e.g., 0.15ct, 0.30ct, 0.50ct)</li>
-          <li>• Changes are applied immediately to your website</li>
+          <li>• Descriptions appear on the product customization page</li>
+          <li>• Each product can have its own unique description</li>
+          <li>• Leave description empty if you don't want to show any text</li>
+          <li>• Changes are saved immediately to your database</li>
+          <li>• Both active and inactive products are shown here</li>
         </ul>
       </div>
 
-      {/* Description Cards */}
+      {/* Product Cards */}
       <div className="grid gap-6 md:grid-cols-2">
-        {productTypes.map((productType) => {
-          const description = descriptions.find(d => d.product_type === productType.type)
-          const isBeingSaved = saving === productType.type
+        {products.map((product) => {
+          const isBeingSaved = saving === product.id
 
           return (
-            <div key={productType.type} className="bg-white rounded-lg border border-zinc-200 p-6">
+            <div key={product.id} className="bg-white rounded-lg border border-zinc-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
-                  <div className="text-2xl">{productType.icon}</div>
+                  {product.base_image_url ? (
+                    <img src={product.base_image_url} alt={product.name} className="w-12 h-12 rounded-lg object-cover" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center">
+                      <FileText className="w-6 h-6 text-gray-400" />
+                    </div>
+                  )}
                   <div>
-                    <h3 className="text-lg font-medium text-zinc-900">{productType.label}</h3>
-                    <p className="text-sm text-zinc-500">Customize page description</p>
+                    <h3 className="text-lg font-medium text-zinc-900">{product.name}</h3>
+                    <p className="text-sm text-zinc-500">{product.slug}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  {description?.is_active ? (
+                  {product.is_active ? (
                     <div className="flex items-center space-x-1 text-green-600">
                       <Eye className="h-4 w-4" />
-                      <span className="text-sm">Visible</span>
+                      <span className="text-sm">Active</span>
                     </div>
                   ) : (
                     <div className="flex items-center space-x-1 text-gray-400">
                       <EyeOff className="h-4 w-4" />
-                      <span className="text-sm">Hidden</span>
+                      <span className="text-sm">Inactive</span>
                     </div>
                   )}
                 </div>
               </div>
 
-              <form onSubmit={(e) => handleSubmit(e, productType.type)} className="space-y-4">
-                {/* Title */}
-                <div>
-                  <label htmlFor={`title-${productType.type}`} className="block text-sm font-medium text-zinc-700 mb-1">
-                    Title (optional)
-                  </label>
-                  <input
-                    type="text"
-                    id={`title-${productType.type}`}
-                    name="title"
-                    defaultValue={description?.title || ''}
-                    className="w-full px-3 py-2 border border-zinc-300 rounded-md focus:ring-2 focus:ring-zinc-500 focus:border-transparent"
-                    placeholder={`Enter title for ${productType.label.toLowerCase()}...`}
-                  />
-                </div>
-
+              <form onSubmit={(e) => handleSubmit(e, product.id)} className="space-y-4">
                 {/* Description */}
                 <div>
-                  <label htmlFor={`desc-${productType.type}`} className="block text-sm font-medium text-zinc-700 mb-1">
-                    Description (optional)
+                  <label htmlFor={`desc-${product.id}`} className="block text-sm font-medium text-zinc-700 mb-1">
+                    Product Description
                   </label>
                   <textarea
-                    id={`desc-${productType.type}`}
+                    id={`desc-${product.id}`}
                     name="description"
-                    rows={4}
-                    defaultValue={description?.description || ''}
+                    rows={5}
+                    defaultValue={product.description || ''}
                     className="w-full px-3 py-2 border border-zinc-300 rounded-md focus:ring-2 focus:ring-zinc-500 focus:border-transparent"
-                    placeholder={`Enter description for ${productType.label.toLowerCase()}...`}
+                    placeholder={`Enter description for ${product.name}...`}
                   />
-                </div>
-
-                {/* Active Toggle */}
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    id={`active-${productType.type}`}
-                    name="is_active"
-                    defaultChecked={description?.is_active}
-                    className="h-4 w-4 text-zinc-600 focus:ring-zinc-500 border-zinc-300 rounded"
-                  />
-                  <label htmlFor={`active-${productType.type}`} className="text-sm font-medium text-zinc-700">
-                    Show on product page
-                  </label>
                 </div>
 
                 {/* Save Button */}
@@ -244,23 +208,24 @@ export default function ProductDescriptionsPage() {
               </form>
 
               {/* Preview */}
-              {description && (description.title || description.description) && description.is_active && (
+              {product.description && product.description.trim() && (
                 <div className="mt-4 p-3 bg-gray-50 rounded-md border">
                   <h4 className="text-xs font-medium text-gray-500 mb-2">PREVIEW:</h4>
-                  <div className="space-y-2">
-                    {description.title && (
-                      <h5 className="font-medium text-gray-900">{description.title}</h5>
-                    )}
-                    {description.description && (
-                      <p className="text-sm text-gray-600 leading-relaxed">{description.description}</p>
-                    )}
-                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed">{product.description}</p>
                 </div>
               )}
             </div>
           )
         })}
       </div>
+
+      {products.length === 0 && (
+        <div className="text-center py-12">
+          <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Products Found</h3>
+          <p className="text-gray-600">Create products in Product Management to add descriptions.</p>
+        </div>
+      )}
     </div>
   )
 }
