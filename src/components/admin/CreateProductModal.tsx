@@ -38,6 +38,8 @@ export default function CreateProductModal({ isOpen, onClose, onProductCreated }
   });
 
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
 
@@ -65,6 +67,118 @@ export default function CreateProductModal({ isOpen, onClose, onProductCreated }
       name,
       slug: generateSlug(name)
     }));
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      setUploadProgress(0);
+
+      // Delete old image if it exists
+      if (formData.base_image_url) {
+        try {
+          const oldImagePath = formData.base_image_url.split('/item-pictures/')[1];
+          if (oldImagePath) {
+            const { error: deleteError } = await supabase.storage
+              .from('item-pictures')
+              .remove([oldImagePath]);
+
+            if (deleteError) {
+              console.warn('Failed to delete old image:', deleteError);
+              // Continue anyway - don't block the new upload
+            }
+          }
+        } catch (err) {
+          console.warn('Error parsing old image path:', err);
+        }
+      }
+
+      setUploadProgress(25);
+
+      // Import the compression utilities
+      const { compressToTargetSize, generateOptimizedFileName } = await import('@/lib/imageCompression');
+
+      // Compress the image
+      const compressedBlob = await compressToTargetSize(file, 100, {
+        maxWidth: 1920,
+        maxHeight: 1080,
+        format: 'webp'
+      });
+
+      setUploadProgress(50);
+
+      // Generate optimized filename
+      const fileName = generateOptimizedFileName(file.name);
+      const filePath = `products/${fileName}`;
+
+      // Upload to Supabase storage
+      const { data, error } = await supabase.storage
+        .from('item-pictures')
+        .upload(filePath, compressedBlob, {
+          contentType: 'image/webp',
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Error uploading image:', error);
+        setErrors({ general: 'Failed to upload image. Please try again.' });
+        return;
+      }
+
+      setUploadProgress(75);
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('item-pictures')
+        .getPublicUrl(filePath);
+
+      setUploadProgress(100);
+
+      // Update form data with new image URL
+      setFormData(prev => ({ ...prev, base_image_url: publicUrl }));
+
+    } catch (error) {
+      console.error('Error processing image:', error);
+      setErrors({ general: 'Failed to process image. Please try again.' });
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleImageDelete = async () => {
+    if (!formData.base_image_url) return;
+
+    try {
+      setUploading(true);
+
+      // Delete from storage
+      const imagePath = formData.base_image_url.split('/item-pictures/')[1];
+      if (imagePath) {
+        const { error } = await supabase.storage
+          .from('item-pictures')
+          .remove([imagePath]);
+
+        if (error) {
+          console.error('Error deleting image:', error);
+          setErrors({ general: 'Failed to delete image. Please try again.' });
+          return;
+        }
+      }
+
+      // Update form data to remove image URL
+      setFormData(prev => ({ ...prev, base_image_url: null }));
+
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      setErrors({ general: 'Failed to delete image. Please try again.' });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const validateForm = (): boolean => {
@@ -216,6 +330,68 @@ export default function CreateProductModal({ isOpen, onClose, onProductCreated }
                 <span className="text-red-700 text-sm">{errors.general}</span>
               </div>
             )}
+
+            {/* Product Image Upload */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Product Image
+              </label>
+              <div className="flex items-center space-x-4">
+                <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 relative">
+                  {formData.base_image_url ? (
+                    <img
+                      src={formData.base_image_url}
+                      alt="Product preview"
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                  ) : (
+                    <Package className="w-8 h-8 text-gray-400" />
+                  )}
+                  {uploading && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
+                      <div className="text-white text-xs">{uploadProgress}%</div>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <label
+                      htmlFor="modal-image-upload"
+                      className={`inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer ${
+                        uploading || loading ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {uploading ? 'Uploading...' : 'Upload Image'}
+                    </label>
+                    <input
+                      id="modal-image-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploading || loading}
+                      className="hidden"
+                    />
+                    {formData.base_image_url && (
+                      <button
+                        type="button"
+                        onClick={handleImageDelete}
+                        disabled={uploading || loading}
+                        className={`inline-flex items-center px-3 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors ${
+                          uploading || loading ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Optional: Square image, will be compressed to WebP
+                  </p>
+                </div>
+              </div>
+            </div>
 
             <div className="grid grid-cols-2 gap-6">
               {/* Product Name */}

@@ -75,39 +75,39 @@ export default function CustomizePage() {
   }
 
   return (
-    <div className="min-h-screen jove-bg-primary flex items-center justify-center px-4 py-8">
-      <div className="max-w-6xl w-full mx-auto">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-light text-center mb-8 sm:mb-12 md:mb-16 tracking-wide text-zinc-900">
+    <div className="min-h-screen jove-bg-primary px-4 py-12 md:py-16 lg:py-20">
+      <div className="max-w-7xl w-full mx-auto">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-light text-center mb-12 sm:mb-16 md:mb-20 tracking-wide text-zinc-900">
           Choose Your Jewelry Type
         </h1>
-        
-        {/* Mobile: Stack vertically, Desktop: Horizontal row */}
-        <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-12 lg:gap-16">
+
+        {/* Centered Flex Layout */}
+        <div className="flex flex-wrap justify-center items-start gap-6 sm:gap-8 md:gap-10 lg:gap-12">
           {jewelryItems.map((item) => (
             <Link
               key={item.id}
               href={`/customize/${item.slug}`}
-              className="group flex flex-col items-center transition-all duration-300 hover:scale-105"
+              className="group flex flex-col items-center transition-all duration-300 hover:scale-105 w-32 sm:w-36 md:w-40 lg:w-44"
             >
-              <div 
-                className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 mb-4 group-hover:scale-110 transition-transform duration-300 relative"
+              <div
+                className="w-full aspect-square mb-3 sm:mb-4 group-hover:scale-110 transition-transform duration-300 relative"
               >
                 {item.base_image_url ? (
                   <Image
                     src={item.base_image_url}
                     alt={`Custom ${item.name.toLowerCase()}`}
                     fill
-                    sizes="(max-width: 768px) 50vw, 25vw"
-                    priority={item.display_order === 1}
+                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                    priority={item.display_order <= 5}
                     className="object-cover rounded-lg"
                   />
                 ) : (
                   <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center">
-                    <span className="text-gray-400 text-sm">No Image</span>
+                    <span className="text-gray-400 text-xs sm:text-sm">No Image</span>
                   </div>
                 )}
               </div>
-              <h3 className="text-lg sm:text-xl md:text-2xl font-light text-zinc-900 group-hover:text-zinc-700 transition-colors tracking-wide text-center">
+              <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-light text-zinc-900 group-hover:text-zinc-700 transition-colors tracking-wide text-center">
                 {item.name}
               </h3>
             </Link>

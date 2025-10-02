@@ -93,6 +93,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     if (!loading && pathname === '/admin/login' && user) {
       router.replace('/admin');
     }
+    if (!loading && !user && pathname !== '/admin/login') {
+      router.replace(`/auth/login?redirect=${pathname}`);
+    }
   }, [user, loading, pathname, router]);
 
   if (loading) {

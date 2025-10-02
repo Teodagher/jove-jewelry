@@ -389,18 +389,157 @@ export default function EditProductPage() {
 }
 
 // Basic Info Editor Component
-function BasicInfoEditor({ 
-  product, 
-  onProductChange 
-}: { 
-  product: JewelryItem; 
+function BasicInfoEditor({
+  product,
+  onProductChange
+}: {
+  product: JewelryItem;
   onProductChange: (product: JewelryItem) => void;
 }) {
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
   const handleInputChange = (field: keyof JewelryItem, value: any) => {
     onProductChange({
       ...product,
       [field]: value
     });
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      setUploadProgress(0);
+
+      // Delete old image if it exists
+      if (product.base_image_url) {
+        try {
+          const oldImagePath = product.base_image_url.split('/item-pictures/')[1];
+          if (oldImagePath) {
+            const { error: deleteError } = await supabase.storage
+              .from('item-pictures')
+              .remove([oldImagePath]);
+
+            if (deleteError) {
+              console.warn('Failed to delete old image:', deleteError);
+              // Continue anyway - don't block the new upload
+            }
+          }
+        } catch (err) {
+          console.warn('Error parsing old image path:', err);
+        }
+      }
+
+      setUploadProgress(25);
+
+      // Import the compression utilities
+      const { compressToTargetSize, generateOptimizedFileName } = await import('@/lib/imageCompression');
+
+      // Compress the image
+      const compressedBlob = await compressToTargetSize(file, 100, {
+        maxWidth: 1920,
+        maxHeight: 1080,
+        format: 'webp'
+      });
+
+      setUploadProgress(50);
+
+      // Generate optimized filename
+      const fileName = generateOptimizedFileName(file.name);
+      const filePath = `products/${fileName}`;
+
+      // Upload to Supabase storage
+      const { data, error } = await supabase.storage
+        .from('item-pictures')
+        .upload(filePath, compressedBlob, {
+          contentType: 'image/webp',
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Error uploading image:', error);
+        alert('Failed to upload image. Please try again.');
+        return;
+      }
+
+      setUploadProgress(75);
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('item-pictures')
+        .getPublicUrl(filePath);
+
+      setUploadProgress(100);
+
+      // Update product with new image URL
+      handleInputChange('base_image_url', publicUrl);
+
+      // Save to database immediately
+      const { error: updateError } = await (supabase as any)
+        .from('jewelry_items')
+        .update({ base_image_url: publicUrl })
+        .eq('id', product.id);
+
+      if (updateError) {
+        console.error('Error saving image to database:', updateError);
+        alert('Image uploaded but failed to save to database. Please click Save Changes.');
+      }
+
+    } catch (error) {
+      console.error('Error processing image:', error);
+      alert('Failed to process image. Please try again.');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const handleImageDelete = async () => {
+    if (!product.base_image_url) return;
+
+    if (!confirm('Are you sure you want to delete this image?')) return;
+
+    try {
+      setUploading(true);
+
+      // Delete from storage
+      const imagePath = product.base_image_url.split('/item-pictures/')[1];
+      if (imagePath) {
+        const { error } = await supabase.storage
+          .from('item-pictures')
+          .remove([imagePath]);
+
+        if (error) {
+          console.error('Error deleting image:', error);
+          alert('Failed to delete image. Please try again.');
+          return;
+        }
+      }
+
+      // Update product to remove image URL
+      handleInputChange('base_image_url', null);
+
+      // Save to database immediately
+      const { error: updateError } = await (supabase as any)
+        .from('jewelry_items')
+        .update({ base_image_url: null })
+        .eq('id', product.id);
+
+      if (updateError) {
+        console.error('Error updating database:', updateError);
+        alert('Image deleted from storage but failed to update database. Please click Save Changes.');
+      }
+
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      alert('Failed to delete image. Please try again.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -412,7 +551,7 @@ function BasicInfoEditor({
             Product Image
           </label>
           <div className="flex items-center space-x-4">
-            <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
+            <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 relative">
               {product.base_image_url ? (
                 <img
                   src={product.base_image_url}
@@ -422,11 +561,49 @@ function BasicInfoEditor({
               ) : (
                 <ImageIcon className="w-8 h-8 text-gray-400" />
               )}
+              {uploading && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex items-center justify-center">
+                  <div className="text-white text-xs">{uploadProgress}%</div>
+                </div>
+              )}
             </div>
-            <button className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Image
-            </button>
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <label
+                  htmlFor="image-upload"
+                  className={`inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer ${
+                    uploading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {uploading ? 'Uploading...' : 'Upload Image'}
+                </label>
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploading}
+                  className="hidden"
+                />
+                {product.base_image_url && (
+                  <button
+                    type="button"
+                    onClick={handleImageDelete}
+                    disabled={uploading}
+                    className={`inline-flex items-center px-3 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors ${
+                      uploading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                Recommended: Square image, will be compressed to WebP
+              </p>
+            </div>
           </div>
         </div>
 

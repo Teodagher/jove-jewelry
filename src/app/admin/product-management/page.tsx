@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { Plus, Edit, Eye, Settings, Package, ExternalLink } from 'lucide-react';
+import { Plus, Edit, Eye, Settings, Package, ExternalLink, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import CreateProductModal from '@/components/admin/CreateProductModal';
 
@@ -89,6 +89,48 @@ export default function ProductManagementPage() {
   const handleProductCreated = (newProduct: JewelryItem) => {
     setProducts(prev => [newProduct, ...prev]);
     setShowCreateModal(false);
+  };
+
+  const handleDeleteProduct = async (product: JewelryItem) => {
+    if (!confirm(`Are you sure you want to delete "${product.name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      // Delete product image from storage if it exists
+      if (product.base_image_url) {
+        try {
+          const imagePath = product.base_image_url.split('/item-pictures/')[1];
+          if (imagePath) {
+            await supabase.storage
+              .from('item-pictures')
+              .remove([imagePath]);
+          }
+        } catch (err) {
+          console.warn('Failed to delete product image:', err);
+          // Continue with product deletion even if image deletion fails
+        }
+      }
+
+      // Delete the product from database
+      const { error } = await supabase
+        .from('jewelry_items')
+        .delete()
+        .eq('id', product.id);
+
+      if (error) {
+        console.error('Error deleting product:', error);
+        alert('Failed to delete product. Please try again.');
+        return;
+      }
+
+      // Update local state
+      setProducts(prev => prev.filter(p => p.id !== product.id));
+
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      alert('Failed to delete product. Please try again.');
+    }
   };
 
   const filteredProducts = products.filter(product => {
@@ -301,6 +343,13 @@ export default function ProductManagementPage() {
                           <Settings className="w-4 h-4" />
                         </Link>
                       )}
+                      <button
+                        onClick={() => handleDeleteProduct(product)}
+                        className="text-red-600 hover:text-red-900 inline-flex items-center"
+                        title="Delete product"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}

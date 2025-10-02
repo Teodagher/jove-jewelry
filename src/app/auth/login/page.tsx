@@ -1,18 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { signIn } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +26,8 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push('/');
+      const redirect = searchParams.get('redirect') || '/';
+      router.push(redirect);
     }
   };
 
@@ -110,5 +112,17 @@ export default function LoginPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center jove-bg-primary">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
