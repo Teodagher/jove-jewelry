@@ -33,6 +33,8 @@ interface CustomizationOption {
   option_name: string;
   price: number;
   price_lab_grown: number | null;
+  price_gold: number | null;
+  price_silver: number | null;
   image_url: string | null;
   color_gradient: string | null;
   display_order: number;
@@ -55,14 +57,18 @@ interface CustomizationEditorProps {
   productId: string;
   productSlug?: string;
   onOptionsChange?: () => void; // Callback when options are added/modified
+  pricingType: 'diamond_type' | 'metal_type';
+  onPricingTypeChange: (pricingType: 'diamond_type' | 'metal_type') => void;
 }
 
-export default function CustomizationEditor({ 
-  settings, 
-  onSettingsChange, 
+export default function CustomizationEditor({
+  settings,
+  onSettingsChange,
   productId,
   productSlug,
-  onOptionsChange
+  onOptionsChange,
+  pricingType,
+  onPricingTypeChange
 }: CustomizationEditorProps) {
   const [expandedSettings, setExpandedSettings] = useState<Set<string>>(new Set());
   const [editingOption, setEditingOption] = useState<string | null>(null);
@@ -551,6 +557,47 @@ export default function CustomizationEditor({
         )}
       </div>
 
+      {/* Pricing Type Selector */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start space-x-3">
+          <Settings className="w-5 h-5 text-blue-600 mt-0.5" />
+          <div className="flex-1">
+            <h4 className="text-sm font-medium text-gray-900 mb-1">Pricing Configuration</h4>
+            <p className="text-xs text-gray-600 mb-3">
+              Choose how customers will see pricing options for this product
+            </p>
+            <div className="flex space-x-4">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="pricing_type"
+                  value="diamond_type"
+                  checked={pricingType === 'diamond_type'}
+                  onChange={(e) => onPricingTypeChange(e.target.value as 'diamond_type' | 'metal_type')}
+                  className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Diamond Type (Natural / Lab Grown)
+                </span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="pricing_type"
+                  value="metal_type"
+                  checked={pricingType === 'metal_type'}
+                  onChange={(e) => onPricingTypeChange(e.target.value as 'diamond_type' | 'metal_type')}
+                  className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Metal Type (Gold / Silver)
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Settings List */}
       <div className="space-y-4">
         {settings.map((setting, settingIndex) => (
@@ -577,6 +624,7 @@ export default function CustomizationEditor({
             isFirst={settingIndex === 0}
             isLast={settingIndex === settings.length - 1}
             onOptionsChange={onOptionsChange}
+            pricingType={pricingType}
           />
         ))}
       </div>
@@ -632,7 +680,8 @@ function SettingCard({
   allSettings,
   isFirst,
   isLast,
-  onOptionsChange
+  onOptionsChange,
+  pricingType
 }: {
   setting: CustomizationSetting;
   settingIndex: number;
@@ -655,6 +704,7 @@ function SettingCard({
   isFirst: boolean;
   isLast: boolean;
   onOptionsChange?: () => void;
+  pricingType: 'diamond_type' | 'metal_type';
 }) {
   const [showAddOption, setShowAddOption] = useState(false);
   const [newOption, setNewOption] = useState({
@@ -662,6 +712,8 @@ function SettingCard({
     option_id: '',
     price: 0,
     price_lab_grown: 0,
+    price_gold: 0,
+    price_silver: 0,
     image_url: null as string | null,
     image_file: null as File | null
   });
@@ -860,6 +912,8 @@ function SettingCard({
         option_name: newOption.option_name,
         price: newOption.price,
         price_lab_grown: newOption.price_lab_grown || null,
+        price_gold: newOption.price_gold || null,
+        price_silver: newOption.price_silver || null,
         image_url: finalImageUrl,
         display_order: nextDisplayOrder,
         is_active: true
@@ -910,6 +964,8 @@ function SettingCard({
         option_id: '',
         price: 0,
         price_lab_grown: 0,
+        price_gold: 0,
+        price_silver: 0,
         image_url: null,
         image_file: null
       });
@@ -948,6 +1004,8 @@ function SettingCard({
       option_id: '',
       price: 0,
       price_lab_grown: 0,
+      price_gold: 0,
+      price_silver: 0,
       image_url: null,
       image_file: null
     });
@@ -1231,6 +1289,7 @@ function SettingCard({
               onSettingsChange={onSettingsChange}
               allSettings={allSettings}
               isFirst={optionIndex === 0}
+              pricingType={pricingType}
               isLast={optionIndex === setting.options.length - 1}
               onOptionsChange={onOptionsChange}
             />
@@ -1267,7 +1326,7 @@ function SettingCard({
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price ($) *
+                    {pricingType === 'diamond_type' ? 'Natural Diamond Price ($) *' : 'Base Price ($) *'}
                   </label>
                   <input
                     type="number"
@@ -1277,18 +1336,47 @@ function SettingCard({
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Lab Grown Price ($)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={newOption.price_lab_grown}
-                    onChange={(e) => setNewOption(prev => ({...prev, price_lab_grown: parseFloat(e.target.value) || 0}))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  />
-                </div>
+                {pricingType === 'diamond_type' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Lab Grown Price ($)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={newOption.price_lab_grown}
+                      onChange={(e) => setNewOption(prev => ({...prev, price_lab_grown: parseFloat(e.target.value) || 0}))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Gold Price ($)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={newOption.price_gold}
+                        onChange={(e) => setNewOption(prev => ({...prev, price_gold: parseFloat(e.target.value) || 0}))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Silver Price ($)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={newOption.price_silver}
+                        onChange={(e) => setNewOption(prev => ({...prev, price_silver: parseFloat(e.target.value) || 0}))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
               
               {/* Image Upload */}
@@ -1353,7 +1441,8 @@ function OptionCard({
   allSettings,
   isFirst,
   isLast,
-  onOptionsChange
+  onOptionsChange,
+  pricingType
 }: {
   option: CustomizationOption;
   optionIndex: number;
@@ -1371,6 +1460,7 @@ function OptionCard({
   isFirst: boolean;
   isLast: boolean;
   onOptionsChange?: () => void;
+  pricingType: 'diamond_type' | 'metal_type';
 }) {
   const [editedOption, setEditedOption] = useState(option);
 
@@ -1382,6 +1472,8 @@ function OptionCard({
           option_name: editedOption.option_name,
           price: editedOption.price,
           price_lab_grown: editedOption.price_lab_grown,
+          price_gold: editedOption.price_gold,
+          price_silver: editedOption.price_silver,
           image_url: editedOption.image_url,
           is_active: editedOption.is_active
         })
@@ -1427,7 +1519,7 @@ function OptionCard({
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Price ($)
+              {pricingType === 'diamond_type' ? 'Natural Diamond Price ($)' : 'Base Price ($)'}
             </label>
             <input
               type="number"
@@ -1437,18 +1529,47 @@ function OptionCard({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Lab Grown Price ($)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={editedOption.price_lab_grown || ''}
-              onChange={(e) => setEditedOption({...editedOption, price_lab_grown: e.target.value ? parseFloat(e.target.value) : null})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-            />
-          </div>
+          {pricingType === 'diamond_type' ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Lab Grown Price ($)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={editedOption.price_lab_grown || ''}
+                onChange={(e) => setEditedOption({...editedOption, price_lab_grown: e.target.value ? parseFloat(e.target.value) : null})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              />
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Gold Price ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editedOption.price_gold || ''}
+                  onChange={(e) => setEditedOption({...editedOption, price_gold: e.target.value ? parseFloat(e.target.value) : null})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Silver Price ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editedOption.price_silver || ''}
+                  onChange={(e) => setEditedOption({...editedOption, price_silver: e.target.value ? parseFloat(e.target.value) : null})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+              </div>
+            </>
+          )}
           <div className="flex items-center">
             <input
               type="checkbox"

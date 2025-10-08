@@ -2,7 +2,7 @@
 // @ts-nocheck
 import { supabase } from '@/lib/supabase/client';
 import type { JewelryItem as DBJewelryItem, CustomizationOption as DBCustomizationOption } from '@/lib/supabase/types';
-import type { JewelryItem, CustomizationSetting, CustomizationOption, DiamondType } from '@/types/customization';
+import type { JewelryItem, CustomizationSetting, CustomizationOption, DiamondType, MetalType } from '@/types/customization';
 import { DynamicFilenameService } from './dynamicFilenameService';
 
 export class CustomizationService {
@@ -60,6 +60,8 @@ export class CustomizationService {
             name: option.option_name,
             price: option.price,
             priceLabGrown: option.price_lab_grown,
+            priceGold: option.price_gold,
+            priceSilver: option.price_silver,
             image: option.image_url || undefined,
             color: option.color_gradient || undefined
           } as CustomizationOption
@@ -81,8 +83,13 @@ export class CustomizationService {
         baseImage: jewelryItem.base_image_url || '',
         basePrice: jewelryItem.base_price,
         basePriceLabGrown: jewelryItem.base_price_lab_grown,
+        basePriceGold: jewelryItem.base_price_gold,
+        basePriceSilver: jewelryItem.base_price_silver,
         blackOnyxBasePrice: jewelryItem.black_onyx_base_price,
         blackOnyxBasePriceLabGrown: jewelryItem.black_onyx_base_price_lab_grown,
+        blackOnyxBasePriceGold: jewelryItem.black_onyx_base_price_gold,
+        blackOnyxBasePriceSilver: jewelryItem.black_onyx_base_price_silver,
+        pricingType: jewelryItem.pricing_type || 'diamond_type',
         settings: Array.from(settingsMap.values()).sort((a, b) => {
           // Sort settings by their display order from the first option in each setting
           const aOrder = options?.find(opt => opt.setting_id === a.id)?.setting_display_order || 0;
@@ -151,6 +158,8 @@ export class CustomizationService {
             name: option.option_name,
             price: option.price,
             priceLabGrown: option.price_lab_grown,
+            priceGold: option.price_gold,
+            priceSilver: option.price_silver,
             image: option.image_url || undefined,
             color: option.color_gradient || undefined
           } as CustomizationOption
@@ -172,8 +181,13 @@ export class CustomizationService {
         baseImage: jewelryItem.base_image_url || '',
         basePrice: jewelryItem.base_price,
         basePriceLabGrown: jewelryItem.base_price_lab_grown,
+        basePriceGold: jewelryItem.base_price_gold,
+        basePriceSilver: jewelryItem.base_price_silver,
         blackOnyxBasePrice: jewelryItem.black_onyx_base_price,
         blackOnyxBasePriceLabGrown: jewelryItem.black_onyx_base_price_lab_grown,
+        blackOnyxBasePriceGold: jewelryItem.black_onyx_base_price_gold,
+        blackOnyxBasePriceSilver: jewelryItem.black_onyx_base_price_silver,
+        pricingType: jewelryItem.pricing_type || 'diamond_type',
         settings: Array.from(settingsMap.values())
       } as JewelryItem
 
@@ -294,6 +308,135 @@ export class CustomizationService {
       return !error
     } catch (error) {
       console.error('Error updating black onyx lab grown base price:', error)
+      return false
+    }
+  }
+
+  // Update gold base price for jewelry item
+  static async updateBasePriceGold(jewelryType: string, newPrice: number): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('jewelry_items')
+        .update({ base_price_gold: newPrice })
+        .eq('type', jewelryType)
+
+      return !error
+    } catch (error) {
+      console.error('Error updating gold base price:', error)
+      return false
+    }
+  }
+
+  // Update silver base price for jewelry item
+  static async updateBasePriceSilver(jewelryType: string, newPrice: number): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('jewelry_items')
+        .update({ base_price_silver: newPrice })
+        .eq('type', jewelryType)
+
+      return !error
+    } catch (error) {
+      console.error('Error updating silver base price:', error)
+      return false
+    }
+  }
+
+  // Update black onyx gold base price for jewelry item
+  static async updateBlackOnyxBasePriceGold(jewelryType: string, newPrice: number): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('jewelry_items')
+        .update({ black_onyx_base_price_gold: newPrice })
+        .eq('type', jewelryType)
+
+      return !error
+    } catch (error) {
+      console.error('Error updating black onyx gold base price:', error)
+      return false
+    }
+  }
+
+  // Update black onyx silver base price for jewelry item
+  static async updateBlackOnyxBasePriceSilver(jewelryType: string, newPrice: number): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('jewelry_items')
+        .update({ black_onyx_base_price_silver: newPrice })
+        .eq('type', jewelryType)
+
+      return !error
+    } catch (error) {
+      console.error('Error updating black onyx silver base price:', error)
+      return false
+    }
+  }
+
+  // Update gold pricing for a specific option
+  static async updateOptionPriceGold(jewelryType: string, settingId: string, optionId: string, newPrice: number): Promise<boolean> {
+    try {
+      // Get jewelry item ID
+      const { data: jewelryItem } = await supabase
+        .from('jewelry_items')
+        .select('id')
+        .eq('type', jewelryType)
+        .single()
+
+      if (!jewelryItem) return false
+
+      // Update option gold price
+      const { error } = await supabase
+        .from('customization_options')
+        .update({ price_gold: newPrice })
+        .eq('jewelry_item_id', jewelryItem.id)
+        .eq('setting_id', settingId)
+        .eq('option_id', optionId)
+
+      return !error
+    } catch (error) {
+      console.error('Error updating gold option price:', error)
+      return false
+    }
+  }
+
+  // Update silver pricing for a specific option
+  static async updateOptionPriceSilver(jewelryType: string, settingId: string, optionId: string, newPrice: number): Promise<boolean> {
+    try {
+      // Get jewelry item ID
+      const { data: jewelryItem } = await supabase
+        .from('jewelry_items')
+        .select('id')
+        .eq('type', jewelryType)
+        .single()
+
+      if (!jewelryItem) return false
+
+      // Update option silver price
+      const { error } = await supabase
+        .from('customization_options')
+        .update({ price_silver: newPrice })
+        .eq('jewelry_item_id', jewelryItem.id)
+        .eq('setting_id', settingId)
+        .eq('option_id', optionId)
+
+      return !error
+    } catch (error) {
+      console.error('Error updating silver option price:', error)
+      return false
+    }
+  }
+
+  // Update pricing type for jewelry item
+  static async updatePricingType(jewelryType: string, pricingType: 'diamond_type' | 'metal_type'): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('jewelry_items')
+        .update({ pricing_type: pricingType })
+        .eq('type', jewelryType)
+
+      return !error
+    } catch (error) {
+      console.error('Error updating pricing type:', error)
       return false
     }
   }
@@ -486,24 +629,51 @@ export class CustomizationService {
     }
   }
 
-  // Calculate total price based on diamond type
-  static calculateTotalPrice(jewelryItem: JewelryItem, customizations: { [key: string]: string }, diamondType: DiamondType = 'natural'): number {
+  // Calculate total price based on pricing variant (diamond type or metal type)
+  static calculateTotalPrice(
+    jewelryItem: JewelryItem,
+    customizations: { [key: string]: string },
+    pricingVariant: DiamondType | MetalType = 'natural'
+  ): number {
+    // Determine if we're using diamond_type or metal_type pricing
+    const pricingType = jewelryItem.pricingType || 'diamond_type';
+
     // Check if black onyx is selected as first stone for special pricing
     const isBlackOnyxSelected = customizations.first_stone === 'black_onyx';
-    
+
     // Start with appropriate base price
     let totalPrice: number;
-    
+
     if (isBlackOnyxSelected && jewelryItem.blackOnyxBasePrice !== undefined) {
       // Use black onyx specific base price
-      totalPrice = diamondType === 'lab_grown' && jewelryItem.blackOnyxBasePriceLabGrown !== undefined
-        ? jewelryItem.blackOnyxBasePriceLabGrown 
-        : jewelryItem.blackOnyxBasePrice;
+      if (pricingType === 'diamond_type') {
+        totalPrice = pricingVariant === 'lab_grown' && jewelryItem.blackOnyxBasePriceLabGrown !== undefined
+          ? jewelryItem.blackOnyxBasePriceLabGrown
+          : jewelryItem.blackOnyxBasePrice;
+      } else { // metal_type
+        if (pricingVariant === 'gold' && jewelryItem.blackOnyxBasePriceGold !== undefined) {
+          totalPrice = jewelryItem.blackOnyxBasePriceGold;
+        } else if (pricingVariant === 'silver' && jewelryItem.blackOnyxBasePriceSilver !== undefined) {
+          totalPrice = jewelryItem.blackOnyxBasePriceSilver;
+        } else {
+          totalPrice = jewelryItem.blackOnyxBasePrice;
+        }
+      }
     } else {
       // Use regular base price
-      totalPrice = diamondType === 'lab_grown' && jewelryItem.basePriceLabGrown 
-        ? jewelryItem.basePriceLabGrown 
-        : jewelryItem.basePrice;
+      if (pricingType === 'diamond_type') {
+        totalPrice = pricingVariant === 'lab_grown' && jewelryItem.basePriceLabGrown
+          ? jewelryItem.basePriceLabGrown
+          : jewelryItem.basePrice;
+      } else { // metal_type
+        if (pricingVariant === 'gold' && jewelryItem.basePriceGold !== undefined) {
+          totalPrice = jewelryItem.basePriceGold;
+        } else if (pricingVariant === 'silver' && jewelryItem.basePriceSilver !== undefined) {
+          totalPrice = jewelryItem.basePriceSilver;
+        } else {
+          totalPrice = jewelryItem.basePrice;
+        }
+      }
     }
 
     // Add customization option prices
@@ -512,9 +682,22 @@ export class CustomizationService {
       if (selectedValue && typeof selectedValue === 'string') {
         const selectedOption = setting.options.find(option => option.id === selectedValue);
         if (selectedOption) {
-          const optionPrice = diamondType === 'lab_grown' && selectedOption.priceLabGrown !== undefined
-            ? selectedOption.priceLabGrown
-            : (selectedOption.price || 0);
+          let optionPrice = selectedOption.price || 0;
+
+          if (pricingType === 'diamond_type') {
+            optionPrice = pricingVariant === 'lab_grown' && selectedOption.priceLabGrown !== undefined
+              ? selectedOption.priceLabGrown
+              : (selectedOption.price || 0);
+          } else { // metal_type
+            if (pricingVariant === 'gold' && selectedOption.priceGold !== undefined) {
+              optionPrice = selectedOption.priceGold;
+            } else if (pricingVariant === 'silver' && selectedOption.priceSilver !== undefined) {
+              optionPrice = selectedOption.priceSilver;
+            } else {
+              optionPrice = selectedOption.price || 0;
+            }
+          }
+
           totalPrice += optionPrice;
         }
       }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react'
-import { JewelryItem, CustomizationState, CustomizationOption, DiamondType } from '@/types/customization';
+import { JewelryItem, CustomizationState, CustomizationOption, DiamondType, MetalType } from '@/types/customization';
 import type { CustomizationSetting } from '@/types/customization';
 import { CustomizationService } from '@/services/customizationService';
 import LogicRulesEngine, { type RulesEngineResult } from '@/services/logicRulesEngine';
@@ -41,6 +41,7 @@ export default function CustomizationComponent({
   const [customizationState, setCustomizationState] = useState<CustomizationState>({});
   const [addingToCart, setAddingToCart] = useState(false);
   const [selectedDiamondType, setSelectedDiamondType] = useState<DiamondType>('lab_grown');
+  const [selectedMetalType, setSelectedMetalType] = useState<MetalType>('gold');
   const [rulesEngine, setRulesEngine] = useState<LogicRulesEngine | null>(null);
   const [appliedRules, setAppliedRules] = useState<RulesEngineResult | null>(null);
   const [rulesLoading, setRulesLoading] = useState(true);
@@ -302,29 +303,49 @@ export default function CustomizationComponent({
     }
   }, [jewelryItem.type]);
 
-  // Calculate total prices for both diamond types
+  // Calculate total prices for all variants based on pricing type
   const totalPriceNatural = useMemo(() => {
-    // Convert customizationState to plain object for service method
     const plainCustomizations: { [key: string]: string } = {};
     Object.entries(customizationState).forEach(([key, value]) => {
       if (typeof value === 'string') {
         plainCustomizations[key] = value;
       }
     });
-    
+
     return CustomizationService.calculateTotalPrice(jewelryItem, plainCustomizations, 'natural');
   }, [customizationState, jewelryItem]);
 
   const totalPriceLabGrown = useMemo(() => {
-    // Convert customizationState to plain object for service method
     const plainCustomizations: { [key: string]: string } = {};
     Object.entries(customizationState).forEach(([key, value]) => {
       if (typeof value === 'string') {
         plainCustomizations[key] = value;
       }
     });
-    
+
     return CustomizationService.calculateTotalPrice(jewelryItem, plainCustomizations, 'lab_grown');
+  }, [customizationState, jewelryItem]);
+
+  const totalPriceGold = useMemo(() => {
+    const plainCustomizations: { [key: string]: string } = {};
+    Object.entries(customizationState).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        plainCustomizations[key] = value;
+      }
+    });
+
+    return CustomizationService.calculateTotalPrice(jewelryItem, plainCustomizations, 'gold');
+  }, [customizationState, jewelryItem]);
+
+  const totalPriceSilver = useMemo(() => {
+    const plainCustomizations: { [key: string]: string } = {};
+    Object.entries(customizationState).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        plainCustomizations[key] = value;
+      }
+    });
+
+    return CustomizationService.calculateTotalPrice(jewelryItem, plainCustomizations, 'silver');
   }, [customizationState, jewelryItem]);
 
   // Apply rules whenever customization state changes
@@ -414,8 +435,16 @@ export default function CustomizationComponent({
     return customizationState.first_stone !== 'black_onyx';
   }, [customizationState.first_stone]);
 
-  // Current selected price
-  const totalPrice = selectedDiamondType === 'natural' ? totalPriceNatural : totalPriceLabGrown;
+  // Current selected price based on pricing type
+  const totalPrice = useMemo(() => {
+    const pricingType = jewelryItem.pricingType || 'diamond_type';
+
+    if (pricingType === 'diamond_type') {
+      return selectedDiamondType === 'natural' ? totalPriceNatural : totalPriceLabGrown;
+    } else {
+      return selectedMetalType === 'gold' ? totalPriceGold : totalPriceSilver;
+    }
+  }, [jewelryItem.pricingType, selectedDiamondType, selectedMetalType, totalPriceNatural, totalPriceLabGrown, totalPriceGold, totalPriceSilver]);
 
   // Generate preview image URL based on customization state (async)
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(jewelryItem.baseImage);
@@ -698,15 +727,22 @@ export default function CustomizationComponent({
 
     setAddingToCart(true);
     try {
-      const diamondTypeText = selectedDiamondType === 'natural' ? 'Natural' : 'Lab Grown';
-      const customizationSummary = generateCustomizationSummary() + ` - ${diamondTypeText} Diamonds`;
-      
+      const pricingType = jewelryItem.pricingType || 'diamond_type';
+      const variantText = pricingType === 'diamond_type'
+        ? `${selectedDiamondType === 'natural' ? 'Natural' : 'Lab Grown'} Diamonds`
+        : `${selectedMetalType === 'gold' ? 'Gold' : 'Silver'}`;
+      const customizationSummary = generateCustomizationSummary() + ` - ${variantText}`;
+
       await addCustomJewelryToCart({
         jewelry_type: jewelryItem.id as 'necklaces' | 'rings' | 'bracelets' | 'earrings',
-        customization_data: { ...customizationState, diamondType: selectedDiamondType },
+        customization_data: {
+          ...customizationState,
+          diamondType: pricingType === 'diamond_type' ? selectedDiamondType : undefined,
+          metalType: pricingType === 'metal_type' ? selectedMetalType : undefined
+        },
         customization_summary: customizationSummary,
-        base_price: selectedDiamondType === 'lab_grown' && jewelryItem.basePriceLabGrown 
-          ? jewelryItem.basePriceLabGrown 
+        base_price: selectedDiamondType === 'lab_grown' && jewelryItem.basePriceLabGrown
+          ? jewelryItem.basePriceLabGrown
           : jewelryItem.basePrice,
         total_price: totalPrice,
         preview_image_url: previewImageUrl || undefined
@@ -727,15 +763,22 @@ export default function CustomizationComponent({
 
     setAddingToCart(true);
     try {
-      const diamondTypeText = selectedDiamondType === 'natural' ? 'Natural' : 'Lab Grown';
-      const customizationSummary = generateCustomizationSummary() + ` - ${diamondTypeText} Diamonds`;
-      
+      const pricingType = jewelryItem.pricingType || 'diamond_type';
+      const variantText = pricingType === 'diamond_type'
+        ? `${selectedDiamondType === 'natural' ? 'Natural' : 'Lab Grown'} Diamonds`
+        : `${selectedMetalType === 'gold' ? 'Gold' : 'Silver'}`;
+      const customizationSummary = generateCustomizationSummary() + ` - ${variantText}`;
+
       await addCustomJewelryToCart({
         jewelry_type: jewelryItem.id as 'necklaces' | 'rings' | 'bracelets' | 'earrings',
-        customization_data: { ...customizationState, diamondType: selectedDiamondType },
+        customization_data: {
+          ...customizationState,
+          diamondType: pricingType === 'diamond_type' ? selectedDiamondType : undefined,
+          metalType: pricingType === 'metal_type' ? selectedMetalType : undefined
+        },
         customization_summary: customizationSummary,
-        base_price: selectedDiamondType === 'lab_grown' && jewelryItem.basePriceLabGrown 
-          ? jewelryItem.basePriceLabGrown 
+        base_price: selectedDiamondType === 'lab_grown' && jewelryItem.basePriceLabGrown
+          ? jewelryItem.basePriceLabGrown
           : jewelryItem.basePrice,
         total_price: totalPrice,
         preview_image_url: previewImageUrl || undefined
@@ -761,31 +804,58 @@ export default function CustomizationComponent({
           TOI ET MOI {jewelryItem.name}
         </h2>
         
-        {/* Diamond Type Selector */}
+        {/* Pricing Variant Selector */}
         <div className="mt-6">
           <div className="flex justify-center">
             <div className="flex rounded-lg border border-gray-300 p-1 bg-white shadow-sm">
-              <button
-                onClick={() => setSelectedDiamondType('natural')}
-                className={`px-6 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
-                  selectedDiamondType === 'natural'
-                    ? 'bg-black text-white shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                } ${!isLabGrownAvailable ? 'rounded-r-md' : ''}`}
-              >
-                Natural Diamonds
-              </button>
-              {isLabGrownAvailable && (
-                <button
-                  onClick={() => setSelectedDiamondType('lab_grown')}
-                  className={`px-6 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
-                    selectedDiamondType === 'lab_grown'
-                      ? 'bg-black text-white shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Lab Grown Diamonds
-                </button>
+              {(jewelryItem.pricingType || 'diamond_type') === 'diamond_type' ? (
+                <>
+                  <button
+                    onClick={() => setSelectedDiamondType('natural')}
+                    className={`px-6 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
+                      selectedDiamondType === 'natural'
+                        ? 'bg-black text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    } ${!isLabGrownAvailable ? 'rounded-r-md' : ''}`}
+                  >
+                    Natural Diamonds
+                  </button>
+                  {isLabGrownAvailable && (
+                    <button
+                      onClick={() => setSelectedDiamondType('lab_grown')}
+                      className={`px-6 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
+                        selectedDiamondType === 'lab_grown'
+                          ? 'bg-black text-white shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Lab Grown Diamonds
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setSelectedMetalType('gold')}
+                    className={`px-6 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
+                      selectedMetalType === 'gold'
+                        ? 'bg-black text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Gold
+                  </button>
+                  <button
+                    onClick={() => setSelectedMetalType('silver')}
+                    className={`px-6 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
+                      selectedMetalType === 'silver'
+                        ? 'bg-black text-white shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Silver
+                  </button>
+                </>
               )}
             </div>
           </div>

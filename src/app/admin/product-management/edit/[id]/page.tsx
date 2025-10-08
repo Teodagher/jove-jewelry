@@ -29,8 +29,13 @@ interface JewelryItem {
   product_type: 'simple' | 'customizable';
   base_price: number;
   base_price_lab_grown: number | null;
+  base_price_gold: number | null;
+  base_price_silver: number | null;
   black_onyx_base_price: number | null;
   black_onyx_base_price_lab_grown: number | null;
+  black_onyx_base_price_gold: number | null;
+  black_onyx_base_price_silver: number | null;
+  pricing_type: 'diamond_type' | 'metal_type';
   base_image_url: string | null;
   is_active: boolean;
   display_order: number;
@@ -43,6 +48,8 @@ interface OptionSummary {
   option_name: string;
   price: number;
   price_lab_grown: number | null;
+  price_gold: number | null;
+  price_silver: number | null;
   image_url: string | null;
   color_gradient: string | null;
   display_order: number;
@@ -72,6 +79,8 @@ interface CustomizationOption {
   option_name: string;
   price: number;
   price_lab_grown: number | null;
+  price_gold: number | null;
+  price_silver: number | null;
   image_url: string | null;
   color_gradient: string | null;
   display_order: number | null;
@@ -358,12 +367,24 @@ export default function EditProductPage() {
       )}
 
       {activeTab === 'customization' && product.product_type === 'customizable' && (
-        <CustomizationEditor 
+        <CustomizationEditor
           settings={settings}
           onSettingsChange={setSettings}
           productId={productId}
           productSlug={product.slug}
           onOptionsChange={handleCustomizationChange}
+          pricingType={product.pricing_type || 'diamond_type'}
+          onPricingTypeChange={async (newPricingType) => {
+            // Update pricing type in database
+            const { error } = await supabase
+              .from('jewelry_items')
+              .update({ pricing_type: newPricingType })
+              .eq('id', productId);
+
+            if (!error) {
+              setProduct({ ...product, pricing_type: newPricingType });
+            }
+          }}
         />
       )}
 
