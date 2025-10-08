@@ -46,9 +46,30 @@ interface LogicRule {
 interface LogicRulesEditorProps {
   productId: string;
   settings: CustomizationSetting[];
+  pricingType?: 'diamond_type' | 'metal_type';
 }
 
-export default function LogicRulesEditor({ productId, settings }: LogicRulesEditorProps) {
+// Virtual settings for pricing type toggles
+const VIRTUAL_SETTINGS: CustomizationSetting[] = [
+  {
+    setting_id: 'DIAMOND_TYPE',
+    setting_title: '💎 Diamond Type (Toggle)',
+    options: [
+      { id: 'natural', option_id: 'natural', option_name: 'Natural Diamond' },
+      { id: 'lab_grown', option_id: 'lab_grown', option_name: 'Lab Grown Diamond' }
+    ]
+  },
+  {
+    setting_id: 'METAL_TYPE',
+    setting_title: '⚙️ Metal Type (Toggle)',
+    options: [
+      { id: 'gold', option_id: 'gold', option_name: 'Gold' },
+      { id: 'silver', option_id: 'silver', option_name: 'Silver' }
+    ]
+  }
+];
+
+export default function LogicRulesEditor({ productId, settings, pricingType = 'diamond_type' }: LogicRulesEditorProps) {
   const [rules, setRules] = useState<LogicRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set());
@@ -56,6 +77,12 @@ export default function LogicRulesEditor({ productId, settings }: LogicRulesEdit
   const [showNewRuleForm, setShowNewRuleForm] = useState(false);
 
   const { addToast } = useToast();
+
+  // Combine real settings with virtual settings based on pricing type
+  const allSettings = [
+    ...settings,
+    ...(pricingType === 'diamond_type' ? [VIRTUAL_SETTINGS[0]] : [VIRTUAL_SETTINGS[1]])
+  ];
 
   // Load existing rules
   useEffect(() => {
@@ -171,15 +198,15 @@ export default function LogicRulesEditor({ productId, settings }: LogicRulesEdit
     }
   };
 
-  // Get setting title by ID
+  // Get setting title by ID (includes virtual settings)
   const getSettingTitle = (settingId: string) => {
-    const setting = settings.find(s => s.setting_id === settingId);
+    const setting = allSettings.find(s => s.setting_id === settingId);
     return setting?.setting_title || settingId;
   };
 
-  // Get option name by setting and option ID
+  // Get option name by setting and option ID (includes virtual settings)
   const getOptionName = (settingId: string, optionId: string) => {
-    const setting = settings.find(s => s.setting_id === settingId);
+    const setting = allSettings.find(s => s.setting_id === settingId);
     const option = setting?.options.find(o => o.option_id === optionId);
     return option?.option_name || optionId;
   };
@@ -251,6 +278,7 @@ export default function LogicRulesEditor({ productId, settings }: LogicRulesEdit
             getOptionName={getOptionName}
             formatActionDescription={formatActionDescription}
             settings={settings}
+            allSettings={allSettings}
             productId={productId}
             onRuleUpdated={loadRules}
           />
@@ -287,8 +315,9 @@ export default function LogicRulesEditor({ productId, settings }: LogicRulesEdit
 
       {/* New Rule Form */}
       {showNewRuleForm && (
-        <NewRuleForm 
+        <NewRuleForm
           settings={settings}
+          allSettings={allSettings}
           productId={productId}
           onClose={() => setShowNewRuleForm(false)}
           onSuccess={() => {
@@ -313,6 +342,7 @@ function RuleCard({
   getOptionName,
   formatActionDescription,
   settings,
+  allSettings,
   productId,
   onRuleUpdated
 }: {
@@ -326,6 +356,7 @@ function RuleCard({
   getOptionName: (settingId: string, optionId: string) => string;
   formatActionDescription: (rule: LogicRule) => string;
   settings: CustomizationSetting[];
+  allSettings: CustomizationSetting[];
   productId: string;
   onRuleUpdated: () => void;
 }) {
@@ -403,6 +434,7 @@ function RuleCard({
           <RuleEditor
             rule={rule}
             settings={settings}
+            allSettings={allSettings}
             productId={productId}
             onSuccess={onRuleUpdated}
             onCancel={onToggle}
@@ -416,11 +448,13 @@ function RuleCard({
 // New Rule Form Component
 function NewRuleForm({
   settings,
+  allSettings,
   productId,
   onClose,
   onSuccess
 }: {
   settings: CustomizationSetting[];
+  allSettings: CustomizationSetting[];
   productId: string;
   onClose: () => void;
   onSuccess: () => void;
@@ -441,13 +475,26 @@ function NewRuleForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.rule_name || !formData.condition_setting_id || !formData.condition_option_id || 
-        !formData.target_setting_id || formData.target_option_ids.length === 0) {
+
+    // Actions that require target options
+    const requiresTargetOptions = ['exclude_options', 'include_only', 'auto_select', 'propose_selection'];
+
+    // Basic validation
+    if (!formData.rule_name || !formData.condition_setting_id || !formData.condition_option_id || !formData.target_setting_id) {
       addToast({
         type: 'error',
         title: 'Validation Error',
         message: 'Please fill in all required fields'
+      });
+      return;
+    }
+
+    // Validate target options only for actions that require them
+    if (requiresTargetOptions.includes(formData.action_type) && formData.target_option_ids.length === 0) {
+      addToast({
+        type: 'error',
+        title: 'Validation Error',
+        message: 'Please select at least one target option'
       });
       return;
     }
@@ -495,10 +542,10 @@ function NewRuleForm({
     }
   };
 
-  // Get available options for the selected condition setting
-  const conditionOptions = settings.find(s => s.setting_id === formData.condition_setting_id)?.options || [];
-  
-  // Get available options for the selected target setting
+  // Get available options for the selected condition setting (includes virtual settings)
+  const conditionOptions = allSettings.find(s => s.setting_id === formData.condition_setting_id)?.options || [];
+
+  // Get available options for the selected target setting (only real settings for targets)
   const targetOptions = settings.find(s => s.setting_id === formData.target_setting_id)?.options || [];
 
   return (
@@ -558,7 +605,7 @@ function NewRuleForm({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
                 <option value="">Select setting</option>
-                {settings.map(setting => (
+                {allSettings.map(setting => (
                   <option key={setting.setting_id} value={setting.setting_id}>
                     {setting.setting_title}
                   </option>
@@ -716,12 +763,14 @@ function NewRuleForm({
 function RuleEditor({
   rule,
   settings,
+  allSettings,
   productId,
   onSuccess,
   onCancel
 }: {
   rule: LogicRule;
   settings: CustomizationSetting[];
+  allSettings: CustomizationSetting[];
   productId: string;
   onSuccess: () => void;
   onCancel: () => void;
@@ -782,10 +831,10 @@ function RuleEditor({
     }
   };
 
-  // Get available options for the selected condition setting
-  const conditionOptions = settings.find(s => s.setting_id === formData.condition_setting_id)?.options || [];
-  
-  // Get available options for the selected target setting
+  // Get available options for the selected condition setting (includes virtual settings)
+  const conditionOptions = allSettings.find(s => s.setting_id === formData.condition_setting_id)?.options || [];
+
+  // Get available options for the selected target setting (only real settings for targets)
   const targetOptions = settings.find(s => s.setting_id === formData.target_setting_id)?.options || [];
 
   return (
@@ -840,7 +889,7 @@ function RuleEditor({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
                 <option value="">Select setting</option>
-                {settings.map(setting => (
+                {allSettings.map(setting => (
                   <option key={setting.setting_id} value={setting.setting_id}>
                     {setting.setting_title}
                   </option>

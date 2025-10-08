@@ -107,6 +107,14 @@ export default function CustomizationComponent({
             }
           });
 
+          // Add virtual settings for pricing type toggles
+          const pricingType = jewelryItem.pricingType || 'diamond_type';
+          if (pricingType === 'diamond_type') {
+            stateForRules['DIAMOND_TYPE'] = selectedDiamondType;
+          } else {
+            stateForRules['METAL_TYPE'] = selectedMetalType;
+          }
+
           const result = engine.applyRules(settings, stateForRules);
           setAppliedRules(result);
 
@@ -381,6 +389,14 @@ export default function CustomizationComponent({
         }
       });
 
+      // Add virtual settings for pricing type toggles
+      const pricingType = jewelryItem.pricingType || 'diamond_type';
+      if (pricingType === 'diamond_type') {
+        stateForRules['DIAMOND_TYPE'] = selectedDiamondType;
+      } else {
+        stateForRules['METAL_TYPE'] = selectedMetalType;
+      }
+
       const result = rulesEngine.applyRules(settings, stateForRules);
       setAppliedRules(result);
 
@@ -427,7 +443,7 @@ export default function CustomizationComponent({
       }
     } catch (error) {
     }
-  }, [rulesEngine, customizationState, jewelryItem.settings]);
+  }, [rulesEngine, customizationState, jewelryItem.settings, selectedDiamondType, selectedMetalType, jewelryItem.pricingType]);
 
   // Check if Lab Grown option should be available
   const isLabGrownAvailable = useMemo(() => {

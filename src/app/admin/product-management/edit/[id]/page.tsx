@@ -408,6 +408,7 @@ export default function EditProductPage() {
         <LogicRulesEditor
           productId={productId}
           settings={settings}
+          pricingType={product.pricing_type || 'diamond_type'}
         />
       )}
       </div>
