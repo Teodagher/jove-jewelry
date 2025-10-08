@@ -171,6 +171,8 @@ export default function EditProductPage() {
             option_name: option.option_name,
             price: option.price,
             price_lab_grown: option.price_lab_grown,
+            price_gold: option.price_gold,
+            price_silver: option.price_silver,
             image_url: option.image_url,
             color_gradient: option.color_gradient,
             display_order: option.display_order ?? 0,
@@ -376,7 +378,7 @@ export default function EditProductPage() {
           pricingType={product.pricing_type || 'diamond_type'}
           onPricingTypeChange={async (newPricingType) => {
             // Update pricing type in database
-            const { error } = await supabase
+            const { error } = await (supabase as any)
               .from('jewelry_items')
               .update({ pricing_type: newPricingType })
               .eq('id', productId);
