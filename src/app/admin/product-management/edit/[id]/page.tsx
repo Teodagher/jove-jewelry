@@ -209,8 +209,12 @@ export default function EditProductPage() {
         product_type: product.product_type,
         base_price: product.base_price,
         base_price_lab_grown: product.base_price_lab_grown,
+        base_price_gold: product.base_price_gold,
+        base_price_silver: product.base_price_silver,
         black_onyx_base_price: product.black_onyx_base_price,
         black_onyx_base_price_lab_grown: product.black_onyx_base_price_lab_grown,
+        black_onyx_base_price_gold: product.black_onyx_base_price_gold,
+        black_onyx_base_price_silver: product.black_onyx_base_price_silver,
         base_image_url: product.base_image_url,
         is_active: product.is_active,
         display_order: product.display_order,
@@ -690,31 +694,63 @@ function BasicInfoEditor({
         <div>
           <h3 className="text-lg font-medium text-gray-900 mb-4">Pricing</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Base Price ($)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={product.base_price}
-                onChange={(e) => handleInputChange('base_price', parseFloat(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
+            {product.pricing_type === 'metal_type' ? (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Gold Base Price ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={product.base_price_gold || ''}
+                    onChange={(e) => handleInputChange('base_price_gold', e.target.value ? parseFloat(e.target.value) : null)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Lab Grown Base Price ($)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={product.base_price_lab_grown || ''}
-                onChange={(e) => handleInputChange('base_price_lab_grown', e.target.value ? parseFloat(e.target.value) : null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Silver Base Price ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={product.base_price_silver || ''}
+                    onChange={(e) => handleInputChange('base_price_silver', e.target.value ? parseFloat(e.target.value) : null)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Natural Diamond Base Price ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={product.base_price}
+                    onChange={(e) => handleInputChange('base_price', parseFloat(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Lab Grown Base Price ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={product.base_price_lab_grown || ''}
+                    onChange={(e) => handleInputChange('base_price_lab_grown', e.target.value ? parseFloat(e.target.value) : null)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </>
+            )}
           </div>
         </div>
 

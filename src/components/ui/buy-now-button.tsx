@@ -10,6 +10,8 @@ interface BuyNowButtonProps {
   className?: string;
   showBothOptions?: boolean;
   diamondType?: 'natural' | 'lab_grown';
+  metalType?: 'gold' | 'silver';
+  pricingType?: 'diamond_type' | 'metal_type';
 }
 
 export function BuyNowButton({
@@ -20,7 +22,9 @@ export function BuyNowButton({
   price,
   className = '',
   showBothOptions = true,
-  diamondType = 'natural'
+  diamondType = 'natural',
+  metalType = 'gold',
+  pricingType = 'diamond_type'
 }: BuyNowButtonProps) {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -29,12 +33,23 @@ export function BuyNowButton({
     }).format(price);
   };
 
-  // Get button color based on diamond type
-  const buttonColor = diamondType === 'lab_grown' 
-    ? 'bg-emerald-600 hover:bg-emerald-700' 
-    : 'bg-black hover:bg-zinc-800';
+  // Get button color and text based on pricing type
+  let buttonColor: string;
+  let typeText: string;
 
-  const diamondTypeText = diamondType === 'lab_grown' ? 'Lab Grown' : 'Natural';
+  if (pricingType === 'metal_type') {
+    // Metal type pricing (Gold/Silver)
+    buttonColor = metalType === 'silver'
+      ? 'bg-gray-400 hover:bg-gray-500'
+      : 'bg-amber-600 hover:bg-amber-700';
+    typeText = metalType === 'silver' ? 'Silver' : 'Gold';
+  } else {
+    // Diamond type pricing (Natural/Lab Grown)
+    buttonColor = diamondType === 'lab_grown'
+      ? 'bg-emerald-600 hover:bg-emerald-700'
+      : 'bg-black hover:bg-zinc-800';
+    typeText = diamondType === 'lab_grown' ? 'Lab Grown' : 'Natural';
+  }
 
   if (!showBothOptions) {
     // Single button mode - Buy Now only
@@ -45,7 +60,7 @@ export function BuyNowButton({
         className={`w-full ${buttonColor} text-white py-4 text-sm font-light tracking-[0.15em] transition-all duration-500 rounded-none border-0 uppercase ${className}`}
         size="lg"
       >
-        {loading ? 'Processing...' : `Buy Now ${diamondTypeText} ${price ? `— ${formatPrice(price)}` : ''}`}
+        {loading ? 'Processing...' : `Buy Now ${typeText} ${price ? `— ${formatPrice(price)}` : ''}`}
       </Button>
     );
   }
@@ -60,7 +75,7 @@ export function BuyNowButton({
         className={`w-full ${buttonColor} text-white py-4 text-sm font-light tracking-[0.15em] transition-all duration-500 rounded-none border-0 uppercase`}
         size="lg"
       >
-        {loading ? 'Processing...' : `Buy Now ${diamondTypeText} ${price ? `— ${formatPrice(price)}` : ''}`}
+        {loading ? 'Processing...' : `Buy Now ${typeText} ${price ? `— ${formatPrice(price)}` : ''}`}
       </Button>
 
       {/* Add to Cart - Secondary Action */}

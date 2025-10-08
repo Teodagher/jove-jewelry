@@ -982,6 +982,8 @@ export default function CustomizationComponent({
               price={totalPrice}
               showBothOptions={true}
               diamondType={selectedDiamondType}
+              metalType={selectedMetalType}
+              pricingType={jewelryItem.pricingType || 'diamond_type'}
             />
           </div>
         </div>
@@ -1077,6 +1079,8 @@ export default function CustomizationComponent({
                   price={totalPrice}
                   showBothOptions={true}
                   diamondType={selectedDiamondType}
+                  metalType={selectedMetalType}
+                  pricingType={jewelryItem.pricingType || 'diamond_type'}
                 />
               </div>
             </div>
@@ -1115,6 +1119,8 @@ export default function CustomizationComponent({
                     price={totalPrice}
                     showBothOptions={true}
                     diamondType={selectedDiamondType}
+                    metalType={selectedMetalType}
+                    pricingType={jewelryItem.pricingType || 'diamond_type'}
                   />
                 </div>
               </div>
