@@ -1646,8 +1646,16 @@ function OptionCard({
           <div>
             <span className="font-medium text-gray-900 text-sm">{option.option_name}</span>
             <div className="text-xs text-gray-500">
-              ${option.price}
-              {option.price_lab_grown && ` / $${option.price_lab_grown} (lab)`}
+              {pricingType === 'diamond_type' ? (
+                <>
+                  ${option.price}
+                  {option.price_lab_grown && ` / $${option.price_lab_grown} (lab)`}
+                </>
+              ) : (
+                <>
+                  ${option.price_gold || 0} (gold) / ${option.price_silver || 0} (silver)
+                </>
+              )}
             </div>
           </div>
         </div>
