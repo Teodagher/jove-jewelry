@@ -1324,36 +1324,38 @@ function SettingCard({
                     placeholder="diamond"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {pricingType === 'diamond_type' ? 'Natural Diamond Price ($) *' : 'Base Price ($) *'}
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={newOption.price}
-                    onChange={(e) => setNewOption(prev => ({...prev, price: parseFloat(e.target.value) || 0}))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  />
-                </div>
                 {pricingType === 'diamond_type' ? (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Lab Grown Price ($)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={newOption.price_lab_grown}
-                      onChange={(e) => setNewOption(prev => ({...prev, price_lab_grown: parseFloat(e.target.value) || 0}))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    />
-                  </div>
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Natural Diamond Price ($) *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={newOption.price}
+                        onChange={(e) => setNewOption(prev => ({...prev, price: parseFloat(e.target.value) || 0}))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Lab Grown Price ($)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={newOption.price_lab_grown}
+                        onChange={(e) => setNewOption(prev => ({...prev, price_lab_grown: parseFloat(e.target.value) || 0}))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      />
+                    </div>
+                  </>
                 ) : (
                   <>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Gold Price ($)
+                        Gold Price ($) *
                       </label>
                       <input
                         type="number"
@@ -1365,7 +1367,7 @@ function SettingCard({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Silver Price ($)
+                        Silver Price ($) *
                       </label>
                       <input
                         type="number"
@@ -1517,31 +1519,33 @@ function OptionCard({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {pricingType === 'diamond_type' ? 'Natural Diamond Price ($)' : 'Base Price ($)'}
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={editedOption.price}
-              onChange={(e) => setEditedOption({...editedOption, price: parseFloat(e.target.value) || 0})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-            />
-          </div>
           {pricingType === 'diamond_type' ? (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Lab Grown Price ($)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={editedOption.price_lab_grown || ''}
-                onChange={(e) => setEditedOption({...editedOption, price_lab_grown: e.target.value ? parseFloat(e.target.value) : null})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-              />
-            </div>
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Natural Diamond Price ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editedOption.price}
+                  onChange={(e) => setEditedOption({...editedOption, price: parseFloat(e.target.value) || 0})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Lab Grown Price ($)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editedOption.price_lab_grown || ''}
+                  onChange={(e) => setEditedOption({...editedOption, price_lab_grown: e.target.value ? parseFloat(e.target.value) : null})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+              </div>
+            </>
           ) : (
             <>
               <div>
