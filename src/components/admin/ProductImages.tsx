@@ -161,15 +161,18 @@ export default function ProductImages({ productId, productType, productSlug, ref
         throw error;
       }
 
-      // Get public URL
+      // Get public URL with cache busting
       const { data: urlData } = supabase.storage
         .from('customization-item')
         .getPublicUrl(uploadPath);
 
+      // Add cache-busting timestamp to force browser to reload the new image
+      const cacheBustedUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
       // Update variant state
-      setVariants(prev => prev.map(v => 
-        v.id === variantId 
-          ? { ...v, imageUrl: urlData.publicUrl, exists: true }
+      setVariants(prev => prev.map(v =>
+        v.id === variantId
+          ? { ...v, imageUrl: cacheBustedUrl, exists: true }
           : v
       ));
 
