@@ -1516,8 +1516,13 @@ function OptionCard({
               type="text"
               value={editedOption.option_name}
               onChange={(e) => setEditedOption({...editedOption, option_name: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              disabled
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed text-sm"
+              title="Option name cannot be changed after creation to maintain consistency with uploaded images"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Name cannot be changed to maintain filename consistency
+            </p>
           </div>
           {pricingType === 'diamond_type' ? (
             <>
