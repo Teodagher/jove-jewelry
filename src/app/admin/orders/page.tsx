@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { 
-  Package, 
-  Search, 
-  Filter, 
-  Eye, 
-  Edit, 
+import {
+  Package,
+  Search,
+  Filter,
+  Eye,
+  Edit,
   Clock,
   CheckCircle,
   XCircle,
@@ -22,7 +22,8 @@ import {
   ChevronUp,
   ExternalLink,
   Plus,
-  Tag
+  Tag,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ManualOrderForm from '@/components/admin/ManualOrderForm';
@@ -94,6 +95,9 @@ export default function AdminOrdersPage() {
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [showManualOrderForm, setShowManualOrderForm] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ orderId: string; orderNumber: string } | null>(null);
+  const [showSecondConfirm, setShowSecondConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
 
   const fetchOrders = useCallback(async () => {
@@ -136,10 +140,10 @@ export default function AdminOrdersPage() {
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       setUpdatingStatus(orderId);
-      
+
       const { error } = await (supabase
         .from('orders') as any)
-        .update({ 
+        .update({
           status: newStatus,
           updated_at: new Date().toISOString()
         })
@@ -148,8 +152,8 @@ export default function AdminOrdersPage() {
       if (error) throw error;
 
       // Update local state
-      setOrders(prev => prev.map(order => 
-        order.id === orderId 
+      setOrders(prev => prev.map(order =>
+        order.id === orderId
           ? { ...order, status: newStatus, updated_at: new Date().toISOString() }
           : order
       ));
@@ -160,6 +164,63 @@ export default function AdminOrdersPage() {
     } finally {
       setUpdatingStatus(null);
     }
+  };
+
+  const handleDeleteClick = (orderId: string, orderNumber: string) => {
+    setDeleteConfirmation({ orderId, orderNumber });
+    setShowSecondConfirm(false);
+  };
+
+  const handleFirstConfirm = () => {
+    setShowSecondConfirm(true);
+  };
+
+  const handleSecondConfirm = async () => {
+    if (!deleteConfirmation) return;
+
+    try {
+      setDeleting(true);
+      setError(null);
+
+      // Delete order items first (foreign key constraint)
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .delete()
+        .eq('order_id', deleteConfirmation.orderId);
+
+      if (itemsError) throw itemsError;
+
+      // Delete the order
+      const { error: orderError } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', deleteConfirmation.orderId);
+
+      if (orderError) throw orderError;
+
+      // Cache busting - revalidate orders
+      await fetch('/api/revalidate?path=/admin/orders', {
+        method: 'POST',
+      });
+
+      // Update local state
+      setOrders(prev => prev.filter(order => order.id !== deleteConfirmation.orderId));
+
+      // Close modal
+      setDeleteConfirmation(null);
+      setShowSecondConfirm(false);
+
+    } catch (err) {
+      console.error('Error deleting order:', err);
+      setError('Failed to delete order. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteConfirmation(null);
+    setShowSecondConfirm(false);
   };
 
   useEffect(() => {
@@ -584,6 +645,15 @@ export default function AdminOrdersPage() {
                         <ExternalLink className="h-4 w-4 mr-2" />
                         View Details
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteClick(order.id, order.order_number || order.id.slice(0, 8).toUpperCase())}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -592,6 +662,89 @@ export default function AdminOrdersPage() {
           ))
         )}
       </div>
+
+      {/* Double Confirmation Modal */}
+      {deleteConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {showSecondConfirm ? 'Final Confirmation' : 'Delete Order'}
+              </h3>
+            </div>
+
+            {!showSecondConfirm ? (
+              <>
+                <p className="text-sm text-gray-600 mb-6">
+                  Are you sure you want to delete order <span className="font-semibold">#{deleteConfirmation.orderNumber}</span>?
+                  <br /><br />
+                  This will permanently remove the order and all its items from the database.
+                </p>
+                <div className="flex items-center space-x-3">
+                  <Button
+                    onClick={handleCancelDelete}
+                    variant="outline"
+                    className="flex-1"
+                    disabled={deleting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleFirstConfirm}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                    disabled={deleting}
+                  >
+                    Continue
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mb-6">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <p className="text-sm font-semibold text-red-800 mb-2">
+                      ⚠️ Warning: This action cannot be undone
+                    </p>
+                    <p className="text-sm text-red-700">
+                      You are about to permanently delete order <span className="font-semibold">#{deleteConfirmation.orderNumber}</span> and all associated data.
+                    </p>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Click <span className="font-semibold">"Delete Permanently"</span> to confirm deletion.
+                  </p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Button
+                    onClick={handleCancelDelete}
+                    variant="outline"
+                    className="flex-1"
+                    disabled={deleting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSecondConfirm}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                    disabled={deleting}
+                  >
+                    {deleting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Deleting...
+                      </>
+                    ) : (
+                      'Delete Permanently'
+                    )}
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
