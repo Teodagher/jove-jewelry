@@ -160,6 +160,7 @@ export type Database = {
           color_gradient: string | null
           created_at: string | null
           display_order: number | null
+          filename_slug: string | null
           id: string
           image_url: string | null
           is_active: boolean | null
@@ -167,7 +168,9 @@ export type Database = {
           option_id: string
           option_name: string
           price: number
+          price_gold: number | null
           price_lab_grown: number | null
+          price_silver: number | null
           required: boolean | null
           setting_description: string | null
           setting_display_order: number | null
@@ -180,6 +183,7 @@ export type Database = {
           color_gradient?: string | null
           created_at?: string | null
           display_order?: number | null
+          filename_slug?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
@@ -187,7 +191,9 @@ export type Database = {
           option_id: string
           option_name: string
           price?: number
+          price_gold?: number | null
           price_lab_grown?: number | null
+          price_silver?: number | null
           required?: boolean | null
           setting_description?: string | null
           setting_display_order?: number | null
@@ -200,6 +206,7 @@ export type Database = {
           color_gradient?: string | null
           created_at?: string | null
           display_order?: number | null
+          filename_slug?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
@@ -207,7 +214,9 @@ export type Database = {
           option_id?: string
           option_name?: string
           price?: number
+          price_gold?: number | null
           price_lab_grown?: number | null
+          price_silver?: number | null
           required?: boolean | null
           setting_description?: string | null
           setting_display_order?: number | null
@@ -225,19 +234,114 @@ export type Database = {
           },
         ]
       }
+      giveaway_participants: {
+        Row: {
+          created_at: string | null
+          giveaway_id: string
+          id: string
+          lead_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          giveaway_id: string
+          id?: string
+          lead_id: string
+        }
+        Update: {
+          created_at?: string | null
+          giveaway_id?: string
+          id?: string
+          lead_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "giveaway_participants_giveaway_id_fkey"
+            columns: ["giveaway_id"]
+            isOneToOne: false
+            referencedRelation: "giveaways"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "giveaway_participants_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      giveaways: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          slug: string
+          status: string | null
+          updated_at: string | null
+          winner_id: string | null
+          winner_selected_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          slug: string
+          status?: string | null
+          updated_at?: string | null
+          winner_id?: string | null
+          winner_selected_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          status?: string | null
+          updated_at?: string | null
+          winner_id?: string | null
+          winner_selected_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "giveaways_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "giveaways_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jewelry_items: {
         Row: {
           base_image_url: string | null
           base_price: number
+          base_price_gold: number | null
           base_price_lab_grown: number | null
+          base_price_silver: number | null
           black_onyx_base_price: number | null
+          black_onyx_base_price_gold: number | null
           black_onyx_base_price_lab_grown: number | null
+          black_onyx_base_price_silver: number | null
           created_at: string | null
           description: string | null
           display_order: number | null
           id: string
           is_active: boolean | null
           name: string
+          pricing_type: string | null
           product_type: string | null
           slug: string | null
           type: string
@@ -246,15 +350,20 @@ export type Database = {
         Insert: {
           base_image_url?: string | null
           base_price?: number
+          base_price_gold?: number | null
           base_price_lab_grown?: number | null
+          base_price_silver?: number | null
           black_onyx_base_price?: number | null
+          black_onyx_base_price_gold?: number | null
           black_onyx_base_price_lab_grown?: number | null
+          black_onyx_base_price_silver?: number | null
           created_at?: string | null
           description?: string | null
           display_order?: number | null
           id?: string
           is_active?: boolean | null
           name: string
+          pricing_type?: string | null
           product_type?: string | null
           slug?: string | null
           type: string
@@ -263,15 +372,20 @@ export type Database = {
         Update: {
           base_image_url?: string | null
           base_price?: number
+          base_price_gold?: number | null
           base_price_lab_grown?: number | null
+          base_price_silver?: number | null
           black_onyx_base_price?: number | null
+          black_onyx_base_price_gold?: number | null
           black_onyx_base_price_lab_grown?: number | null
+          black_onyx_base_price_silver?: number | null
           created_at?: string | null
           description?: string | null
           display_order?: number | null
           id?: string
           is_active?: boolean | null
           name?: string
+          pricing_type?: string | null
           product_type?: string | null
           slug?: string | null
           type?: string
@@ -520,12 +634,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_order_number: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_order_number: { Args: never; Returns: string }
       get_customers_with_order_stats: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           email: string

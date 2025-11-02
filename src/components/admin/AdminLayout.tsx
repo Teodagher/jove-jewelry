@@ -17,7 +17,8 @@ import {
   Palette,
   UserPlus,
   FileText,
-  Settings
+  Settings,
+  Gift
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -49,6 +50,7 @@ const navigation = [
   { name: 'Orders', href: '/admin/orders', icon: Package },
   { name: 'Customers', href: '/admin/customers', icon: Users },
   { name: 'Leads', href: '/admin/leads', icon: UserPlus },
+  { name: 'Giveaways', href: '/admin/giveaways', icon: Gift },
   { name: 'Product Descriptions', href: '/admin/descriptions', icon: FileText },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
 ];
