@@ -142,15 +142,15 @@ export default function GiveawayPage() {
   }
 
   return (
-    <div className="min-h-screen jove-bg-primary">
+    <div className="min-h-screen jove-bg-primary overflow-x-hidden">
       {/* Minimal Header */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-2 sm:py-8">
         {/* Back Button */}
-        <div className="mb-8">
+        <div className="mb-2 sm:mb-8">
           <Button
             onClick={() => router.push('/')}
             variant="ghost"
-            className="text-zinc-600 hover:text-zinc-900 font-light tracking-wide"
+            className="text-zinc-600 hover:text-zinc-900 font-light tracking-wide text-sm sm:text-base"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
@@ -158,14 +158,14 @@ export default function GiveawayPage() {
         </div>
 
         {/* Title */}
-        <div className="text-center mb-12">
-          <h1 className="font-serif text-5xl md:text-6xl font-light text-zinc-900 tracking-wider mb-4">
+        <div className="text-center mb-2 sm:mb-12">
+          <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl font-light text-zinc-900 tracking-wider mb-2 sm:mb-4 px-2">
             {giveaway.name.toUpperCase()}
           </h1>
           {giveaway.description && (
-            <p className="text-zinc-600 font-light text-lg mb-4">{giveaway.description}</p>
+            <p className="text-zinc-600 font-light text-base sm:text-lg mb-2 sm:mb-4 px-4">{giveaway.description}</p>
           )}
-          <div className="w-32 h-px jove-gradient-accent mx-auto"></div>
+          <div className="w-24 sm:w-32 h-px jove-gradient-accent mx-auto"></div>
         </div>
 
         {/* Giveaway Spinner */}
