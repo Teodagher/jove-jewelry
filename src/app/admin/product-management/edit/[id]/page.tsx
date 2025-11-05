@@ -40,6 +40,17 @@ interface JewelryItem {
   is_active: boolean;
   display_order: number;
   description: string | null;
+  category_id: string | null;
+}
+
+interface ProductCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  image_url: string | null;
+  display_order: number;
+  is_active: boolean;
 }
 
 interface OptionSummary {
@@ -218,7 +229,8 @@ export default function EditProductPage() {
         base_image_url: product.base_image_url,
         is_active: product.is_active,
         display_order: product.display_order,
-        description: product.description
+        description: product.description,
+        category_id: product.category_id
       };
       
       const { error } = await (supabase as any)
@@ -426,6 +438,74 @@ function BasicInfoEditor({
 }) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [creatingCategory, setCreatingCategory] = useState(false);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('product_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching categories:', error);
+        return;
+      }
+
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) return;
+
+    try {
+      setCreatingCategory(true);
+      const slug = newCategoryName.toLowerCase().replace(/\s+/g, '-');
+
+      const { data, error } = await (supabase as any)
+        .from('product_categories')
+        .insert({
+          name: newCategoryName,
+          slug: slug,
+          display_order: categories.length
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating category:', error);
+        alert('Failed to create category. The name might already exist.');
+        return;
+      }
+
+      // Refresh categories list
+      await fetchCategories();
+
+      // Select the new category
+      handleInputChange('category_id', data.id);
+
+      // Close modal and reset
+      setShowNewCategoryModal(false);
+      setNewCategoryName('');
+    } catch (error) {
+      console.error('Error creating category:', error);
+      alert('Failed to create category.');
+    } finally {
+      setCreatingCategory(false);
+    }
+  };
 
   const handleInputChange = (field: keyof JewelryItem, value: any) => {
     onProductChange({
@@ -689,6 +769,33 @@ function BasicInfoEditor({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Category
+            </label>
+            <div className="flex space-x-2">
+              <select
+                value={product.category_id || ''}
+                onChange={(e) => handleInputChange('category_id', e.target.value || null)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">No Category</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setShowNewCategoryModal(true)}
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Pricing */}
@@ -783,6 +890,56 @@ function BasicInfoEditor({
           </label>
         </div>
       </div>
+
+      {/* New Category Modal */}
+      {showNewCategoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Create New Category</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Category Name
+                </label>
+                <input
+                  type="text"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCreateCategory();
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., Bracelets, Rings, Necklaces"
+                  autoFocus
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowNewCategoryModal(false);
+                    setNewCategoryName('');
+                  }}
+                  disabled={creatingCategory}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateCategory}
+                  disabled={creatingCategory || !newCategoryName.trim()}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  {creatingCategory ? 'Creating...' : 'Create'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
