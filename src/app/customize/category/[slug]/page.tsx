@@ -135,20 +135,6 @@ export default function CategoryPage() {
           </button>
 
           <div className="text-center">
-            {/* Category Image */}
-            {category.image_url && (
-              <div className="flex justify-center mb-6">
-                <div className="relative w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-4 border-amber-300 shadow-lg">
-                  <Image
-                    src={category.image_url}
-                    alt={category.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              </div>
-            )}
-
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-light mb-4 sm:mb-6 tracking-wide">
               {category.name}
             </h1>
