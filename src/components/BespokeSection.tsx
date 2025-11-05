@@ -35,6 +35,19 @@ export default function BespokeSection() {
 
   useEffect(() => {
     fetchCategoriesAndItems();
+
+    // Check if we should scroll to this section
+    const shouldScroll = sessionStorage.getItem('scrollToCustomize');
+    if (shouldScroll === 'true') {
+      sessionStorage.removeItem('scrollToCustomize');
+      // Wait a bit for the section to render
+      setTimeout(() => {
+        const element = document.getElementById('customize');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+    }
   }, []);
 
   const fetchCategoriesAndItems = async () => {
@@ -95,7 +108,7 @@ export default function BespokeSection() {
   }
 
   return (
-    <section className="py-12 sm:py-16 lg:py-24 bg-zinc-800">
+    <section id="customize" className="py-12 sm:py-16 lg:py-24 bg-zinc-800">
       <div className="max-w-7xl mx-auto px-4">
         {/* Responsive Header */}
         <div className="text-center mb-12 sm:mb-16 lg:mb-20">

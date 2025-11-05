@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
@@ -33,14 +33,26 @@ interface ProductCategory {
 
 export default function CategoryPage() {
   const params = useParams();
+  const router = useRouter();
   const categorySlug = params.slug as string;
 
   const [category, setCategory] = useState<ProductCategory | null>(null);
   const [products, setProducts] = useState<JewelryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const handleBackToCategories = () => {
+    // Store scroll intent in sessionStorage
+    sessionStorage.setItem('scrollToCustomize', 'true');
+    router.push('/');
+  };
+
   useEffect(() => {
     fetchCategoryAndProducts();
+  }, [categorySlug]);
+
+  // Scroll to top when navigating to this page
+  useEffect(() => {
+    window.scrollTo(0, 0);
   }, [categorySlug]);
 
   const fetchCategoryAndProducts = async () => {
@@ -114,13 +126,13 @@ export default function CategoryPage() {
       <div className="bg-zinc-800 text-white py-12 sm:py-16 lg:py-20">
         <div className="max-w-7xl mx-auto px-4">
           {/* Back button */}
-          <Link
-            href="/#customize"
+          <button
+            onClick={handleBackToCategories}
             className="inline-flex items-center text-gray-300 hover:text-white mb-8 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to all categories
-          </Link>
+          </button>
 
           <div className="text-center">
             {/* Category Image */}
