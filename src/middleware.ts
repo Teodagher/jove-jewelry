@@ -99,10 +99,13 @@ export async function middleware(request: NextRequest) {
     const redirectUrl = new URL(request.url)
     redirectUrl.host = targetDomain
 
+    // Set market cookie based on geo-location (determines pricing)
+    const pricingMarket = getMarketForPricing(country)
+
     // Add query parameters to show notification
     redirectUrl.searchParams.set('redirected', 'true')
-    // Set the "from" parameter based on target domain for notification display
-    const fromLabel = targetDomain === 'maisonjove.com.au' ? 'International' : 'LB'
+    // Set the "from" parameter based on market (determines notification text)
+    const fromLabel = pricingMarket === 'au' ? 'AU' : pricingMarket === 'intl' ? 'International' : 'LB'
     redirectUrl.searchParams.set('from', fromLabel)
 
     const redirectResponse = NextResponse.redirect(redirectUrl)
@@ -111,9 +114,6 @@ export async function middleware(request: NextRequest) {
     response.cookies.getAll().forEach(cookie => {
       redirectResponse.cookies.set(cookie.name, cookie.value, cookie)
     })
-
-    // Set market cookie based on geo-location (determines pricing)
-    const pricingMarket = getMarketForPricing(country)
     redirectResponse.cookies.set('market', pricingMarket, {
       maxAge: 60 * 60 * 24 * 365, // 1 year
       path: '/',
