@@ -1,14 +1,8 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { geolocation } from '@vercel/functions'
 import { updateSession } from './lib/supabase/middleware'
 
 export type Market = 'lb' | 'au' | 'intl'
-
-// Extend NextRequest to include Vercel's geo property
-interface NextRequestWithGeo extends NextRequest {
-  geo?: {
-    country?: string
-  }
-}
 
 const DOMAIN_MARKET_MAP: Record<string, Market> = {
   'maisonjove.com': 'lb',
@@ -68,7 +62,9 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  const country = (request as NextRequestWithGeo).geo?.country
+  // Get geo-location using @vercel/functions
+  const geo = geolocation(request)
+  const country = geo.country
   const currentDomain = hostname.replace(/^www\./, '')
   const targetDomain = getTargetDomainForGeo(country)
 
@@ -77,9 +73,10 @@ export async function middleware(request: NextRequest) {
     hostname,
     pathname,
     country,
+    city: geo.city,
     currentDomain,
     targetDomain,
-    geoAvailable: !!(request as NextRequestWithGeo).geo,
+    geoAvailable: !!country,
   })
 
   // DEV ONLY: Allow query parameter override for testing

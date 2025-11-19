@@ -15,6 +15,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@stripe/stripe-js": "^8.5.2",
     "@supabase/ssr": "^0.6.1",
+    "@vercel/functions": "^3.3.2",
     "browser-image-compression": "^2.0.2",
     "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",
