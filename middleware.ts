@@ -17,6 +17,7 @@ const DOMAIN_MARKET_MAP: Record<string, Market> = {
 
 const MARKET_DOMAIN_MAP: Record<Market, string> = {
   lb: 'maisonjove.com',
+  intl: 'maisonjove.com.au',
   au: 'maisonjove.com.au',
 }
 
