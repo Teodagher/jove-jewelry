@@ -29,13 +29,11 @@ function getMarketFromDomain(hostname: string): Market {
 }
 
 function getTargetDomainForGeo(country?: string): string {
-  // No country info = Lebanon domain (default)
-  if (!country) return 'maisonjove.com'
-
   // Lebanon users stay on maisonjove.com
   if (country === 'LB') return 'maisonjove.com'
 
-  // All other countries go to maisonjove.com.au
+  // All other countries (including undefined/unknown) go to maisonjove.com.au
+  // This includes when geo-location fails or returns undefined
   return 'maisonjove.com.au'
 }
 
