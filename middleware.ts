@@ -72,6 +72,16 @@ export async function middleware(request: NextRequest) {
   const currentDomain = hostname.replace(/^www\./, '')
   const targetDomain = getTargetDomainForGeo(country)
 
+  // DEBUG: Log geo information
+  console.log('🌍 Middleware Debug:', {
+    hostname,
+    pathname,
+    country,
+    currentDomain,
+    targetDomain,
+    geoAvailable: !!(request as NextRequestWithGeo).geo,
+  })
+
   // DEV ONLY: Allow query parameter override for testing
   const url = new URL(request.url)
   const marketOverride = url.searchParams.get('market')
