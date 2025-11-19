@@ -583,7 +583,18 @@ export default function ProductManagementPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ${product.base_price}
+                      <div className="flex items-center gap-2">
+                        {product.base_price && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-gray-800 text-xs">
+                            🇱🇧🌍 ${product.base_price}
+                          </span>
+                        )}
+                        {(product as any).base_price_au && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-green-100 text-green-800 text-xs">
+                            🇦🇺 A${(product as any).base_price_au}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-3">

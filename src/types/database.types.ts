@@ -22,6 +22,7 @@ export type Database = {
           id: string
           jewelry_type: string
           preview_image_url: string | null
+          product_name: string | null
           quantity: number
           session_id: string
           total_price: number
@@ -35,6 +36,7 @@ export type Database = {
           id?: string
           jewelry_type?: string
           preview_image_url?: string | null
+          product_name?: string | null
           quantity?: number
           session_id: string
           total_price?: number
@@ -48,6 +50,7 @@ export type Database = {
           id?: string
           jewelry_type?: string
           preview_image_url?: string | null
+          product_name?: string | null
           quantity?: number
           session_id?: string
           total_price?: number
@@ -168,9 +171,13 @@ export type Database = {
           option_id: string
           option_name: string
           price: number
+          price_au: number | null
           price_gold: number | null
+          price_gold_au: number | null
           price_lab_grown: number | null
+          price_lab_grown_au: number | null
           price_silver: number | null
+          price_silver_au: number | null
           required: boolean | null
           setting_description: string | null
           setting_display_order: number | null
@@ -191,9 +198,13 @@ export type Database = {
           option_id: string
           option_name: string
           price?: number
+          price_au?: number | null
           price_gold?: number | null
+          price_gold_au?: number | null
           price_lab_grown?: number | null
+          price_lab_grown_au?: number | null
           price_silver?: number | null
+          price_silver_au?: number | null
           required?: boolean | null
           setting_description?: string | null
           setting_display_order?: number | null
@@ -214,9 +225,13 @@ export type Database = {
           option_id?: string
           option_name?: string
           price?: number
+          price_au?: number | null
           price_gold?: number | null
+          price_gold_au?: number | null
           price_lab_grown?: number | null
+          price_lab_grown_au?: number | null
           price_silver?: number | null
+          price_silver_au?: number | null
           required?: boolean | null
           setting_description?: string | null
           setting_display_order?: number | null
@@ -328,13 +343,22 @@ export type Database = {
         Row: {
           base_image_url: string | null
           base_price: number
+          base_price_au: number | null
           base_price_gold: number | null
+          base_price_gold_au: number | null
           base_price_lab_grown: number | null
+          base_price_lab_grown_au: number | null
           base_price_silver: number | null
+          base_price_silver_au: number | null
           black_onyx_base_price: number | null
+          black_onyx_base_price_au: number | null
           black_onyx_base_price_gold: number | null
+          black_onyx_base_price_gold_au: number | null
           black_onyx_base_price_lab_grown: number | null
+          black_onyx_base_price_lab_grown_au: number | null
           black_onyx_base_price_silver: number | null
+          black_onyx_base_price_silver_au: number | null
+          category_id: string | null
           created_at: string | null
           description: string | null
           display_order: number | null
@@ -350,13 +374,22 @@ export type Database = {
         Insert: {
           base_image_url?: string | null
           base_price?: number
+          base_price_au?: number | null
           base_price_gold?: number | null
+          base_price_gold_au?: number | null
           base_price_lab_grown?: number | null
+          base_price_lab_grown_au?: number | null
           base_price_silver?: number | null
+          base_price_silver_au?: number | null
           black_onyx_base_price?: number | null
+          black_onyx_base_price_au?: number | null
           black_onyx_base_price_gold?: number | null
+          black_onyx_base_price_gold_au?: number | null
           black_onyx_base_price_lab_grown?: number | null
+          black_onyx_base_price_lab_grown_au?: number | null
           black_onyx_base_price_silver?: number | null
+          black_onyx_base_price_silver_au?: number | null
+          category_id?: string | null
           created_at?: string | null
           description?: string | null
           display_order?: number | null
@@ -372,13 +405,22 @@ export type Database = {
         Update: {
           base_image_url?: string | null
           base_price?: number
+          base_price_au?: number | null
           base_price_gold?: number | null
+          base_price_gold_au?: number | null
           base_price_lab_grown?: number | null
+          base_price_lab_grown_au?: number | null
           base_price_silver?: number | null
+          base_price_silver_au?: number | null
           black_onyx_base_price?: number | null
+          black_onyx_base_price_au?: number | null
           black_onyx_base_price_gold?: number | null
+          black_onyx_base_price_gold_au?: number | null
           black_onyx_base_price_lab_grown?: number | null
+          black_onyx_base_price_lab_grown_au?: number | null
           black_onyx_base_price_silver?: number | null
+          black_onyx_base_price_silver_au?: number | null
+          category_id?: string | null
           created_at?: string | null
           description?: string | null
           display_order?: number | null
@@ -391,7 +433,15 @@ export type Database = {
           type?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "jewelry_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leads: {
         Row: {
@@ -436,6 +486,7 @@ export type Database = {
           jewelry_type: string
           order_id: string
           preview_image_url: string | null
+          product_name: string | null
           quantity: number
           subtotal: number
           total_price: number
@@ -449,6 +500,7 @@ export type Database = {
           jewelry_type?: string
           order_id: string
           preview_image_url?: string | null
+          product_name?: string | null
           quantity?: number
           subtotal: number
           total_price?: number
@@ -462,6 +514,7 @@ export type Database = {
           jewelry_type?: string
           order_id?: string
           preview_image_url?: string | null
+          product_name?: string | null
           quantity?: number
           subtotal?: number
           total_price?: number
@@ -565,6 +618,42 @@ export type Database = {
           subtotal?: number
           total?: number
           total_amount?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      product_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          slug?: string
           updated_at?: string | null
         }
         Relationships: []

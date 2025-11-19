@@ -20,6 +20,9 @@ import CustomizationEditor from '@/components/admin/CustomizationEditor';
 import ProductImages from '@/components/admin/ProductImages';
 import LogicRulesEditor from '@/components/admin/LogicRulesEditor';
 import { ToastProvider } from '@/components/ui/toast-provider';
+import MarketSelector from '@/components/admin/MarketSelector';
+import MarketPricingForm from '@/components/admin/MarketPricingForm';
+import type { Market } from '@/lib/market-client';
 
 interface JewelryItem {
   id: string;
@@ -109,8 +112,9 @@ export default function EditProductPage() {
   const [settings, setSettings] = useState<CustomizationSetting[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'basic' | 'customization' | 'images' | 'logic'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'pricing' | 'customization' | 'images' | 'logic'>('basic');
   const [imagesRefreshKey, setImagesRefreshKey] = useState(0);
+  const [selectedMarket, setSelectedMarket] = useState<Market>('lb');
 
   // Callback when customization options change
   const handleCustomizationChange = () => {
@@ -331,6 +335,16 @@ export default function EditProductPage() {
           >
             Basic Information
           </button>
+          <button
+            onClick={() => setActiveTab('pricing')}
+            className={`py-3 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'pricing'
+                ? 'border-zinc-900 text-zinc-900'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Pricing
+          </button>
           {product.product_type === 'customizable' && (
             <>
               <button
@@ -378,10 +392,115 @@ export default function EditProductPage() {
 
       {/* Tab Content */}
       {activeTab === 'basic' && (
-        <BasicInfoEditor 
-          product={product} 
-          onProductChange={setProduct} 
+        <BasicInfoEditor
+          product={product}
+          onProductChange={setProduct}
         />
+      )}
+
+      {activeTab === 'pricing' && (
+        <div className="space-y-6">
+          <MarketSelector
+            selectedMarket={selectedMarket}
+            onMarketChange={setSelectedMarket}
+          />
+
+          <MarketPricingForm
+            market={selectedMarket}
+            priceFields={[
+              {
+                label: 'Base Price',
+                key: `base_price_${selectedMarket}`,
+                value: selectedMarket === 'lb'
+                  ? product.base_price
+                  : (product as any)[`base_price_${selectedMarket}`] || null
+              },
+              {
+                label: 'Lab Grown Diamond Base Price',
+                key: `base_price_lab_grown_${selectedMarket}`,
+                value: selectedMarket === 'lb'
+                  ? product.base_price_lab_grown
+                  : (product as any)[`base_price_lab_grown_${selectedMarket}`] || null
+              },
+              {
+                label: 'Gold Base Price',
+                key: `base_price_gold_${selectedMarket}`,
+                value: selectedMarket === 'lb'
+                  ? product.base_price_gold
+                  : (product as any)[`base_price_gold_${selectedMarket}`] || null
+              },
+              {
+                label: 'Silver Base Price',
+                key: `base_price_silver_${selectedMarket}`,
+                value: selectedMarket === 'lb'
+                  ? product.base_price_silver
+                  : (product as any)[`base_price_silver_${selectedMarket}`] || null
+              },
+              {
+                label: 'Black Onyx Base Price',
+                key: `black_onyx_base_price_${selectedMarket}`,
+                value: selectedMarket === 'lb'
+                  ? product.black_onyx_base_price
+                  : (product as any)[`black_onyx_base_price_${selectedMarket}`] || null
+              },
+              {
+                label: 'Black Onyx Lab Grown Price',
+                key: `black_onyx_base_price_lab_grown_${selectedMarket}`,
+                value: selectedMarket === 'lb'
+                  ? product.black_onyx_base_price_lab_grown
+                  : (product as any)[`black_onyx_base_price_lab_grown_${selectedMarket}`] || null
+              },
+              {
+                label: 'Black Onyx Gold Price',
+                key: `black_onyx_base_price_gold_${selectedMarket}`,
+                value: selectedMarket === 'lb'
+                  ? product.black_onyx_base_price_gold
+                  : (product as any)[`black_onyx_base_price_gold_${selectedMarket}`] || null
+              },
+              {
+                label: 'Black Onyx Silver Price',
+                key: `black_onyx_base_price_silver_${selectedMarket}`,
+                value: selectedMarket === 'lb'
+                  ? product.black_onyx_base_price_silver
+                  : (product as any)[`black_onyx_base_price_silver_${selectedMarket}`] || null
+              },
+            ]}
+            onSave={async (prices) => {
+              try {
+                // Prepare update data based on market
+                const updateData: any = {};
+
+                Object.entries(prices).forEach(([key, value]) => {
+                  // Remove the market suffix from the key for Lebanon market
+                  const dbKey = selectedMarket === 'lb'
+                    ? key.replace('_lb', '')
+                    : key.replace(`_${selectedMarket}`, `_${selectedMarket}`);
+
+                  updateData[dbKey] = value;
+                });
+
+                const { error } = await (supabase as any)
+                  .from('jewelry_items')
+                  .update(updateData)
+                  .eq('id', productId);
+
+                if (error) {
+                  console.error('Error saving prices:', error);
+                  return false;
+                }
+
+                // Refresh product data
+                await fetchProductData();
+                return true;
+              } catch (error) {
+                console.error('Error saving prices:', error);
+                return false;
+              }
+            }}
+            title="Base Prices"
+            description="Set prices for this product in different markets"
+          />
+        </div>
       )}
 
       {activeTab === 'customization' && product.product_type === 'customizable' && (

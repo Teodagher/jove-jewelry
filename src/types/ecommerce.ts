@@ -1,6 +1,7 @@
 export interface CustomJewelryItem {
   id: string;
   jewelry_type: 'necklaces' | 'rings' | 'bracelets' | 'earrings';
+  product_name?: string; // The actual product name
   customization_data: Record<string, unknown>; // The selected options (metal, stones, etc.)
   customization_summary: string; // Human readable description
   base_price: number;
@@ -13,6 +14,7 @@ export interface CartItem {
   id: string;
   session_id: string;
   jewelry_type: 'necklaces' | 'rings' | 'bracelets' | 'earrings';
+  product_name?: string; // The actual product name
   customization_data: Record<string, unknown>;
   base_price: number;
   total_price: number;
@@ -27,6 +29,7 @@ export interface CartItemInsert {
   session_id: string;
   user_id?: string | null;
   jewelry_type: 'necklaces' | 'rings' | 'bracelets' | 'earrings';
+  product_name?: string;
   customization_data: Record<string, unknown>;
   base_price: number;
   total_price: number;
@@ -43,6 +46,7 @@ export interface OrderItem {
   id: string;
   order_id: string;
   jewelry_type: 'necklaces' | 'rings' | 'bracelets' | 'earrings';
+  product_name?: string;
   customization_data: Record<string, unknown>;
   customization_summary: string;
   base_price: number;

@@ -4,10 +4,12 @@ import { supabase } from '@/lib/supabase/client';
 import type { JewelryItem as DBJewelryItem, CustomizationOption as DBCustomizationOption } from '@/lib/supabase/types';
 import type { JewelryItem, CustomizationSetting, CustomizationOption, DiamondType, MetalType } from '@/types/customization';
 import { DynamicFilenameService } from './dynamicFilenameService';
+import type { Market } from '@/lib/market-client';
+import { getBasePrice, getOptionPrice, isItemAvailableInMarket, isOptionAvailableInMarket } from '@/lib/pricing';
 
 export class CustomizationService {
   // Fetch jewelry item with all customization options by slug
-  static async getJewelryItemConfigBySlug(slug: string): Promise<JewelryItem | null> {
+  static async getJewelryItemConfigBySlug(slug: string, market: Market = 'lb'): Promise<JewelryItem | null> {
     try {
       // Get jewelry item by slug
       const { data: jewelryItem, error: itemError } = await supabase
@@ -20,6 +22,15 @@ export class CustomizationService {
 
       if (itemError || !jewelryItem) {
         console.error('Error fetching jewelry item by slug:', itemError)
+        return null
+      }
+
+      // Check if item is available in this market
+      // Products must have pricing configured for the specific market
+      const itemAvailable = isItemAvailableInMarket(jewelryItem, market)
+
+      if (!itemAvailable) {
+        console.warn(`Item ${slug} is not available in market: ${market}`)
         return null
       }
 
@@ -39,8 +50,15 @@ export class CustomizationService {
 
       // Group options by setting_id and preserve display_order
       const settingsMap = new Map<string, CustomizationSetting & { tempOptions: Array<DBCustomizationOption & { optionData: CustomizationOption }> }>()
-      
+
       options?.forEach((option: DBCustomizationOption) => {
+        // Skip options not available in this market
+        const optionAvailable = isOptionAvailableInMarket(option, market)
+
+        if (!optionAvailable) {
+          return
+        }
+
         if (!settingsMap.has(option.setting_id)) {
           settingsMap.set(option.setting_id, {
             id: option.setting_id,
@@ -53,15 +71,22 @@ export class CustomizationService {
         }
 
         const setting = settingsMap.get(option.setting_id)!
+
+        // Map prices based on market (no fallback)
+        const price = getOptionPrice(option, market, 'default')
+        const priceLabGrown = getOptionPrice(option, market, 'lab_grown')
+        const priceGold = getOptionPrice(option, market, 'gold')
+        const priceSilver = getOptionPrice(option, market, 'silver')
+
         setting.tempOptions.push({
           ...option,
           optionData: {
             id: option.option_id,
             name: option.option_name,
-            price: option.price,
-            priceLabGrown: option.price_lab_grown,
-            priceGold: option.price_gold,
-            priceSilver: option.price_silver,
+            price: price ?? 0,
+            priceLabGrown: priceLabGrown,
+            priceGold: priceGold,
+            priceSilver: priceSilver,
             image: option.image_url || undefined,
             color: option.color_gradient || undefined
           } as CustomizationOption
@@ -75,20 +100,30 @@ export class CustomizationService {
         delete (setting as { tempOptions?: unknown }).tempOptions
       })
 
+      // Map base prices based on market (no fallback)
+      const basePrice = getBasePrice(jewelryItem, market, 'base_price') ?? 0
+      const basePriceLabGrown = getBasePrice(jewelryItem, market, 'base_price_lab_grown')
+      const basePriceGold = getBasePrice(jewelryItem, market, 'base_price_gold')
+      const basePriceSilver = getBasePrice(jewelryItem, market, 'base_price_silver')
+      const blackOnyxBasePrice = getBasePrice(jewelryItem, market, 'black_onyx_base_price')
+      const blackOnyxBasePriceLabGrown = getBasePrice(jewelryItem, market, 'black_onyx_base_price_lab_grown')
+      const blackOnyxBasePriceGold = getBasePrice(jewelryItem, market, 'black_onyx_base_price_gold')
+      const blackOnyxBasePriceSilver = getBasePrice(jewelryItem, market, 'black_onyx_base_price_silver')
+
       // Convert to config format
       const config = {
         id: jewelryItem.id,
         name: jewelryItem.name,
         type: jewelryItem.type,
         baseImage: jewelryItem.base_image_url || '',
-        basePrice: jewelryItem.base_price,
-        basePriceLabGrown: jewelryItem.base_price_lab_grown,
-        basePriceGold: jewelryItem.base_price_gold,
-        basePriceSilver: jewelryItem.base_price_silver,
-        blackOnyxBasePrice: jewelryItem.black_onyx_base_price,
-        blackOnyxBasePriceLabGrown: jewelryItem.black_onyx_base_price_lab_grown,
-        blackOnyxBasePriceGold: jewelryItem.black_onyx_base_price_gold,
-        blackOnyxBasePriceSilver: jewelryItem.black_onyx_base_price_silver,
+        basePrice: basePrice,
+        basePriceLabGrown: basePriceLabGrown,
+        basePriceGold: basePriceGold,
+        basePriceSilver: basePriceSilver,
+        blackOnyxBasePrice: blackOnyxBasePrice,
+        blackOnyxBasePriceLabGrown: blackOnyxBasePriceLabGrown,
+        blackOnyxBasePriceGold: blackOnyxBasePriceGold,
+        blackOnyxBasePriceSilver: blackOnyxBasePriceSilver,
         pricingType: jewelryItem.pricing_type || 'diamond_type',
         settings: Array.from(settingsMap.values()).sort((a, b) => {
           // Sort settings by their display order from the first option in each setting

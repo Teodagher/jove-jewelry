@@ -7,6 +7,7 @@ import { CartItem, CartItemInsert, CartItemUpdate } from '@/types/ecommerce';
 
 interface CustomJewelryData {
   jewelry_type: 'necklaces' | 'rings' | 'bracelets' | 'earrings';
+  product_name?: string;
   customization_data: Record<string, unknown>;
   customization_summary: string;
   base_price: number;
@@ -70,6 +71,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         id: item.id as string,
         session_id: item.session_id as string,
         jewelry_type: item.jewelry_type as 'necklaces' | 'rings' | 'bracelets' | 'earrings',
+        product_name: item.product_name as string | undefined,
         customization_data: item.customization_data as Record<string, unknown>,
         base_price: item.base_price as number,
         total_price: item.total_price as number,
@@ -132,6 +134,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         session_id: sessionId,
         user_id: user?.id || null,
         jewelry_type: jewelryData.jewelry_type,
+        product_name: jewelryData.product_name,
         customization_data: jewelryData.customization_data,
         base_price: jewelryData.base_price,
         total_price: jewelryData.total_price,
@@ -155,6 +158,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         id: dataItem.id as string,
         session_id: dataItem.session_id as string,
         jewelry_type: dataItem.jewelry_type as 'necklaces' | 'rings' | 'bracelets' | 'earrings',
+        product_name: dataItem.product_name as string | undefined,
         customization_data: dataItem.customization_data as Record<string, unknown>,
         base_price: dataItem.base_price as number,
         total_price: dataItem.total_price as number,

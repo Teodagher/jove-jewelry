@@ -3,13 +3,17 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '@/contexts/CartContext';
 import { Button } from '@/components/ui/button';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
-import { MapPin, CreditCard, Truck, Clock } from 'lucide-react';
+import { MapPin, CreditCard, Truck, Clock, Banknote } from 'lucide-react';
 import PaymentMethodCard from '@/components/ui/payment-method-card';
 import { useToast } from '@/contexts/ToastContext';
 import GoogleMapsModal from '@/components/GoogleMapsModal';
 import HandcraftedBanner from '@/components/HandcraftedBanner';
+import { getMarketClient, MARKET_INFO } from '@/lib/market-client';
+import { getCurrency, formatPriceForMarket } from '@/lib/currency';
+import { useStripeCheckout } from '@/hooks/useStripeCheckout';
+import type { Market } from '@/lib/market-client';
 
 interface OrderFormData {
   firstName: string;
@@ -27,9 +31,28 @@ interface OrderFormData {
   longitude?: number;
 }
 
+type PaymentMethod = 'stripe' | 'cash_on_delivery';
+
 export default function CheckoutPage() {
   const { items, itemCount, subtotal, clearCart, loading: cartLoading } = useCart();
   const { error: showError, success: showSuccess, luxury: showLuxury } = useToast();
+  const searchParams = useSearchParams();
+
+  // Helper function to get market from URL or cookie
+  const getMarket = (): Market => {
+    const urlMarket = searchParams.get('market');
+    if (urlMarket === 'au' || urlMarket === 'lb') {
+      return urlMarket as Market;
+    }
+    return getMarketClient();
+  };
+
+  const [market, setMarket] = useState<Market>(() => getMarket());
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(() => {
+    const currentMarket = getMarket();
+    const methods = MARKET_INFO[currentMarket].paymentMethods as readonly PaymentMethod[];
+    return methods.includes('stripe') ? 'stripe' : 'cash_on_delivery';
+  });
   const [formData, setFormData] = useState<OrderFormData>({
     firstName: '',
     lastName: '',
@@ -47,6 +70,25 @@ export default function CheckoutPage() {
   const [showMapModal, setShowMapModal] = useState(false);
   const [orderCompleted, setOrderCompleted] = useState(false);
   const router = useRouter();
+
+  const { createCheckoutSession, loading: stripeLoading } = useStripeCheckout({ market });
+
+  // Get available payment methods for current market
+  const availablePaymentMethods = MARKET_INFO[market].paymentMethods as readonly PaymentMethod[];
+
+  // Update market when URL parameter changes
+  useEffect(() => {
+    const currentMarket = getMarket();
+    setMarket(currentMarket);
+
+    // Set default payment method based on available methods
+    const methods = MARKET_INFO[currentMarket].paymentMethods as readonly PaymentMethod[];
+    if (methods.includes('stripe')) {
+      setPaymentMethod('stripe');
+    } else if (methods.includes('cash_on_delivery')) {
+      setPaymentMethod('cash_on_delivery');
+    }
+  }, [searchParams]);
 
   // Redirect if cart is empty (but not if we just completed an order)
   useEffect(() => {
@@ -78,10 +120,7 @@ export default function CheckoutPage() {
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
+    return formatPriceForMarket(price, market);
   };
 
   const formatJewelryType = (type: string) => {
@@ -257,31 +296,16 @@ export default function CheckoutPage() {
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
-    console.log('✅ Form validation passed, proceeding with order creation...');
+    console.log('✅ Form validation passed, proceeding with payment...');
     setSubmitting(true);
 
     try {
-
-      console.log('🛒 Starting order creation...', {
-        itemCount: items.length,
-        subtotal,
-        formData: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          city: formData.city,
-          area: formData.area,
-          address: formData.address
-        }
-      });
-
-      // Validate and sanitize data before creating order
+      // Validate and sanitize data before processing
       const sanitizedFormData = {
         firstName: formData.firstName?.trim() || '',
         lastName: formData.lastName?.trim() || '',
@@ -297,6 +321,41 @@ export default function CheckoutPage() {
         latitude: formData.latitude || null,
         longitude: formData.longitude || null
       };
+
+      // If Stripe payment, redirect to Stripe Checkout
+      if (paymentMethod === 'stripe') {
+        const customerInfo = {
+          first_name: sanitizedFormData.firstName,
+          last_name: sanitizedFormData.lastName,
+          email: sanitizedFormData.email,
+          phone: `${sanitizedFormData.countryCode} ${sanitizedFormData.phone}`,
+        };
+
+        const deliveryAddress = {
+          address: sanitizedFormData.address,
+          city: sanitizedFormData.city,
+          area: sanitizedFormData.area,
+          building: sanitizedFormData.building,
+          floor: sanitizedFormData.floor,
+          notes: sanitizedFormData.notes,
+          latitude: sanitizedFormData.latitude,
+          longitude: sanitizedFormData.longitude,
+        };
+
+        const result = await createCheckoutSession(items, customerInfo, deliveryAddress);
+
+        if (result.success) {
+          // Stripe will redirect, so we don't need to do anything else
+          return;
+        } else {
+          // Error already shown by the hook
+          setSubmitting(false);
+          return;
+        }
+      }
+
+      // Cash on Delivery flow - create order directly
+      console.log('🛒 Starting Cash on Delivery order creation...');
 
       // Validate required fields
       const requiredFields = {
@@ -876,7 +935,7 @@ export default function CheckoutPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-medium text-gray-900">
-                        Custom {formatJewelryType(item.jewelry_type)} x{item.quantity}
+                        {item.product_name || `Custom ${formatJewelryType(item.jewelry_type)}`} x{item.quantity}
                       </h4>
                       <p className="text-xs text-gray-600 mt-1 line-clamp-2">
                         {generateCustomizationText(item.customization_data)}
@@ -906,6 +965,76 @@ export default function CheckoutPage() {
                 <span>{formatPrice(subtotal)}</span>
               </div>
 
+              {/* Payment Method Selection */}
+              <div className="mb-6 jove-bg-card rounded-lg shadow-sm p-4 sm:p-6">
+                <div className="flex items-center space-x-3 mb-4">
+                  <CreditCard className="w-6 h-6 text-green-600" />
+                  <h3 className="text-lg font-medium text-gray-900">Payment Method</h3>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Stripe Payment */}
+                  {availablePaymentMethods.includes('stripe') && (
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('stripe')}
+                      className={`w-full p-4 rounded-lg border-2 transition-all ${
+                        paymentMethod === 'stripe'
+                          ? 'border-zinc-900 bg-zinc-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <CreditCard className={`w-5 h-5 ${paymentMethod === 'stripe' ? 'text-zinc-900' : 'text-gray-400'}`} />
+                          <div className="text-left">
+                            <p className="font-medium text-gray-900">Card Payment</p>
+                            <p className="text-xs text-gray-500">Secure payment via Stripe</p>
+                          </div>
+                        </div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          paymentMethod === 'stripe' ? 'border-zinc-900' : 'border-gray-300'
+                        }`}>
+                          {paymentMethod === 'stripe' && (
+                            <div className="w-3 h-3 rounded-full bg-zinc-900"></div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Cash on Delivery */}
+                  {availablePaymentMethods.includes('cash_on_delivery') && (
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('cash_on_delivery')}
+                      className={`w-full p-4 rounded-lg border-2 transition-all ${
+                        paymentMethod === 'cash_on_delivery'
+                          ? 'border-zinc-900 bg-zinc-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <Banknote className={`w-5 h-5 ${paymentMethod === 'cash_on_delivery' ? 'text-zinc-900' : 'text-gray-400'}`} />
+                          <div className="text-left">
+                            <p className="font-medium text-gray-900">Cash on Delivery</p>
+                            <p className="text-xs text-gray-500">Pay when you receive your order</p>
+                          </div>
+                        </div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          paymentMethod === 'cash_on_delivery' ? 'border-zinc-900' : 'border-gray-300'
+                        }`}>
+                          {paymentMethod === 'cash_on_delivery' && (
+                            <div className="w-3 h-3 rounded-full bg-zinc-900"></div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Handcrafted Banner */}
               <div className="mb-6">
                 <HandcraftedBanner />
@@ -914,16 +1043,18 @@ export default function CheckoutPage() {
               {/* Place Order Button */}
               <Button
                 onClick={handleSubmitOrder}
-                disabled={submitting}
+                disabled={submitting || stripeLoading}
                 className="w-full bg-black hover:bg-zinc-800 text-white py-4 text-sm font-light tracking-[0.15em] transition-all duration-500 rounded-none border-0 uppercase"
               >
-                {submitting ? (
+                {submitting || stripeLoading ? (
                   <div className="flex items-center justify-center">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Placing Order...
+                    {paymentMethod === 'stripe' ? 'Redirecting to Payment...' : 'Placing Order...'}
                   </div>
                 ) : (
-                  `Place Order — ${formatPrice(subtotal)}`
+                  paymentMethod === 'stripe'
+                    ? `Proceed to Payment — ${formatPrice(subtotal)}`
+                    : `Place Order — ${formatPrice(subtotal)}`
                 )}
               </Button>
 

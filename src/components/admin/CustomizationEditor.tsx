@@ -7,12 +7,15 @@ import { useToast } from '@/components/ui/toast-provider';
 import { supabase } from '@/lib/supabase/client';
 import NewStepModal from './NewStepModal';
 import OptionImageUpload from './OptionImageUpload';
-import { 
-  GripVertical, 
-  Plus, 
-  Trash2, 
-  Eye, 
-  Edit, 
+import MarketSelector from './MarketSelector';
+import { Market } from '@/lib/market-client';
+import { getCurrency } from '@/lib/currency';
+import {
+  GripVertical,
+  Plus,
+  Trash2,
+  Eye,
+  Edit,
   Save,
   X,
   Settings,
@@ -76,6 +79,7 @@ export default function CustomizationEditor({
   const [draggedSetting, setDraggedSetting] = useState<string | null>(null);
   const [draggedOption, setDraggedOption] = useState<{ settingId: string; optionId: string } | null>(null);
   const [showNewStepModal, setShowNewStepModal] = useState(false);
+  const [selectedMarket, setSelectedMarket] = useState<Market>('lb');
 
   const { addToast } = useToast();
 
@@ -598,6 +602,18 @@ export default function CustomizationEditor({
         </div>
       </div>
 
+      {/* Market Selector */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <h4 className="text-sm font-medium text-gray-900 mb-3">Market Pricing</h4>
+        <p className="text-xs text-gray-600 mb-4">
+          Select a market to view and edit pricing for customization options. Prices can be different for each market.
+        </p>
+        <MarketSelector
+          selectedMarket={selectedMarket}
+          onMarketChange={setSelectedMarket}
+        />
+      </div>
+
       {/* Settings List */}
       <div className="space-y-4">
         {settings.map((setting, settingIndex) => (
@@ -625,6 +641,7 @@ export default function CustomizationEditor({
             isLast={settingIndex === settings.length - 1}
             onOptionsChange={onOptionsChange}
             pricingType={pricingType}
+            selectedMarket={selectedMarket}
           />
         ))}
       </div>
@@ -681,7 +698,8 @@ function SettingCard({
   isFirst,
   isLast,
   onOptionsChange,
-  pricingType
+  pricingType,
+  selectedMarket
 }: {
   setting: CustomizationSetting;
   settingIndex: number;
@@ -705,6 +723,7 @@ function SettingCard({
   isLast: boolean;
   onOptionsChange?: () => void;
   pricingType: 'diamond_type' | 'metal_type';
+  selectedMarket: Market;
 }) {
   const [showAddOption, setShowAddOption] = useState(false);
   const [newOption, setNewOption] = useState({
@@ -718,6 +737,22 @@ function SettingCard({
     image_file: null as File | null
   });
   const { addToast } = useToast();
+  const currency = getCurrency(selectedMarket);
+
+  // Helper functions to get market-specific column names
+  const getMarketColumnName = (baseColumn: string): string => {
+    if (selectedMarket === 'lb') {
+      return baseColumn; // Lebanon uses base columns (USD pricing)
+    }
+    return `${baseColumn}_au`; // Australia uses AUD prices (with _au suffix)
+  };
+
+  // Helper to get market-specific price from option
+  const getMarketPrice = (option: any, baseColumn: string): number | null => {
+    const columnName = getMarketColumnName(baseColumn);
+    const value = option[columnName];
+    return value !== undefined && value !== null ? Number(value) : null;
+  };
 
   // Update option display orders in database (local version for SettingCard)
   const updateOptionDisplayOrders = async (options: CustomizationOption[]) => {
@@ -900,6 +935,17 @@ function SettingCard({
       // Ensure unique ID right before insertion (double-check)
       const finalOptionId = generateOptionId(newOption.option_name, allSettings, setting);
       
+      // Build market-specific price object
+      const priceData: any = {};
+
+      if (pricingType === 'diamond_type') {
+        priceData[getMarketColumnName('price')] = newOption.price || null;
+        priceData[getMarketColumnName('price_lab_grown')] = newOption.price_lab_grown || null;
+      } else {
+        priceData[getMarketColumnName('price_gold')] = newOption.price_gold || null;
+        priceData[getMarketColumnName('price_silver')] = newOption.price_silver || null;
+      }
+
       const optionToInsert = {
         jewelry_item_id: productId,
         setting_id: setting.setting_id,
@@ -910,10 +956,7 @@ function SettingCard({
         affects_image_variant: setting.affects_image_variant,
         option_id: finalOptionId,
         option_name: newOption.option_name,
-        price: newOption.price,
-        price_lab_grown: newOption.price_lab_grown || null,
-        price_gold: newOption.price_gold || null,
-        price_silver: newOption.price_silver || null,
+        ...priceData,
         image_url: finalImageUrl,
         display_order: nextDisplayOrder,
         is_active: true
@@ -1292,6 +1335,7 @@ function SettingCard({
               pricingType={pricingType}
               isLast={optionIndex === setting.options.length - 1}
               onOptionsChange={onOptionsChange}
+              selectedMarket={selectedMarket}
             />
           ))}
           
@@ -1328,54 +1372,78 @@ function SettingCard({
                   <>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Natural Diamond Price ($) *
+                        Natural Diamond Price ({currency}) *
                       </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newOption.price}
-                        onChange={(e) => setNewOption(prev => ({...prev, price: parseFloat(e.target.value) || 0}))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                      />
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                          {currency === 'USD' ? '$' : 'A$'}
+                        </span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={newOption.price}
+                          onChange={(e) => setNewOption(prev => ({...prev, price: parseFloat(e.target.value) || 0}))}
+                          className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          placeholder="0.00"
+                        />
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Lab Grown Price ($)
+                        Lab Grown Price ({currency})
                       </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newOption.price_lab_grown}
-                        onChange={(e) => setNewOption(prev => ({...prev, price_lab_grown: parseFloat(e.target.value) || 0}))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                      />
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                          {currency === 'USD' ? '$' : 'A$'}
+                        </span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={newOption.price_lab_grown}
+                          onChange={(e) => setNewOption(prev => ({...prev, price_lab_grown: parseFloat(e.target.value) || 0}))}
+                          className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          placeholder="0.00"
+                        />
+                      </div>
                     </div>
                   </>
                 ) : (
                   <>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Gold Price ($) *
+                        Gold Price ({currency}) *
                       </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newOption.price_gold}
-                        onChange={(e) => setNewOption(prev => ({...prev, price_gold: parseFloat(e.target.value) || 0}))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                      />
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                          {currency === 'USD' ? '$' : 'A$'}
+                        </span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={newOption.price_gold}
+                          onChange={(e) => setNewOption(prev => ({...prev, price_gold: parseFloat(e.target.value) || 0}))}
+                          className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          placeholder="0.00"
+                        />
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Silver Price ($) *
+                        Silver Price ({currency}) *
                       </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={newOption.price_silver}
-                        onChange={(e) => setNewOption(prev => ({...prev, price_silver: parseFloat(e.target.value) || 0}))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                      />
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                          {currency === 'USD' ? '$' : 'A$'}
+                        </span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={newOption.price_silver}
+                          onChange={(e) => setNewOption(prev => ({...prev, price_silver: parseFloat(e.target.value) || 0}))}
+                          className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          placeholder="0.00"
+                        />
+                      </div>
                     </div>
                   </>
                 )}
@@ -1444,7 +1512,8 @@ function OptionCard({
   isFirst,
   isLast,
   onOptionsChange,
-  pricingType
+  pricingType,
+  selectedMarket
 }: {
   option: CustomizationOption;
   optionIndex: number;
@@ -1463,19 +1532,44 @@ function OptionCard({
   isLast: boolean;
   onOptionsChange?: () => void;
   pricingType: 'diamond_type' | 'metal_type';
+  selectedMarket: Market;
 }) {
   const [editedOption, setEditedOption] = useState(option);
+  const currency = getCurrency(selectedMarket);
+
+  // Helper functions to get market-specific column names
+  const getMarketColumnName = (baseColumn: string): string => {
+    if (selectedMarket === 'lb') {
+      return baseColumn;
+    }
+    return `${baseColumn}_${selectedMarket}`;
+  };
+
+  // Helper to get market-specific price from option
+  const getMarketPrice = (opt: any, baseColumn: string): number | null => {
+    const columnName = getMarketColumnName(baseColumn);
+    const value = opt[columnName];
+    return value !== undefined && value !== null ? Number(value) : null;
+  };
 
   const saveOption = async () => {
     try {
+      // Build market-specific price update object
+      const priceData: any = {};
+
+      if (pricingType === 'diamond_type') {
+        priceData[getMarketColumnName('price')] = editedOption.price || null;
+        priceData[getMarketColumnName('price_lab_grown')] = editedOption.price_lab_grown || null;
+      } else {
+        priceData[getMarketColumnName('price_gold')] = editedOption.price_gold || null;
+        priceData[getMarketColumnName('price_silver')] = editedOption.price_silver || null;
+      }
+
       await supabase
         .from('customization_options')
         .update({
           option_name: editedOption.option_name,
-          price: editedOption.price,
-          price_lab_grown: editedOption.price_lab_grown,
-          price_gold: editedOption.price_gold,
-          price_silver: editedOption.price_silver,
+          ...priceData,
           image_url: editedOption.image_url,
           is_active: editedOption.is_active
         })
@@ -1528,54 +1622,90 @@ function OptionCard({
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Natural Diamond Price ($)
+                  Natural Diamond Price ({currency})
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={editedOption.price}
-                  onChange={(e) => setEditedOption({...editedOption, price: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                    {currency === 'USD' ? '$' : 'A$'}
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={getMarketPrice(editedOption, 'price') ?? ''}
+                    onChange={(e) => {
+                      const columnName = getMarketColumnName('price');
+                      setEditedOption({...editedOption, [columnName]: e.target.value ? parseFloat(e.target.value) : null});
+                    }}
+                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Lab Grown Price ($)
+                  Lab Grown Price ({currency})
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={editedOption.price_lab_grown || ''}
-                  onChange={(e) => setEditedOption({...editedOption, price_lab_grown: e.target.value ? parseFloat(e.target.value) : null})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                    {currency === 'USD' ? '$' : 'A$'}
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={getMarketPrice(editedOption, 'price_lab_grown') ?? ''}
+                    onChange={(e) => {
+                      const columnName = getMarketColumnName('price_lab_grown');
+                      setEditedOption({...editedOption, [columnName]: e.target.value ? parseFloat(e.target.value) : null});
+                    }}
+                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
             </>
           ) : (
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Gold Price ($)
+                  Gold Price ({currency})
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={editedOption.price_gold || ''}
-                  onChange={(e) => setEditedOption({...editedOption, price_gold: e.target.value ? parseFloat(e.target.value) : null})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                    {currency === 'USD' ? '$' : 'A$'}
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={getMarketPrice(editedOption, 'price_gold') ?? ''}
+                    onChange={(e) => {
+                      const columnName = getMarketColumnName('price_gold');
+                      setEditedOption({...editedOption, [columnName]: e.target.value ? parseFloat(e.target.value) : null});
+                    }}
+                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Silver Price ($)
+                  Silver Price ({currency})
                 </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={editedOption.price_silver || ''}
-                  onChange={(e) => setEditedOption({...editedOption, price_silver: e.target.value ? parseFloat(e.target.value) : null})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                    {currency === 'USD' ? '$' : 'A$'}
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={getMarketPrice(editedOption, 'price_silver') ?? ''}
+                    onChange={(e) => {
+                      const columnName = getMarketColumnName('price_silver');
+                      setEditedOption({...editedOption, [columnName]: e.target.value ? parseFloat(e.target.value) : null});
+                    }}
+                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
             </>
           )}
@@ -1653,12 +1783,24 @@ function OptionCard({
             <div className="text-xs text-gray-500">
               {pricingType === 'diamond_type' ? (
                 <>
-                  ${option.price}
-                  {option.price_lab_grown && ` / $${option.price_lab_grown} (lab)`}
+                  {getMarketPrice(option, 'price') !== null ? (
+                    <>
+                      {currency === 'USD' ? '$' : 'A$'}{getMarketPrice(option, 'price')}
+                      {getMarketPrice(option, 'price_lab_grown') !== null && ` / ${currency === 'USD' ? '$' : 'A$'}${getMarketPrice(option, 'price_lab_grown')} (lab)`}
+                    </>
+                  ) : (
+                    <span className="text-orange-600">Not available in this market</span>
+                  )}
                 </>
               ) : (
                 <>
-                  ${option.price_gold || 0} (gold) / ${option.price_silver || 0} (silver)
+                  {(getMarketPrice(option, 'price_gold') !== null || getMarketPrice(option, 'price_silver') !== null) ? (
+                    <>
+                      {currency === 'USD' ? '$' : 'A$'}{getMarketPrice(option, 'price_gold') || 0} (gold) / {currency === 'USD' ? '$' : 'A$'}{getMarketPrice(option, 'price_silver') || 0} (silver)
+                    </>
+                  ) : (
+                    <span className="text-orange-600">Not available in this market</span>
+                  )}
                 </>
               )}
             </div>

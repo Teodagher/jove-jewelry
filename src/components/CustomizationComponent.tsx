@@ -10,13 +10,15 @@ import JewelryPreview from './JewelryPreview';
 import RingSizeSelector from './RingSizeSelector';
 import RealLifeImageViewer from './RealLifeImageViewer';
 import { useCart } from '@/contexts/CartContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { BuyNowButton } from '@/components/ui/buy-now-button';
 import ProductDescription from '@/components/ProductDescription';
 import PoweredByAstryCustomization from '@/components/PoweredByAstryCustomization';
 import DiamondLoader from '@/components/ui/DiamondLoader';
 import { useImagePreloader } from '@/hooks/useImagePreloader';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getMarketClient } from '@/lib/market-client';
+import { getCurrency } from '@/lib/currency';
 
 // Preload critical images for faster UX
 const preloadImage = (src: string) => {
@@ -48,6 +50,19 @@ export default function CustomizationComponent({
   const [userSelections, setUserSelections] = useState<Set<string>>(new Set()); // Track user-made selections
   const { addCustomJewelryToCart } = useCart();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Get market from URL parameter or cookie
+  const getMarket = () => {
+    const urlMarket = searchParams.get('market');
+    if (urlMarket === 'au' || urlMarket === 'lb') {
+      return urlMarket as 'lb' | 'au';
+    }
+    return getMarketClient();
+  };
+
+  const market = getMarket();
+  const currency = getCurrency(market);
 
   // Extract all image URLs from customization options for preloading
   const allOptionImageUrls = useMemo(() => {
@@ -638,7 +653,7 @@ export default function CustomizationComponent({
     return setting.options.every(option => {
       const imageUrl = option.image || option.imageUrl;
       if (!imageUrl) return true; // No image means it's "loaded"
-      
+
       const imageState = getImageState(imageUrl);
       return imageState.loaded; // Only consider actually loaded, not errors
     });
@@ -672,7 +687,7 @@ export default function CustomizationComponent({
 
   // Check if we have any settings ready to show (used for transition timing)
   const hasSettingsReady = getLoadedSettings().length > 0;
-  
+
   // Only hide loading screen when we actually have settings ready to show
   const shouldShowLoadingScreen = !allImagesLoaded || !hasSettingsReady;
 
@@ -751,6 +766,7 @@ export default function CustomizationComponent({
 
       await addCustomJewelryToCart({
         jewelry_type: jewelryItem.id as 'necklaces' | 'rings' | 'bracelets' | 'earrings',
+        product_name: jewelryItem.name,
         customization_data: {
           ...customizationState,
           diamondType: pricingType === 'diamond_type' ? selectedDiamondType : undefined,
@@ -787,6 +803,7 @@ export default function CustomizationComponent({
 
       await addCustomJewelryToCart({
         jewelry_type: jewelryItem.id as 'necklaces' | 'rings' | 'bracelets' | 'earrings',
+        product_name: jewelryItem.name,
         customization_data: {
           ...customizationState,
           diamondType: pricingType === 'diamond_type' ? selectedDiamondType : undefined,
@@ -996,6 +1013,7 @@ export default function CustomizationComponent({
               disabled={!isComplete}
               loading={addingToCart}
               price={totalPrice}
+              currency={currency}
               showBothOptions={true}
               diamondType={selectedDiamondType}
               metalType={selectedMetalType}
@@ -1093,6 +1111,7 @@ export default function CustomizationComponent({
                   disabled={!isComplete}
                   loading={addingToCart}
                   price={totalPrice}
+                  currency={currency}
                   showBothOptions={true}
                   diamondType={selectedDiamondType}
                   metalType={selectedMetalType}
@@ -1133,6 +1152,7 @@ export default function CustomizationComponent({
                     disabled={!isComplete}
                     loading={addingToCart}
                     price={totalPrice}
+                    currency={currency}
                     showBothOptions={true}
                     diamondType={selectedDiamondType}
                     metalType={selectedMetalType}

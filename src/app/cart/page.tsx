@@ -147,7 +147,7 @@ export default function CartPage() {
                     {/* Item Details */}
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base sm:text-lg font-medium text-gray-900">
-                        Custom {formatJewelryType(item.jewelry_type)}
+                        {item.product_name || `Custom ${formatJewelryType(item.jewelry_type)}`}
                       </h3>
                       <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                         {generateCustomizationText(item.customization_data, item.jewelry_type)}

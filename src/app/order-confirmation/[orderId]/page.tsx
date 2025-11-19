@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { CheckCircle } from 'lucide-react';
+import { useCart } from '@/contexts/CartContext';
 
 interface Order {
   id: string;
@@ -18,20 +19,31 @@ interface Order {
 export default function OrderConfirmationPage() {
   const params = useParams();
   const router = useRouter();
+  const { clearCart } = useCart();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [cartCleared, setCartCleared] = useState(false);
 
   const orderId = params.orderId as string;
 
   const fetchOrder = useCallback(async () => {
     try {
-      
-      const { data, error } = await (supabase
-        .from('orders') as any)
-        .select('*')
-        .eq('id', orderId)
-        .single();
+      // If orderId looks like a Stripe session ID, search by notes field
+      // Otherwise, search by order ID
+      const isStripeSession = orderId.startsWith('cs_');
+
+      let query = supabase.from('orders').select('*');
+
+      if (isStripeSession) {
+        // Search for order with this Stripe session ID
+        query = query.eq('stripe_session_id', orderId);
+      } else {
+        query = query.eq('id', orderId);
+      }
+
+      const { data, error } = await query.single();
 
       if (error) throw error;
 
@@ -46,19 +58,35 @@ export default function OrderConfirmationPage() {
       };
 
       setOrder(mappedOrder);
+      setLoading(false);
+
+      // Clear cart after successful order (only once)
+      if (!cartCleared) {
+        await clearCart();
+        setCartCleared(true);
+      }
     } catch (error: unknown) {
       console.error('Error fetching order:', error);
-      setError('Order not found');
-    } finally {
-      setLoading(false);
+
+      // If it's a Stripe session and we haven't retried too many times, retry
+      const isStripeSession = orderId.startsWith('cs_');
+      if (isStripeSession && retryCount < 10) {
+        // Retry after 2 seconds (webhook might still be processing)
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+        }, 2000);
+      } else {
+        setError('Order not found');
+        setLoading(false);
+      }
     }
-  }, [orderId]);
+  }, [orderId, retryCount, clearCart, cartCleared]);
 
   useEffect(() => {
     if (orderId) {
       fetchOrder();
     }
-  }, [orderId, fetchOrder]);
+  }, [orderId, fetchOrder, retryCount]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {

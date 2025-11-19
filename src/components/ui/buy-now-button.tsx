@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from './button';
+import type { Currency } from '@/lib/currency';
 
 interface BuyNowButtonProps {
   onAddToCart?: () => void;
@@ -7,6 +8,7 @@ interface BuyNowButtonProps {
   disabled?: boolean;
   loading?: boolean;
   price?: number;
+  currency?: Currency;
   className?: string;
   showBothOptions?: boolean;
   diamondType?: 'natural' | 'lab_grown';
@@ -20,6 +22,7 @@ export function BuyNowButton({
   disabled = false,
   loading = false,
   price,
+  currency = 'USD',
   className = '',
   showBothOptions = true,
   diamondType = 'natural',
@@ -27,10 +30,8 @@ export function BuyNowButton({
   pricingType = 'diamond_type'
 }: BuyNowButtonProps) {
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
+    const symbol = currency === 'AUD' ? 'A$' : '$';
+    return `${symbol}${price.toFixed(2)} ${currency}`;
   };
 
   // Get button color and text based on pricing type
@@ -98,12 +99,14 @@ export function QuickBuyButton({
   disabled = false,
   loading = false,
   price,
+  currency = 'USD',
   className = ''
 }: {
   onBuyNow?: () => void;
   disabled?: boolean;
   loading?: boolean;
   price?: number;
+  currency?: Currency;
   className?: string;
 }) {
   return (
@@ -112,6 +115,7 @@ export function QuickBuyButton({
       disabled={disabled}
       loading={loading}
       price={price}
+      currency={currency}
       className={className}
       showBothOptions={false}
     />

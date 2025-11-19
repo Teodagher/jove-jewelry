@@ -1,10 +1,143 @@
+import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from './src/lib/supabase/middleware'
 
-export async function middleware(request: NextRequest) {
-  return await updateSession(request)
+export type Market = 'lb' | 'au'
+
+// Extend NextRequest to include Vercel's geo property
+interface NextRequestWithGeo extends NextRequest {
+  geo?: {
+    country?: string
+  }
 }
 
-import { type NextRequest } from 'next/server'
+const DOMAIN_MARKET_MAP: Record<string, Market> = {
+  'maisonjove.com': 'lb',
+  'maisonjove.com.au': 'au',
+}
+
+const MARKET_DOMAIN_MAP: Record<Market, string> = {
+  lb: 'maisonjove.com',
+  au: 'maisonjove.com.au',
+}
+
+function getMarketFromDomain(hostname: string): Market {
+  // Remove www. prefix if present
+  const cleanHostname = hostname.replace(/^www\./, '')
+  // Default to 'lb' for localhost and unknown domains
+  return DOMAIN_MARKET_MAP[cleanHostname] || 'lb'
+}
+
+function getTargetDomainForGeo(country?: string): string {
+  // No country info = Lebanon domain (default)
+  if (!country) return 'maisonjove.com'
+
+  // Lebanon users stay on maisonjove.com
+  if (country === 'LB') return 'maisonjove.com'
+
+  // All other countries go to maisonjove.com.au
+  return 'maisonjove.com.au'
+}
+
+function getMarketForPricing(country?: string): Market {
+  // Market determines pricing currency
+  // 'lb' = USD pricing (Lebanon + International)
+  // 'au' = AUD pricing (Australia only)
+
+  if (country === 'AU') return 'au' // Only Australia gets AUD pricing
+
+  return 'lb' // Everyone else gets USD pricing (Lebanon + International)
+}
+
+export async function middleware(request: NextRequest) {
+  // First, handle Supabase session
+  let response = await updateSession(request)
+
+  const hostname = request.headers.get('host') || ''
+  const pathname = request.nextUrl.pathname
+
+  // Skip market logic for admin routes, API routes, and static files
+  if (
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next') ||
+    pathname.match(/\.(ico|png|jpg|jpeg|svg|gif|webp)$/)
+  ) {
+    return response
+  }
+
+  const country = (request as NextRequestWithGeo).geo?.country
+  const currentDomain = hostname.replace(/^www\./, '')
+  const targetDomain = getTargetDomainForGeo(country)
+
+  // DEV ONLY: Allow query parameter override for testing
+  const url = new URL(request.url)
+  const marketOverride = url.searchParams.get('market')
+
+  // If user is on the wrong domain for their geo-location, redirect them
+  // Only redirect if:
+  // 1. We're on a production domain (not localhost)
+  // 2. The current domain doesn't match the target domain
+  // 3. No market override query parameter (for testing)
+  if (
+    !hostname.includes('localhost') &&
+    !hostname.includes('127.0.0.1') &&
+    currentDomain !== targetDomain &&
+    !marketOverride
+  ) {
+    const redirectUrl = new URL(request.url)
+    redirectUrl.host = targetDomain
+
+    // Add query parameters to show notification
+    redirectUrl.searchParams.set('redirected', 'true')
+    // Set the "from" parameter based on target domain for notification display
+    const fromLabel = targetDomain === 'maisonjove.com.au' ? 'International' : 'LB'
+    redirectUrl.searchParams.set('from', fromLabel)
+
+    const redirectResponse = NextResponse.redirect(redirectUrl)
+
+    // Copy over Supabase cookies
+    response.cookies.getAll().forEach(cookie => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, cookie)
+    })
+
+    // Set market cookie based on geo-location (determines pricing)
+    const pricingMarket = getMarketForPricing(country)
+    redirectResponse.cookies.set('market', pricingMarket, {
+      maxAge: 60 * 60 * 24 * 365, // 1 year
+      path: '/',
+      sameSite: 'lax',
+    })
+
+    return redirectResponse
+  }
+
+  // No redirect needed - set market based on geo-location or override
+  // Market determines pricing currency (lb=USD, au=AUD)
+  const market = (marketOverride === 'au' || marketOverride === 'lb')
+    ? marketOverride as Market
+    : getMarketForPricing(country)
+
+  // Create new response with market cookie
+  const newResponse = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+
+  // Copy all cookies from supabase response
+  response.cookies.getAll().forEach(cookie => {
+    newResponse.cookies.set(cookie.name, cookie.value, cookie)
+  })
+
+  // Set market cookie based on domain
+  newResponse.cookies.set('market', market, {
+    maxAge: 60 * 60 * 24 * 365, // 1 year
+    path: '/',
+    sameSite: 'lax',
+  })
+
+  return newResponse
+}
 
 export const config = {
   matcher: [

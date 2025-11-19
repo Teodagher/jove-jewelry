@@ -1,18 +1,30 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import CustomizationComponent from '@/components/CustomizationComponent';
 import { CustomizationService } from '@/services/customizationService';
 import { JewelryItem, CustomizationState } from '@/types/customization';
+import { getMarketClient } from '@/lib/market-client';
+import type { Market } from '@/lib/market-client';
 
 export default function DynamicCustomizePage() {
   const params = useParams();
   const slug = params.slug as string;
-  
+  const searchParams = useSearchParams();
+
   const [jewelryItem, setJewelryItem] = useState<JewelryItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Helper function to get market from URL or cookie
+  const getMarket = (): Market => {
+    const urlMarket = searchParams.get('market');
+    if (urlMarket === 'au' || urlMarket === 'lb') {
+      return urlMarket as Market;
+    }
+    return getMarketClient();
+  };
 
   useEffect(() => {
     const fetchJewelryConfig = async () => {
@@ -24,12 +36,24 @@ export default function DynamicCustomizePage() {
 
       try {
         setLoading(true);
-        const config = await CustomizationService.getJewelryItemConfigBySlug(slug);
-        
+
+        // Get the user's market from URL parameter or cookies
+        const market = getMarket();
+        console.log('🌍 Current market:', market);
+
+        // Fetch config with market-specific pricing
+        const config = await CustomizationService.getJewelryItemConfigBySlug(slug, market);
+
         if (config) {
+          console.log('✅ Product config loaded:', {
+            name: config.name,
+            settingsCount: config.settings.length,
+            settings: config.settings.map(s => ({ id: s.id, title: s.title, optionsCount: s.options.length }))
+          });
           setJewelryItem(config);
         } else {
-          setError('Product not found or not available for customization');
+          console.error('❌ Product not found or not available in market:', market);
+          setError('Product not found or not available in your region');
         }
       } catch (err) {
         console.error('Error fetching jewelry config:', err);
@@ -40,7 +64,7 @@ export default function DynamicCustomizePage() {
     };
 
     fetchJewelryConfig();
-  }, [slug]);
+  }, [slug, searchParams]);
 
   const handleCustomizationChange = (state: CustomizationState, totalPrice: number) => {
     console.log(`${jewelryItem?.name} customization state:`, state);
@@ -61,18 +85,20 @@ export default function DynamicCustomizePage() {
   if (error || !jewelryItem) {
     return (
       <div className="min-h-screen jove-bg-primary flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h1>
-          <p className="text-red-600 mb-6">{error || 'This product is not available for customization'}</p>
+        <div className="text-center max-w-md mx-auto px-4">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Product Not Available</h1>
+          <p className="text-red-600 mb-6">
+            {error || 'This product is not available for customization in your region'}
+          </p>
           <div className="space-x-4">
-            <button 
-              onClick={() => window.history.back()} 
+            <button
+              onClick={() => window.history.back()}
               className="px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
             >
               Go Back
             </button>
-            <button 
-              onClick={() => window.location.href = '/customize'} 
+            <button
+              onClick={() => window.location.href = '/customize'}
               className="px-6 py-2 bg-zinc-800 text-white rounded hover:bg-zinc-900 transition-colors"
             >
               Browse All Products
