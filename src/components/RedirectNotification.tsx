@@ -39,7 +39,7 @@ export function RedirectNotification() {
   if (!show) return null
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-4 px-4 pointer-events-none animate-in slide-in-from-top-2 duration-500">
+    <div className="fixed top-0 left-0 right-0 z-[60] flex justify-center pt-4 px-4 pointer-events-none animate-in slide-in-from-top-2 duration-500">
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-md w-full pointer-events-auto">
         <div className="p-4 flex items-start gap-3">
           <div className="flex-1">
