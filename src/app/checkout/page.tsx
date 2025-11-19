@@ -41,7 +41,7 @@ export default function CheckoutPage() {
   // Helper function to get market from URL or cookie
   const getMarket = (): Market => {
     const urlMarket = searchParams.get('market');
-    if (urlMarket === 'au' || urlMarket === 'lb') {
+    if (urlMarket === 'au' || urlMarket === 'lb' || urlMarket === 'intl') {
       return urlMarket as Market;
     }
     return getMarketClient();

@@ -65,7 +65,7 @@ export interface CustomizationOptionWithMarketPrices {
  * Get base price for a jewelry item in a specific market
  * Returns null if the price is not available in that market
  *
- * Note: Lebanon (lb) uses base columns with USD pricing
+ * Note: Lebanon (lb) and International (intl) use base columns with USD pricing
  * Australia (au) has separate AUD prices (columns with _au suffix)
  */
 export function getBasePrice(
@@ -76,8 +76,8 @@ export function getBasePrice(
   // The variant IS the column name already, we just need to append _au for Australia
   let columnName: string
 
-  if (market === 'lb') {
-    // Lebanon market uses base columns (USD pricing)
+  if (market === 'lb' || market === 'intl') {
+    // Lebanon and International markets use base columns (USD pricing)
     // The variant parameter already IS the column name
     columnName = variant
   } else {
@@ -107,8 +107,8 @@ export function getOptionPrice(
   // Build the column name based on market and variant
   let columnName: string
 
-  if (market === 'lb') {
-    // Lebanon market uses base columns (USD pricing)
+  if (market === 'lb' || market === 'intl') {
+    // Lebanon and International markets use base columns (USD pricing)
     columnName = variant === 'default' ? 'price' : `price_${variant}`
   } else {
     // Australia market uses AUD prices (with _au suffix)

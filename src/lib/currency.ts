@@ -10,6 +10,7 @@ export function getCurrency(market: Market): Currency {
     case 'au':
       return 'AUD'
     case 'lb':
+    case 'intl':
     default:
       return 'USD'
   }

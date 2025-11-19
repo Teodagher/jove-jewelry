@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from './src/lib/supabase/middleware'
 
-export type Market = 'lb' | 'au'
+export type Market = 'lb' | 'au' | 'intl'
 
 // Extend NextRequest to include Vercel's geo property
 interface NextRequestWithGeo extends NextRequest {
@@ -39,13 +39,15 @@ function getTargetDomainForGeo(country?: string): string {
 }
 
 function getMarketForPricing(country?: string): Market {
-  // Market determines pricing currency
-  // 'lb' = USD pricing (Lebanon + International)
-  // 'au' = AUD pricing (Australia only)
+  // Market determines pricing currency AND payment methods
+  // 'lb' = USD pricing + Cash on Delivery + Stripe (Lebanon only)
+  // 'intl' = USD pricing + Stripe only (International)
+  // 'au' = AUD pricing + Stripe only (Australia only)
 
-  if (country === 'AU') return 'au' // Only Australia gets AUD pricing
+  if (country === 'AU') return 'au' // Australia gets AUD pricing + Stripe only
+  if (country === 'LB') return 'lb' // Lebanon gets USD pricing + Cash on Delivery + Stripe
 
-  return 'lb' // Everyone else gets USD pricing (Lebanon + International)
+  return 'intl' // Everyone else gets USD pricing + Stripe only
 }
 
 export async function middleware(request: NextRequest) {
@@ -112,8 +114,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // No redirect needed - set market based on geo-location or override
-  // Market determines pricing currency (lb=USD, au=AUD)
-  const market = (marketOverride === 'au' || marketOverride === 'lb')
+  // Market determines pricing currency (lb=USD, intl=USD, au=AUD) and payment methods
+  const market = (marketOverride === 'au' || marketOverride === 'lb' || marketOverride === 'intl')
     ? marketOverride as Market
     : getMarketForPricing(country)
 

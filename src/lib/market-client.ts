@@ -3,15 +3,22 @@
  * This file can be imported in Client Components
  */
 
-export type Market = 'lb' | 'au'
+export type Market = 'lb' | 'au' | 'intl'
 
 export const MARKET_INFO = {
   lb: {
-    name: 'Lebanon / International',
+    name: 'Lebanon',
     currency: 'USD',
-    flag: '🌍',
+    flag: '🇱🇧',
     domain: 'maisonjove.com',
     paymentMethods: ['cash_on_delivery', 'stripe'] as const,
+  },
+  intl: {
+    name: 'International',
+    currency: 'USD',
+    flag: '🌍',
+    domain: 'maisonjove.com.au',
+    paymentMethods: ['stripe'] as const,
   },
   au: {
     name: 'Australia',
@@ -23,7 +30,7 @@ export const MARKET_INFO = {
 } as const
 
 // All markets available
-export const MARKETS: Market[] = ['lb', 'au']
+export const MARKETS: Market[] = ['lb', 'intl', 'au']
 export const ADMIN_MARKETS: Market[] = ['lb', 'au']
 
 /**
@@ -63,7 +70,7 @@ export function setMarketClient(market: Market): void {
  * Validate if a string is a valid market
  */
 function isValidMarket(value: string): value is Market {
-  return value === 'lb' || value === 'au'
+  return value === 'lb' || value === 'au' || value === 'intl'
 }
 
 /**
