@@ -688,19 +688,6 @@ export default function CheckoutPage() {
         <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
           {/* Order Form */}
           <div className="space-y-4 lg:space-y-6">
-            {/* Payment Method */}
-            <div className="jove-bg-card rounded-lg shadow-sm p-6">
-              <div className="flex items-center space-x-3 mb-5">
-                <CreditCard className="w-6 h-6 text-green-600" />
-                <h3 className="text-lg font-medium text-gray-900">Payment Method</h3>
-              </div>
-              <PaymentMethodCard
-                title="Cash on Delivery"
-                subtitle="Pay when your jewelry is delivered"
-                selected
-              />
-            </div>
-
             {/* Customer Information */}
             <div className="jove-bg-card rounded-lg shadow-sm p-4 sm:p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Customer Information</h3>
