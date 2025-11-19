@@ -28,12 +28,14 @@ function getMarketFromDomain(hostname: string): Market {
   return DOMAIN_MARKET_MAP[cleanHostname] || 'lb'
 }
 
-function getTargetDomainForGeo(country?: string): string {
+function getTargetDomainForGeo(country?: string): string | null {
+  // If geo-location fails or is unavailable, return null (no redirect)
+  if (!country) return null
+
   // Lebanon users stay on maisonjove.com
   if (country === 'LB') return 'maisonjove.com'
 
-  // All other countries (including undefined/unknown) go to maisonjove.com.au
-  // This includes when geo-location fails or returns undefined
+  // All other known countries go to maisonjove.com.au
   return 'maisonjove.com.au'
 }
 
@@ -87,11 +89,13 @@ export async function middleware(request: NextRequest) {
   // If user is on the wrong domain for their geo-location, redirect them
   // Only redirect if:
   // 1. We're on a production domain (not localhost)
-  // 2. The current domain doesn't match the target domain
-  // 3. No market override query parameter (for testing)
+  // 2. We have geo-location data (targetDomain is not null)
+  // 3. The current domain doesn't match the target domain
+  // 4. No market override query parameter (for testing)
   if (
     !hostname.includes('localhost') &&
     !hostname.includes('127.0.0.1') &&
+    targetDomain !== null &&
     currentDomain !== targetDomain &&
     !marketOverride
   ) {
@@ -127,11 +131,21 @@ export async function middleware(request: NextRequest) {
     return redirectResponse
   }
 
-  // No redirect needed - set market based on geo-location or override
+  // No redirect needed - set market based on geo-location, domain, or override
   // Market determines pricing currency (lb=USD, intl=USD, au=AUD) and payment methods
-  const market = (marketOverride === 'au' || marketOverride === 'lb' || marketOverride === 'intl')
-    ? marketOverride as Market
-    : getMarketForPricing(country)
+  let market: Market
+  if (marketOverride === 'au' || marketOverride === 'lb' || marketOverride === 'intl') {
+    // Query parameter override for testing
+    market = marketOverride as Market
+  } else if (country) {
+    // We have geo-location data - use it
+    market = getMarketForPricing(country)
+  } else {
+    // No geo-location data - determine by domain
+    // maisonjove.com → 'lb' (Lebanon market with Cash on Delivery)
+    // maisonjove.com.au → 'intl' (International market with Stripe only)
+    market = currentDomain === 'maisonjove.com' ? 'lb' : 'intl'
+  }
 
   // Create new response with market cookie
   const newResponse = NextResponse.next({
@@ -157,7 +171,7 @@ export async function middleware(request: NextRequest) {
   newResponse.headers.set('x-geo-country', country || 'undefined')
   newResponse.headers.set('x-middleware-ran', 'true')
   newResponse.headers.set('x-current-domain', currentDomain)
-  newResponse.headers.set('x-target-domain', targetDomain)
+  newResponse.headers.set('x-target-domain', targetDomain || 'none')
 
   return newResponse
 }
