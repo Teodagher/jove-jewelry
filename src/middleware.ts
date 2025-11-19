@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { updateSession } from './src/lib/supabase/middleware'
+import { updateSession } from './lib/supabase/middleware'
 
 export type Market = 'lb' | 'au' | 'intl'
 
@@ -51,7 +51,7 @@ function getMarketForPricing(country?: string): Market {
 
 export async function middleware(request: NextRequest) {
   // First, handle Supabase session
-  let response = await updateSession(request)
+  const response = await updateSession(request)
 
   const hostname = request.headers.get('host') || ''
   const pathname = request.nextUrl.pathname
