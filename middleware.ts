@@ -119,6 +119,11 @@ export async function middleware(request: NextRequest) {
       sameSite: 'lax',
     })
 
+    // DEBUG: Add headers to verify middleware is running
+    redirectResponse.headers.set('x-market-detected', pricingMarket)
+    redirectResponse.headers.set('x-geo-country', country || 'undefined')
+    redirectResponse.headers.set('x-middleware-ran', 'true')
+
     return redirectResponse
   }
 
@@ -146,6 +151,13 @@ export async function middleware(request: NextRequest) {
     path: '/',
     sameSite: 'lax',
   })
+
+  // DEBUG: Add headers to verify middleware is running
+  newResponse.headers.set('x-market-detected', market)
+  newResponse.headers.set('x-geo-country', country || 'undefined')
+  newResponse.headers.set('x-middleware-ran', 'true')
+  newResponse.headers.set('x-current-domain', currentDomain)
+  newResponse.headers.set('x-target-domain', targetDomain)
 
   return newResponse
 }
