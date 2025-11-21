@@ -4,8 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2025-11-17.clover',
-    })
+    apiVersion: '2025-11-17.clover',
+  })
   : null;
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
@@ -151,7 +151,8 @@ export async function POST(request: NextRequest) {
       await supabase
         .from('orders')
         .update({
-          notes: `Stripe Session: ${session.id}${orderData.notes ? `\n${orderData.notes}` : ''}`
+          stripe_session_id: session.id,
+          notes: orderData.notes // Keep original notes if any
         })
         .eq('id', order.id);
     }
