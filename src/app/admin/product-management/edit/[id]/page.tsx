@@ -38,6 +38,15 @@ interface JewelryItem {
   black_onyx_base_price_lab_grown: number | null;
   black_onyx_base_price_gold: number | null;
   black_onyx_base_price_silver: number | null;
+  // Australian market prices
+  base_price_au: number | null;
+  base_price_lab_grown_au: number | null;
+  base_price_gold_au: number | null;
+  base_price_silver_au: number | null;
+  black_onyx_base_price_au: number | null;
+  black_onyx_base_price_lab_grown_au: number | null;
+  black_onyx_base_price_gold_au: number | null;
+  black_onyx_base_price_silver_au: number | null;
   pricing_type: 'diamond_type' | 'metal_type';
   base_image_url: string | null;
   is_active: boolean;
@@ -328,8 +337,8 @@ export default function EditProductPage() {
             <button
               onClick={() => setActiveTab('basic')}
               className={`py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'basic'
-                  ? 'border-zinc-900 text-zinc-900'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-zinc-900 text-zinc-900'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               Basic Information
@@ -337,8 +346,8 @@ export default function EditProductPage() {
             <button
               onClick={() => setActiveTab('pricing')}
               className={`py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'pricing'
-                  ? 'border-zinc-900 text-zinc-900'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ? 'border-zinc-900 text-zinc-900'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
             >
               Pricing
@@ -348,8 +357,8 @@ export default function EditProductPage() {
                 <button
                   onClick={() => setActiveTab('customization')}
                   className={`py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'customization'
-                      ? 'border-zinc-900 text-zinc-900'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-zinc-900 text-zinc-900'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                 >
                   Customization Options ({settings.length})
@@ -363,8 +372,8 @@ export default function EditProductPage() {
                     }
                   }}
                   className={`py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'images'
-                      ? 'border-zinc-900 text-zinc-900'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-zinc-900 text-zinc-900'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                 >
                   <ImageIcon className="w-4 h-4 inline mr-2" />
@@ -373,8 +382,8 @@ export default function EditProductPage() {
                 <button
                   onClick={() => setActiveTab('logic')}
                   className={`py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'logic'
-                      ? 'border-zinc-900 text-zinc-900'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-zinc-900 text-zinc-900'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                 >
                   <Zap className="w-4 h-4 inline mr-2" />
@@ -405,56 +414,56 @@ export default function EditProductPage() {
               priceFields={[
                 {
                   label: 'Base Price',
-                  key: `base_price_${selectedMarket}`,
+                  key: selectedMarket === 'lb' ? 'base_price' : `base_price_${selectedMarket}`,
                   value: selectedMarket === 'lb'
                     ? product.base_price
                     : (product as any)[`base_price_${selectedMarket}`] || null
                 },
                 {
                   label: 'Lab Grown Diamond Base Price',
-                  key: `base_price_lab_grown_${selectedMarket}`,
+                  key: selectedMarket === 'lb' ? 'base_price_lab_grown' : `base_price_lab_grown_${selectedMarket}`,
                   value: selectedMarket === 'lb'
                     ? product.base_price_lab_grown
                     : (product as any)[`base_price_lab_grown_${selectedMarket}`] || null
                 },
                 {
                   label: 'Gold Base Price',
-                  key: `base_price_gold_${selectedMarket}`,
+                  key: selectedMarket === 'lb' ? 'base_price_gold' : `base_price_gold_${selectedMarket}`,
                   value: selectedMarket === 'lb'
                     ? product.base_price_gold
                     : (product as any)[`base_price_gold_${selectedMarket}`] || null
                 },
                 {
                   label: 'Silver Base Price',
-                  key: `base_price_silver_${selectedMarket}`,
+                  key: selectedMarket === 'lb' ? 'base_price_silver' : `base_price_silver_${selectedMarket}`,
                   value: selectedMarket === 'lb'
                     ? product.base_price_silver
                     : (product as any)[`base_price_silver_${selectedMarket}`] || null
                 },
                 {
                   label: 'Black Onyx Base Price',
-                  key: `black_onyx_base_price_${selectedMarket}`,
+                  key: selectedMarket === 'lb' ? 'black_onyx_base_price' : `black_onyx_base_price_${selectedMarket}`,
                   value: selectedMarket === 'lb'
                     ? product.black_onyx_base_price
                     : (product as any)[`black_onyx_base_price_${selectedMarket}`] || null
                 },
                 {
                   label: 'Black Onyx Lab Grown Price',
-                  key: `black_onyx_base_price_lab_grown_${selectedMarket}`,
+                  key: selectedMarket === 'lb' ? 'black_onyx_base_price_lab_grown' : `black_onyx_base_price_lab_grown_${selectedMarket}`,
                   value: selectedMarket === 'lb'
                     ? product.black_onyx_base_price_lab_grown
                     : (product as any)[`black_onyx_base_price_lab_grown_${selectedMarket}`] || null
                 },
                 {
                   label: 'Black Onyx Gold Price',
-                  key: `black_onyx_base_price_gold_${selectedMarket}`,
+                  key: selectedMarket === 'lb' ? 'black_onyx_base_price_gold' : `black_onyx_base_price_gold_${selectedMarket}`,
                   value: selectedMarket === 'lb'
                     ? product.black_onyx_base_price_gold
                     : (product as any)[`black_onyx_base_price_gold_${selectedMarket}`] || null
                 },
                 {
                   label: 'Black Onyx Silver Price',
-                  key: `black_onyx_base_price_silver_${selectedMarket}`,
+                  key: selectedMarket === 'lb' ? 'black_onyx_base_price_silver' : `black_onyx_base_price_silver_${selectedMarket}`,
                   value: selectedMarket === 'lb'
                     ? product.black_onyx_base_price_silver
                     : (product as any)[`black_onyx_base_price_silver_${selectedMarket}`] || null
@@ -462,22 +471,10 @@ export default function EditProductPage() {
               ]}
               onSave={async (prices) => {
                 try {
-                  // Prepare update data based on market
-                  const updateData: any = {};
-
-                  Object.entries(prices).forEach(([key, value]) => {
-                    // Remove the market suffix from the key for Lebanon market only
-                    // For other markets (au, etc.), keep the key as-is since DB columns include the suffix
-                    const dbKey = selectedMarket === 'lb'
-                      ? key.replace('_lb', '')
-                      : key;
-
-                    updateData[dbKey] = value;
-                  });
-
+                  // Keys now match database columns directly, so no transformation needed
                   const { error } = await (supabase as any)
                     .from('jewelry_items')
-                    .update(updateData)
+                    .update(prices)
                     .eq('id', productId);
 
                   if (error) {

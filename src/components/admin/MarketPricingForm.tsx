@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Market, getMarketInfo } from '@/lib/market-client';
 import { getCurrency } from '@/lib/currency';
 
@@ -35,6 +35,18 @@ export default function MarketPricingForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Update prices when market changes
+  useEffect(() => {
+    const newPrices: Record<string, number | null> = {};
+    priceFields.forEach(field => {
+      newPrices[field.key] = field.value;
+    });
+    setPrices(newPrices);
+    setSuccess(false);
+    setError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [market]);
 
   const marketInfo = getMarketInfo(market);
   const currency = getCurrency(market);
