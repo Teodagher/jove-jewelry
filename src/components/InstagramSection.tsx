@@ -4,13 +4,13 @@ import Script from 'next/script'
 
 export default function InstagramSection() {
   return (
-    <section className="py-16 md:py-24 bg-white">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-light text-gray-900 mb-4">
+    <section className="py-12 sm:py-16 lg:py-24 bg-zinc-800">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="text-center mb-8 sm:mb-12">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-light text-white mb-3 tracking-wide">
             Follow Us on Instagram
           </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
+          <p className="text-sm sm:text-base text-gray-300 max-w-2xl mx-auto">
             Stay connected and see our latest creations
           </p>
         </div>
