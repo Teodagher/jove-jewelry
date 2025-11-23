@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
-import { 
-  Save, 
-  X, 
-  Upload, 
-  Plus, 
-  GripVertical, 
-  Trash2, 
+import {
+  Save,
+  X,
+  Upload,
+  Plus,
+  GripVertical,
+  Trash2,
   Eye,
   Settings,
   ImageIcon,
@@ -165,7 +165,7 @@ export default function EditProductPage() {
 
         // Group options by setting
         const settingsMap = new Map<string, CustomizationSetting>();
-        
+
         optionsData?.forEach((option) => {
           if (!settingsMap.has(option.setting_id)) {
             settingsMap.set(option.setting_id, {
@@ -236,7 +236,7 @@ export default function EditProductPage() {
         description: product.description,
         category_id: product.category_id
       };
-      
+
       const { error } = await (supabase as any)
         .from('jewelry_items')
         .update(updateData)
@@ -281,267 +281,263 @@ export default function EditProductPage() {
   return (
     <ToastProvider>
       <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Link
-            href="/admin/product-management"
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-light text-zinc-900 tracking-wide">
-              Edit {product.name}
-            </h1>
-            <p className="text-zinc-600 mt-1">
-              {product.product_type === 'customizable' ? 'Customizable Product' : 'Simple Product'}
-            </p>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Link
+              href="/admin/product-management"
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <X className="w-5 h-5" />
+            </Link>
+            <div>
+              <h1 className="text-2xl font-light text-zinc-900 tracking-wide">
+                Edit {product.name}
+              </h1>
+              <p className="text-zinc-600 mt-1">
+                {product.product_type === 'customizable' ? 'Customizable Product' : 'Simple Product'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            {product.slug && (
+              <Link
+                href={`/customize/${product.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Preview
+              </Link>
+            )}
+            <button
+              onClick={handleSaveProduct}
+              disabled={saving}
+              className="inline-flex items-center px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
           </div>
         </div>
-        <div className="flex items-center space-x-3">
-          {product.slug && (
-            <Link
-              href={`/customize/${product.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+
+        {/* Tabs */}
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('basic')}
+              className={`py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'basic'
+                  ? 'border-zinc-900 text-zinc-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
             >
-              <Eye className="w-4 h-4 mr-2" />
-              Preview
-            </Link>
-          )}
-          <button
-            onClick={handleSaveProduct}
-            disabled={saving}
-            className="inline-flex items-center px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
+              Basic Information
+            </button>
+            <button
+              onClick={() => setActiveTab('pricing')}
+              className={`py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'pricing'
+                  ? 'border-zinc-900 text-zinc-900'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+            >
+              Pricing
+            </button>
+            {product.product_type === 'customizable' && (
+              <>
+                <button
+                  onClick={() => setActiveTab('customization')}
+                  className={`py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'customization'
+                      ? 'border-zinc-900 text-zinc-900'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                >
+                  Customization Options ({settings.length})
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab('images');
+                    // Force refresh images when switching from customization tab
+                    if (activeTab === 'customization') {
+                      setImagesRefreshKey(prev => prev + 1);
+                    }
+                  }}
+                  className={`py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'images'
+                      ? 'border-zinc-900 text-zinc-900'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                >
+                  <ImageIcon className="w-4 h-4 inline mr-2" />
+                  Product Images
+                </button>
+                <button
+                  onClick={() => setActiveTab('logic')}
+                  className={`py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'logic'
+                      ? 'border-zinc-900 text-zinc-900'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                >
+                  <Zap className="w-4 h-4 inline mr-2" />
+                  Logic Rules
+                </button>
+              </>
+            )}
+          </nav>
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('basic')}
-            className={`py-3 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'basic'
-                ? 'border-zinc-900 text-zinc-900'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Basic Information
-          </button>
-          <button
-            onClick={() => setActiveTab('pricing')}
-            className={`py-3 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'pricing'
-                ? 'border-zinc-900 text-zinc-900'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            Pricing
-          </button>
-          {product.product_type === 'customizable' && (
-            <>
-              <button
-                onClick={() => setActiveTab('customization')}
-                className={`py-3 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'customization'
-                    ? 'border-zinc-900 text-zinc-900'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Customization Options ({settings.length})
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('images');
-                  // Force refresh images when switching from customization tab
-                  if (activeTab === 'customization') {
-                    setImagesRefreshKey(prev => prev + 1);
-                  }
-                }}
-                className={`py-3 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'images'
-                    ? 'border-zinc-900 text-zinc-900'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <ImageIcon className="w-4 h-4 inline mr-2" />
-                Product Images
-              </button>
-              <button
-                onClick={() => setActiveTab('logic')}
-                className={`py-3 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'logic'
-                    ? 'border-zinc-900 text-zinc-900'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Zap className="w-4 h-4 inline mr-2" />
-                Logic Rules
-              </button>
-            </>
-          )}
-        </nav>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === 'basic' && (
-        <BasicInfoEditor
-          product={product}
-          onProductChange={setProduct}
-        />
-      )}
-
-      {activeTab === 'pricing' && (
-        <div className="space-y-6">
-          <MarketSelector
-            selectedMarket={selectedMarket}
-            onMarketChange={setSelectedMarket}
+        {/* Tab Content */}
+        {activeTab === 'basic' && (
+          <BasicInfoEditor
+            product={product}
+            onProductChange={setProduct}
           />
+        )}
 
-          <MarketPricingForm
-            market={selectedMarket}
-            priceFields={[
-              {
-                label: 'Base Price',
-                key: `base_price_${selectedMarket}`,
-                value: selectedMarket === 'lb'
-                  ? product.base_price
-                  : (product as any)[`base_price_${selectedMarket}`] || null
-              },
-              {
-                label: 'Lab Grown Diamond Base Price',
-                key: `base_price_lab_grown_${selectedMarket}`,
-                value: selectedMarket === 'lb'
-                  ? product.base_price_lab_grown
-                  : (product as any)[`base_price_lab_grown_${selectedMarket}`] || null
-              },
-              {
-                label: 'Gold Base Price',
-                key: `base_price_gold_${selectedMarket}`,
-                value: selectedMarket === 'lb'
-                  ? product.base_price_gold
-                  : (product as any)[`base_price_gold_${selectedMarket}`] || null
-              },
-              {
-                label: 'Silver Base Price',
-                key: `base_price_silver_${selectedMarket}`,
-                value: selectedMarket === 'lb'
-                  ? product.base_price_silver
-                  : (product as any)[`base_price_silver_${selectedMarket}`] || null
-              },
-              {
-                label: 'Black Onyx Base Price',
-                key: `black_onyx_base_price_${selectedMarket}`,
-                value: selectedMarket === 'lb'
-                  ? product.black_onyx_base_price
-                  : (product as any)[`black_onyx_base_price_${selectedMarket}`] || null
-              },
-              {
-                label: 'Black Onyx Lab Grown Price',
-                key: `black_onyx_base_price_lab_grown_${selectedMarket}`,
-                value: selectedMarket === 'lb'
-                  ? product.black_onyx_base_price_lab_grown
-                  : (product as any)[`black_onyx_base_price_lab_grown_${selectedMarket}`] || null
-              },
-              {
-                label: 'Black Onyx Gold Price',
-                key: `black_onyx_base_price_gold_${selectedMarket}`,
-                value: selectedMarket === 'lb'
-                  ? product.black_onyx_base_price_gold
-                  : (product as any)[`black_onyx_base_price_gold_${selectedMarket}`] || null
-              },
-              {
-                label: 'Black Onyx Silver Price',
-                key: `black_onyx_base_price_silver_${selectedMarket}`,
-                value: selectedMarket === 'lb'
-                  ? product.black_onyx_base_price_silver
-                  : (product as any)[`black_onyx_base_price_silver_${selectedMarket}`] || null
-              },
-            ]}
-            onSave={async (prices) => {
-              try {
-                // Prepare update data based on market
-                const updateData: any = {};
+        {activeTab === 'pricing' && (
+          <div className="space-y-6">
+            <MarketSelector
+              selectedMarket={selectedMarket}
+              onMarketChange={setSelectedMarket}
+            />
 
-                Object.entries(prices).forEach(([key, value]) => {
-                  // Remove the market suffix from the key for Lebanon market
-                  const dbKey = selectedMarket === 'lb'
-                    ? key.replace('_lb', '')
-                    : key.replace(`_${selectedMarket}`, `_${selectedMarket}`);
+            <MarketPricingForm
+              market={selectedMarket}
+              priceFields={[
+                {
+                  label: 'Base Price',
+                  key: `base_price_${selectedMarket}`,
+                  value: selectedMarket === 'lb'
+                    ? product.base_price
+                    : (product as any)[`base_price_${selectedMarket}`] || null
+                },
+                {
+                  label: 'Lab Grown Diamond Base Price',
+                  key: `base_price_lab_grown_${selectedMarket}`,
+                  value: selectedMarket === 'lb'
+                    ? product.base_price_lab_grown
+                    : (product as any)[`base_price_lab_grown_${selectedMarket}`] || null
+                },
+                {
+                  label: 'Gold Base Price',
+                  key: `base_price_gold_${selectedMarket}`,
+                  value: selectedMarket === 'lb'
+                    ? product.base_price_gold
+                    : (product as any)[`base_price_gold_${selectedMarket}`] || null
+                },
+                {
+                  label: 'Silver Base Price',
+                  key: `base_price_silver_${selectedMarket}`,
+                  value: selectedMarket === 'lb'
+                    ? product.base_price_silver
+                    : (product as any)[`base_price_silver_${selectedMarket}`] || null
+                },
+                {
+                  label: 'Black Onyx Base Price',
+                  key: `black_onyx_base_price_${selectedMarket}`,
+                  value: selectedMarket === 'lb'
+                    ? product.black_onyx_base_price
+                    : (product as any)[`black_onyx_base_price_${selectedMarket}`] || null
+                },
+                {
+                  label: 'Black Onyx Lab Grown Price',
+                  key: `black_onyx_base_price_lab_grown_${selectedMarket}`,
+                  value: selectedMarket === 'lb'
+                    ? product.black_onyx_base_price_lab_grown
+                    : (product as any)[`black_onyx_base_price_lab_grown_${selectedMarket}`] || null
+                },
+                {
+                  label: 'Black Onyx Gold Price',
+                  key: `black_onyx_base_price_gold_${selectedMarket}`,
+                  value: selectedMarket === 'lb'
+                    ? product.black_onyx_base_price_gold
+                    : (product as any)[`black_onyx_base_price_gold_${selectedMarket}`] || null
+                },
+                {
+                  label: 'Black Onyx Silver Price',
+                  key: `black_onyx_base_price_silver_${selectedMarket}`,
+                  value: selectedMarket === 'lb'
+                    ? product.black_onyx_base_price_silver
+                    : (product as any)[`black_onyx_base_price_silver_${selectedMarket}`] || null
+                },
+              ]}
+              onSave={async (prices) => {
+                try {
+                  // Prepare update data based on market
+                  const updateData: any = {};
 
-                  updateData[dbKey] = value;
-                });
+                  Object.entries(prices).forEach(([key, value]) => {
+                    // Remove the market suffix from the key for Lebanon market only
+                    // For other markets (au, etc.), keep the key as-is since DB columns include the suffix
+                    const dbKey = selectedMarket === 'lb'
+                      ? key.replace('_lb', '')
+                      : key;
 
-                const { error } = await (supabase as any)
-                  .from('jewelry_items')
-                  .update(updateData)
-                  .eq('id', productId);
+                    updateData[dbKey] = value;
+                  });
 
-                if (error) {
+                  const { error } = await (supabase as any)
+                    .from('jewelry_items')
+                    .update(updateData)
+                    .eq('id', productId);
+
+                  if (error) {
+                    console.error('Error saving prices:', error);
+                    return false;
+                  }
+
+                  // Refresh product data
+                  await fetchProductData();
+                  return true;
+                } catch (error) {
                   console.error('Error saving prices:', error);
                   return false;
                 }
+              }}
+              title="Base Prices"
+              description="Set prices for this product in different markets"
+            />
+          </div>
+        )}
 
-                // Refresh product data
-                await fetchProductData();
-                return true;
-              } catch (error) {
-                console.error('Error saving prices:', error);
-                return false;
+        {activeTab === 'customization' && product.product_type === 'customizable' && (
+          <CustomizationEditor
+            settings={settings}
+            onSettingsChange={setSettings}
+            productId={productId}
+            productSlug={product.slug}
+            onOptionsChange={handleCustomizationChange}
+            pricingType={product.pricing_type || 'diamond_type'}
+            onPricingTypeChange={async (newPricingType) => {
+              // Update pricing type in database
+              const { error } = await (supabase as any)
+                .from('jewelry_items')
+                .update({ pricing_type: newPricingType })
+                .eq('id', productId);
+
+              if (!error) {
+                setProduct({ ...product, pricing_type: newPricingType });
               }
             }}
-            title="Base Prices"
-            description="Set prices for this product in different markets"
           />
-        </div>
-      )}
+        )}
 
-      {activeTab === 'customization' && product.product_type === 'customizable' && (
-        <CustomizationEditor
-          settings={settings}
-          onSettingsChange={setSettings}
-          productId={productId}
-          productSlug={product.slug}
-          onOptionsChange={handleCustomizationChange}
-          pricingType={product.pricing_type || 'diamond_type'}
-          onPricingTypeChange={async (newPricingType) => {
-            // Update pricing type in database
-            const { error } = await (supabase as any)
-              .from('jewelry_items')
-              .update({ pricing_type: newPricingType })
-              .eq('id', productId);
+        {activeTab === 'images' && product.product_type === 'customizable' && (
+          <ProductImages
+            key={imagesRefreshKey}
+            productId={productId}
+            productType={product.type}
+            productSlug={product.slug}
+            refreshTrigger={imagesRefreshKey}
+          />
+        )}
 
-            if (!error) {
-              setProduct({ ...product, pricing_type: newPricingType });
-            }
-          }}
-        />
-      )}
-
-      {activeTab === 'images' && product.product_type === 'customizable' && (
-        <ProductImages
-          key={imagesRefreshKey}
-          productId={productId}
-          productType={product.type}
-          productSlug={product.slug}
-          refreshTrigger={imagesRefreshKey}
-        />
-      )}
-
-      {activeTab === 'logic' && product.product_type === 'customizable' && (
-        <LogicRulesEditor
-          productId={productId}
-          settings={settings}
-          pricingType={product.pricing_type || 'diamond_type'}
-        />
-      )}
+        {activeTab === 'logic' && product.product_type === 'customizable' && (
+          <LogicRulesEditor
+            productId={productId}
+            settings={settings}
+            pricingType={product.pricing_type || 'diamond_type'}
+          />
+        )}
       </div>
     </ToastProvider>
   );
@@ -798,9 +794,8 @@ function BasicInfoEditor({
               <div className="flex items-center space-x-2">
                 <label
                   htmlFor="image-upload"
-                  className={`inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer ${
-                    uploading ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
+                  className={`inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer ${uploading ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                 >
                   <Upload className="w-4 h-4 mr-2" />
                   {uploading ? 'Uploading...' : 'Upload Image'}
@@ -818,9 +813,8 @@ function BasicInfoEditor({
                     type="button"
                     onClick={handleImageDelete}
                     disabled={uploading}
-                    className={`inline-flex items-center px-3 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors ${
-                      uploading ? 'opacity-50 cursor-not-allowed' : ''
-                    }`}
+                    className={`inline-flex items-center px-3 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors ${uploading ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Delete
