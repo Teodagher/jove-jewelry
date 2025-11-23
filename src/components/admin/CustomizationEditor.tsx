@@ -2,7 +2,7 @@
 // @ts-nocheck
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/toast-provider';
 import { supabase } from '@/lib/supabase/client';
 import NewStepModal from './NewStepModal';
@@ -38,6 +38,11 @@ interface CustomizationOption {
   price_lab_grown: number | null;
   price_gold: number | null;
   price_silver: number | null;
+  // Australian market prices
+  price_au: number | null;
+  price_lab_grown_au: number | null;
+  price_gold_au: number | null;
+  price_silver_au: number | null;
   image_url: string | null;
   color_gradient: string | null;
   display_order: number;
@@ -1536,6 +1541,11 @@ function OptionCard({
 }) {
   const [editedOption, setEditedOption] = useState(option);
   const currency = getCurrency(selectedMarket);
+
+  // Update editedOption when option prop changes (e.g., after refetch)
+  useEffect(() => {
+    setEditedOption(option);
+  }, [option]);
 
   // Helper functions to get market-specific column names
   const getMarketColumnName = (baseColumn: string): string => {

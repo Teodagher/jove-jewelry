@@ -73,6 +73,11 @@ interface OptionSummary {
   price_lab_grown: number | null;
   price_gold: number | null;
   price_silver: number | null;
+  // Australian market prices
+  price_au: number | null;
+  price_lab_grown_au: number | null;
+  price_gold_au: number | null;
+  price_silver_au: number | null;
   image_url: string | null;
   color_gradient: string | null;
   display_order: number;
@@ -104,6 +109,11 @@ interface CustomizationOption {
   price_lab_grown: number | null;
   price_gold: number | null;
   price_silver: number | null;
+  // Australian market prices
+  price_au: number | null;
+  price_lab_grown_au: number | null;
+  price_gold_au: number | null;
+  price_silver_au: number | null;
   image_url: string | null;
   color_gradient: string | null;
   display_order: number | null;
@@ -197,6 +207,11 @@ export default function EditProductPage() {
             price_lab_grown: option.price_lab_grown,
             price_gold: option.price_gold,
             price_silver: option.price_silver,
+            // Australian market prices
+            price_au: option.price_au,
+            price_lab_grown_au: option.price_lab_grown_au,
+            price_gold_au: option.price_gold_au,
+            price_silver_au: option.price_silver_au,
             image_url: option.image_url,
             color_gradient: option.color_gradient,
             display_order: option.display_order ?? 0,
