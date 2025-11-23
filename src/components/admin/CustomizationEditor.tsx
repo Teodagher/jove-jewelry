@@ -125,7 +125,7 @@ export default function CustomizationEditor({
     // Save to database
     await updateSettingDisplayOrders(newSettings);
     setDraggedSetting(null);
-    
+
     addToast({
       type: 'success',
       title: 'Settings reordered',
@@ -139,9 +139,9 @@ export default function CustomizationEditor({
   };
 
   const handleOptionDrop = async (targetSettingId: string, targetOptionId: string) => {
-    if (!draggedOption || 
-        draggedOption.settingId !== targetSettingId || 
-        draggedOption.optionId === targetOptionId) return;
+    if (!draggedOption ||
+      draggedOption.settingId !== targetSettingId ||
+      draggedOption.optionId === targetOptionId) return;
 
     const newSettings = [...settings];
     const settingIndex = newSettings.findIndex(s => s.setting_id === targetSettingId);
@@ -164,7 +164,7 @@ export default function CustomizationEditor({
     // Save to database
     await updateOptionDisplayOrders(setting.options);
     setDraggedOption(null);
-    
+
     addToast({
       type: 'success',
       title: 'Options reordered',
@@ -175,7 +175,7 @@ export default function CustomizationEditor({
   // Update setting display orders in database
   const updateSettingDisplayOrders = async (settings: CustomizationSetting[]) => {
     try {
-      const promises = settings.map(setting => 
+      const promises = settings.map(setting =>
         supabase
           .from('customization_options')
           .update({ setting_display_order: setting.setting_display_order })
@@ -197,7 +197,7 @@ export default function CustomizationEditor({
     const newSettings = [...settings];
     // Swap with previous setting
     [newSettings[currentIndex - 1], newSettings[currentIndex]] = [newSettings[currentIndex], newSettings[currentIndex - 1]];
-    
+
     // Update display orders
     newSettings.forEach((setting, index) => {
       setting.setting_display_order = index + 1;
@@ -207,7 +207,7 @@ export default function CustomizationEditor({
 
     // Save to database
     await updateSettingDisplayOrders(newSettings);
-    
+
     const settingName = settings.find(s => s.setting_id === settingId)?.setting_title || 'Setting';
     addToast({
       type: 'success',
@@ -224,7 +224,7 @@ export default function CustomizationEditor({
     const newSettings = [...settings];
     // Swap with next setting
     [newSettings[currentIndex], newSettings[currentIndex + 1]] = [newSettings[currentIndex + 1], newSettings[currentIndex]];
-    
+
     // Update display orders
     newSettings.forEach((setting, index) => {
       setting.setting_display_order = index + 1;
@@ -234,7 +234,7 @@ export default function CustomizationEditor({
 
     // Save to database
     await updateSettingDisplayOrders(newSettings);
-    
+
     const settingName = settings.find(s => s.setting_id === settingId)?.setting_title || 'Setting';
     addToast({
       type: 'success',
@@ -277,7 +277,7 @@ export default function CustomizationEditor({
       const setting = newSettings.find(s => s.setting_id === settingId);
       if (setting) {
         console.log('Updating image variant status for setting:', settingId, 'to:', setting.affects_image_variant);
-        
+
         const { error } = await supabase
           .from('customization_options')
           .update({ affects_image_variant: setting.affects_image_variant })
@@ -299,7 +299,7 @@ export default function CustomizationEditor({
             title: 'Updated',
             message: `Step ${setting.affects_image_variant ? 'now affects' : 'no longer affects'} image variants`
           });
-          
+
           // Notify parent that variants need to be regenerated
           onOptionsChange?.();
         }
@@ -357,7 +357,7 @@ export default function CustomizationEditor({
         title: 'Step deleted',
         message: `"${setting.setting_title}" and all its options have been deleted`
       });
-      
+
       // Notify parent that variants need to be regenerated
       onOptionsChange?.();
 
@@ -391,16 +391,16 @@ export default function CustomizationEditor({
         console.log('Updating required status for setting:', settingId, 'to:', setting.required);
         console.log('Product ID:', productId);
         console.log('Setting ID:', settingId);
-        
+
         // First, let's check what records exist before updating
         const { data: existingRecords } = await supabase
           .from('customization_options')
           .select('id, setting_id, jewelry_item_id, required, option_name')
           .eq('jewelry_item_id', productId)
           .eq('setting_id', settingId);
-        
+
         console.log('Records found before update:', existingRecords);
-        
+
         const { data, error, count } = await supabase
           .from('customization_options')
           .update({ required: setting.required })
@@ -424,7 +424,7 @@ export default function CustomizationEditor({
             title: 'Updated',
             message: `Step is now ${setting.required ? 'required' : 'optional'}`
           });
-          
+
           // Let's also verify the update worked by querying the database
           const { data: verifyData } = await supabase
             .from('customization_options')
@@ -530,7 +530,7 @@ export default function CustomizationEditor({
       });
 
       setShowNewStepModal(false);
-      
+
       // Notify parent that options changed
       onOptionsChange?.();
     } catch (error) {
@@ -652,7 +652,7 @@ export default function CustomizationEditor({
       </div>
 
       {/* Add New Setting */}
-      <button 
+      <button
         onClick={() => setShowNewStepModal(true)}
         className="w-full py-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors flex items-center justify-center"
       >
@@ -662,7 +662,7 @@ export default function CustomizationEditor({
 
       {/* New Step Modal */}
       {showNewStepModal && (
-        <NewStepModal 
+        <NewStepModal
           onClose={() => setShowNewStepModal(false)}
           onCreate={createNewStep}
           existingSettings={settings}
@@ -671,7 +671,7 @@ export default function CustomizationEditor({
 
       {/* Preview Modal */}
       {showPreview && productSlug && (
-        <CustomizationPreview 
+        <CustomizationPreview
           productSlug={productSlug}
           onClose={() => setShowPreview(false)}
         />
@@ -779,16 +779,16 @@ function SettingCard({
   const uploadImageFile = async (file: File): Promise<string> => {
     try {
       console.log(`🔄 Compressing to ~30KB: ${file.name} (${(file.size / 1024).toFixed(1)}KB original)`);
-      
+
       const targetSize = 30 * 1024; // 30KB in bytes
       let maxDimension = 600; // Start with higher dimension for 30KB target
       let quality = 0.5; // Start with better quality for 30KB target
-      
+
       let compressedFile: File | Blob = file;
-      
+
       for (let attempt = 1; attempt <= 5; attempt++) {
         console.log(`🔄 Attempt ${attempt}: maxDimension=${maxDimension}, quality=${quality.toFixed(2)}`);
-        
+
         const options = {
           maxSizeMB: 1, // Allow larger intermediate size for 30KB target
           maxWidthOrHeight: maxDimension,
@@ -800,23 +800,23 @@ function SettingCard({
 
         const compressed = await imageCompression(file, options);
         const sizeKB = (compressed.size / 1024).toFixed(1);
-        
+
         console.log(`📊 Attempt ${attempt} result: ${compressed.size} bytes (${sizeKB}KB)`);
-        
+
         // If we hit our target, use this result
         if (compressed.size <= targetSize) {
           console.log(`✅ SUCCESS! Final size: ${sizeKB}KB (${((1 - compressed.size / file.size) * 100).toFixed(1)}% reduction)`);
           compressedFile = compressed;
           break;
         }
-        
+
         // If this is our last attempt, use what we have
         if (attempt === 5) {
           console.log(`⚠️ Max attempts reached. Final size: ${sizeKB}KB (${((1 - compressed.size / file.size) * 100).toFixed(1)}% reduction)`);
           compressedFile = compressed;
           break;
         }
-        
+
         // Adjust settings for next attempt
         const sizeRatio = compressed.size / targetSize;
         if (sizeRatio > 8) {
@@ -832,7 +832,7 @@ function SettingCard({
           maxDimension = Math.max(450, Math.round(maxDimension * 0.9));
           quality = Math.max(0.2, quality * 0.85);
         }
-        
+
         console.log(`🎯 Next attempt will use: maxDimension=${maxDimension}, quality=${quality.toFixed(2)}`);
       }
 
@@ -863,15 +863,15 @@ function SettingCard({
   // Generate option ID from name with setting context for uniqueness
   const generateOptionId = (name: string, allSettings: CustomizationSetting[], currentSetting?: CustomizationSetting) => {
     const baseName = name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
-    
+
     // Create context-aware base ID: setting_option (e.g., first_stone_ruby, second_stone_ruby)
     let contextualBaseId = baseName;
-    
+
     if (currentSetting?.setting_id) {
       const settingContext = currentSetting.setting_id.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
       contextualBaseId = `${settingContext}_${baseName}`;
     }
-    
+
     // Collect all existing option IDs across all settings
     const existingIds = new Set<string>();
     allSettings.forEach(setting => {
@@ -879,28 +879,28 @@ function SettingCard({
         existingIds.add(option.id);
       });
     });
-    
+
     // If contextual ID is available, use it
     if (!existingIds.has(contextualBaseId)) {
       console.log(`🎯 Generated contextual option ID: "${contextualBaseId}" for "${name}"${currentSetting ? ` in setting "${currentSetting.setting_title}"` : ''}`);
       return contextualBaseId;
     }
-    
+
     // If contextual ID exists, try simple base ID as fallback
     if (!existingIds.has(baseName)) {
       console.log(`📝 Using simple option ID: "${baseName}" for "${name}"`);
       return baseName;
     }
-    
+
     // If both exist, try variants with incrementing numbers
     let counter = 2;
     let candidateId = `${baseName}_${counter}`;
-    
+
     while (existingIds.has(candidateId)) {
       counter++;
       candidateId = `${baseName}_${counter}`;
     }
-    
+
     console.log(`⚠️ ID collision detected! Using fallback ID "${candidateId}" for "${name}"`);
     return candidateId;
   };
@@ -939,7 +939,7 @@ function SettingCard({
 
       // Ensure unique ID right before insertion (double-check)
       const finalOptionId = generateOptionId(newOption.option_name, allSettings, setting);
-      
+
       // Build market-specific price object
       const priceData: any = {};
 
@@ -1024,7 +1024,7 @@ function SettingCard({
         title: 'Option added',
         message: `"${newOption.option_name}" has been added to ${setting.setting_title}`
       });
-      
+
       // Notify parent that options changed (with small delay to ensure DB commit)
       setTimeout(() => {
         console.log('🔄 Notifying parent that new option was added, should refresh variants');
@@ -1063,19 +1063,19 @@ function SettingCard({
   // Helper function to delete image from storage
   const deleteImageFromStorage = async (imageUrl: string | null) => {
     if (!imageUrl || !imageUrl.includes('supabase.co')) return;
-    
+
     try {
       // Extract the file path from the public URL
       const url = new URL(imageUrl);
       const pathParts = url.pathname.split('/');
       const fileName = pathParts[pathParts.length - 1];
-      
+
       console.log('Attempting to delete image from storage:', fileName);
-      
+
       const { error } = await supabase.storage
         .from('customization_options')
         .remove([fileName]);
-        
+
       if (error) {
         console.error('Error deleting image from storage:', error);
       } else {
@@ -1132,7 +1132,7 @@ function SettingCard({
         title: 'Option deleted',
         message: `"${optionToDelete.option_name}" and its image have been deleted`
       });
-      
+
       // Notify parent that options changed
       onOptionsChange?.();
 
@@ -1156,7 +1156,7 @@ function SettingCard({
         const newOptions = [...s.options];
         // Swap with previous option
         [newOptions[currentIndex - 1], newOptions[currentIndex]] = [newOptions[currentIndex], newOptions[currentIndex - 1]];
-        
+
         // Update display orders
         newOptions.forEach((option, index) => {
           option.display_order = index + 1;
@@ -1172,7 +1172,7 @@ function SettingCard({
     // Save to database
     const updatedOptions = newSettings.find(s => s.setting_id === setting.setting_id)?.options || [];
     await updateOptionDisplayOrders(updatedOptions);
-    
+
     addToast({
       type: 'success',
       title: 'Option moved',
@@ -1190,7 +1190,7 @@ function SettingCard({
         const newOptions = [...s.options];
         // Swap with next option
         [newOptions[currentIndex], newOptions[currentIndex + 1]] = [newOptions[currentIndex + 1], newOptions[currentIndex]];
-        
+
         // Update display orders
         newOptions.forEach((option, index) => {
           option.display_order = index + 1;
@@ -1206,7 +1206,7 @@ function SettingCard({
     // Save to database
     const updatedOptions = newSettings.find(s => s.setting_id === setting.setting_id)?.options || [];
     await updateOptionDisplayOrders(updatedOptions);
-    
+
     addToast({
       type: 'success',
       title: 'Option moved',
@@ -1214,7 +1214,7 @@ function SettingCard({
     });
   };
   return (
-    <div 
+    <div
       className="bg-white border border-gray-200 rounded-lg shadow-sm"
       draggable
       onDragStart={onDragStart}
@@ -1254,29 +1254,27 @@ function SettingCard({
           <div className="flex items-center space-x-2">
             <button
               onClick={onToggleRequired}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                setting.required 
+              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${setting.required
                   ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   : 'bg-red-100 text-red-700 hover:bg-red-200'
-              }`}
+                }`}
             >
               {setting.required ? 'Make Optional' : 'Make Required'}
             </button>
             <button
               onClick={onToggleImageVariant}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                setting.affects_image_variant 
+              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${setting.affects_image_variant
                   ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                   : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-              }`}
-              title={setting.affects_image_variant 
-                ? 'This step affects product image variants' 
+                }`}
+              title={setting.affects_image_variant
+                ? 'This step affects product image variants'
                 : 'This step does not affect product image variants'
               }
             >
               {setting.affects_image_variant ? '🖼️ Affects Images' : '🚫 No Images'}
             </button>
-            
+
             {/* Arrow buttons for reordering steps */}
             <div className="flex flex-col">
               <button
@@ -1296,7 +1294,7 @@ function SettingCard({
                 <ArrowDown className="w-3 h-3" />
               </button>
             </div>
-            
+
             <button
               onClick={onToggle}
               className="p-1 text-gray-400 hover:text-gray-600"
@@ -1343,7 +1341,7 @@ function SettingCard({
               selectedMarket={selectedMarket}
             />
           ))}
-          
+
           {/* Add Option */}
           {showAddOption ? (
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
@@ -1368,7 +1366,7 @@ function SettingCard({
                   <input
                     type="text"
                     value={newOption.option_id}
-                    onChange={(e) => setNewOption(prev => ({...prev, option_id: e.target.value}))}
+                    onChange={(e) => setNewOption(prev => ({ ...prev, option_id: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-mono"
                     placeholder="diamond"
                   />
@@ -1387,7 +1385,7 @@ function SettingCard({
                           type="number"
                           step="0.01"
                           value={newOption.price}
-                          onChange={(e) => setNewOption(prev => ({...prev, price: parseFloat(e.target.value) || 0}))}
+                          onChange={(e) => setNewOption(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
                           className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                           placeholder="0.00"
                         />
@@ -1405,7 +1403,7 @@ function SettingCard({
                           type="number"
                           step="0.01"
                           value={newOption.price_lab_grown}
-                          onChange={(e) => setNewOption(prev => ({...prev, price_lab_grown: parseFloat(e.target.value) || 0}))}
+                          onChange={(e) => setNewOption(prev => ({ ...prev, price_lab_grown: parseFloat(e.target.value) || 0 }))}
                           className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                           placeholder="0.00"
                         />
@@ -1426,7 +1424,7 @@ function SettingCard({
                           type="number"
                           step="0.01"
                           value={newOption.price_gold}
-                          onChange={(e) => setNewOption(prev => ({...prev, price_gold: parseFloat(e.target.value) || 0}))}
+                          onChange={(e) => setNewOption(prev => ({ ...prev, price_gold: parseFloat(e.target.value) || 0 }))}
                           className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                           placeholder="0.00"
                         />
@@ -1444,7 +1442,7 @@ function SettingCard({
                           type="number"
                           step="0.01"
                           value={newOption.price_silver}
-                          onChange={(e) => setNewOption(prev => ({...prev, price_silver: parseFloat(e.target.value) || 0}))}
+                          onChange={(e) => setNewOption(prev => ({ ...prev, price_silver: parseFloat(e.target.value) || 0 }))}
                           className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                           placeholder="0.00"
                         />
@@ -1453,21 +1451,21 @@ function SettingCard({
                   </>
                 )}
               </div>
-              
+
               {/* Image Upload */}
               <div className="pt-4 border-t border-gray-200">
-              <OptionImageUpload
-                currentImageUrl={newOption.image_url}
-                onImageChange={(imageUrl, file) => setNewOption(prev => ({
-                  ...prev, 
-                  image_url: imageUrl,
-                  image_file: file || null
-                }))}
-                optionName={newOption.option_name || 'new option'}
-                mode="deferred"
-              />
+                <OptionImageUpload
+                  currentImageUrl={newOption.image_url}
+                  onImageChange={(imageUrl, file) => setNewOption(prev => ({
+                    ...prev,
+                    image_url: imageUrl,
+                    image_file: file || null
+                  }))}
+                  optionName={newOption.option_name || 'new option'}
+                  mode="deferred"
+                />
               </div>
-              
+
               <div className="flex items-center justify-end space-x-2">
                 <button
                   onClick={cancelAddOption}
@@ -1485,7 +1483,7 @@ function SettingCard({
               </div>
             </div>
           ) : (
-            <button 
+            <button
               onClick={() => setShowAddOption(true)}
               className="w-full py-3 border border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors flex items-center justify-center"
             >
@@ -1568,11 +1566,16 @@ function OptionCard({
       const priceData: any = {};
 
       if (pricingType === 'diamond_type') {
-        priceData[getMarketColumnName('price')] = editedOption.price || null;
-        priceData[getMarketColumnName('price_lab_grown')] = editedOption.price_lab_grown || null;
+        const priceCol = getMarketColumnName('price');
+        const priceLabCol = getMarketColumnName('price_lab_grown');
+        // Use type assertion or key access to get the correct value from editedOption
+        priceData[priceCol] = (editedOption as any)[priceCol] || null;
+        priceData[priceLabCol] = (editedOption as any)[priceLabCol] || null;
       } else {
-        priceData[getMarketColumnName('price_gold')] = editedOption.price_gold || null;
-        priceData[getMarketColumnName('price_silver')] = editedOption.price_silver || null;
+        const priceGoldCol = getMarketColumnName('price_gold');
+        const priceSilverCol = getMarketColumnName('price_silver');
+        priceData[priceGoldCol] = (editedOption as any)[priceGoldCol] || null;
+        priceData[priceSilverCol] = (editedOption as any)[priceSilverCol] || null;
       }
 
       await supabase
@@ -1590,7 +1593,7 @@ function OptionCard({
         if (setting.setting_id === settingId) {
           return {
             ...setting,
-            options: setting.options.map(opt => 
+            options: setting.options.map(opt =>
               opt.id === option.id ? editedOption : opt
             )
           };
@@ -1600,7 +1603,7 @@ function OptionCard({
 
       onSettingsChange(newSettings);
       onEdit();
-      
+
       // Notify parent that variants might need to be regenerated (in case option names changed)
       onOptionsChange?.();
     } catch (error) {
@@ -1619,7 +1622,7 @@ function OptionCard({
             <input
               type="text"
               value={editedOption.option_name}
-              onChange={(e) => setEditedOption({...editedOption, option_name: e.target.value})}
+              onChange={(e) => setEditedOption({ ...editedOption, option_name: e.target.value })}
               disabled
               className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed text-sm"
               title="Option name cannot be changed after creation to maintain consistency with uploaded images"
@@ -1644,7 +1647,7 @@ function OptionCard({
                     value={getMarketPrice(editedOption, 'price') ?? ''}
                     onChange={(e) => {
                       const columnName = getMarketColumnName('price');
-                      setEditedOption({...editedOption, [columnName]: e.target.value ? parseFloat(e.target.value) : null});
+                      setEditedOption({ ...editedOption, [columnName]: e.target.value ? parseFloat(e.target.value) : null });
                     }}
                     className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                     placeholder="0.00"
@@ -1665,7 +1668,7 @@ function OptionCard({
                     value={getMarketPrice(editedOption, 'price_lab_grown') ?? ''}
                     onChange={(e) => {
                       const columnName = getMarketColumnName('price_lab_grown');
-                      setEditedOption({...editedOption, [columnName]: e.target.value ? parseFloat(e.target.value) : null});
+                      setEditedOption({ ...editedOption, [columnName]: e.target.value ? parseFloat(e.target.value) : null });
                     }}
                     className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                     placeholder="0.00"
@@ -1689,7 +1692,7 @@ function OptionCard({
                     value={getMarketPrice(editedOption, 'price_gold') ?? ''}
                     onChange={(e) => {
                       const columnName = getMarketColumnName('price_gold');
-                      setEditedOption({...editedOption, [columnName]: e.target.value ? parseFloat(e.target.value) : null});
+                      setEditedOption({ ...editedOption, [columnName]: e.target.value ? parseFloat(e.target.value) : null });
                     }}
                     className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                     placeholder="0.00"
@@ -1710,7 +1713,7 @@ function OptionCard({
                     value={getMarketPrice(editedOption, 'price_silver') ?? ''}
                     onChange={(e) => {
                       const columnName = getMarketColumnName('price_silver');
-                      setEditedOption({...editedOption, [columnName]: e.target.value ? parseFloat(e.target.value) : null});
+                      setEditedOption({ ...editedOption, [columnName]: e.target.value ? parseFloat(e.target.value) : null });
                     }}
                     className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                     placeholder="0.00"
@@ -1724,7 +1727,7 @@ function OptionCard({
               type="checkbox"
               id={`active-${option.id}`}
               checked={editedOption.is_active}
-              onChange={(e) => setEditedOption({...editedOption, is_active: e.target.checked})}
+              onChange={(e) => setEditedOption({ ...editedOption, is_active: e.target.checked })}
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-2"
             />
             <label htmlFor={`active-${option.id}`} className="text-sm text-gray-700">
@@ -1732,16 +1735,16 @@ function OptionCard({
             </label>
           </div>
         </div>
-        
+
         {/* Image Upload */}
         <div className="mb-4 pt-4 border-t border-gray-200">
           <OptionImageUpload
             currentImageUrl={editedOption.image_url}
-            onImageChange={(imageUrl) => setEditedOption({...editedOption, image_url: imageUrl})}
+            onImageChange={(imageUrl) => setEditedOption({ ...editedOption, image_url: imageUrl })}
             optionName={editedOption.option_name}
           />
         </div>
-        
+
         <div className="flex items-center justify-end space-x-2">
           <button
             onClick={onEdit}
@@ -1761,7 +1764,7 @@ function OptionCard({
   }
 
   return (
-    <div 
+    <div
       className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
       draggable
       onDragStart={onDragStart}
@@ -1776,14 +1779,14 @@ function OptionCard({
         <span className="text-xs text-gray-500 w-4">{optionIndex + 1}</span>
         <div className="flex items-center space-x-3">
           {option.image_url && (
-            <img 
-              src={option.image_url} 
+            <img
+              src={option.image_url}
               alt={option.option_name}
               className="w-8 h-8 object-cover rounded"
             />
           )}
           {option.color_gradient && (
-            <div 
+            <div
               className="w-8 h-8 rounded border border-gray-300"
               style={{ background: option.color_gradient }}
             />
@@ -1821,7 +1824,7 @@ function OptionCard({
         {!option.is_active && (
           <span className="px-2 py-1 text-xs bg-red-100 text-red-600 rounded">Inactive</span>
         )}
-        
+
         {/* Arrow buttons for reordering */}
         <div className="flex flex-col">
           <button
@@ -1841,7 +1844,7 @@ function OptionCard({
             <ArrowDown className="w-3 h-3" />
           </button>
         </div>
-        
+
         <button
           onClick={onEdit}
           className="p-1 text-gray-400 hover:text-gray-600"
@@ -1867,7 +1870,7 @@ function CustomizationPreview({ productSlug, onClose }: { productSlug: string; o
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onClose} />
-      
+
       {/* Modal */}
       <div className="relative bg-white rounded-lg shadow-xl w-full max-w-6xl h-full max-h-[90vh] m-4">
         {/* Header */}
@@ -1882,7 +1885,7 @@ function CustomizationPreview({ productSlug, onClose }: { productSlug: string; o
             <X className="w-5 h-5" />
           </button>
         </div>
-        
+
         {/* Preview Content */}
         <div className="h-full overflow-hidden">
           <iframe
