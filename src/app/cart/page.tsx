@@ -225,17 +225,6 @@ export default function CartPage() {
                       <HandcraftedBanner />
                     </div>
                     
-                    <div className="space-y-2 mb-4">
-                      <p className="text-sm text-gray-600 flex items-center">
-                        <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                        Cash on Delivery Available
-                      </p>
-                      <p className="text-sm text-gray-600 flex items-center">
-                        <span className="w-2 h-2 bg-purple-500 rounded-full mr-2"></span>
-                        Free Delivery in Lebanon
-                      </p>
-                    </div>
-                    
                     {/* Checkout Button */}
                     <Button 
                       onClick={() => router.push('/checkout')}

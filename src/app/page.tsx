@@ -3,6 +3,7 @@ import NaturalDiamondsSection from '@/components/NaturalDiamondsSection'
 import CraftsmanshipSection from '@/components/CraftsmanshipSection'
 import WorkshopSection from '@/components/WorkshopSection'
 import BespokeSection from '@/components/BespokeSection'
+import InstagramSection from '@/components/InstagramSection'
 import Footer from '@/components/Footer'
 import WhatsAppButton from '@/components/WhatsAppButton'
 import ScrollToHashOnLoad from '@/components/ScrollToHashOnLoad'
@@ -16,6 +17,7 @@ export default function Home() {
       <CraftsmanshipSection />
       <WorkshopSection />
       <BespokeSection />
+      <InstagramSection />
       <Footer />
       
       {/* WhatsApp floating button */}
