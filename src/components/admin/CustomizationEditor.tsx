@@ -1255,8 +1255,8 @@ function SettingCard({
             <button
               onClick={onToggleRequired}
               className={`px-3 py-1 text-xs font-medium rounded transition-colors ${setting.required
-                  ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  : 'bg-red-100 text-red-700 hover:bg-red-200'
+                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                : 'bg-red-100 text-red-700 hover:bg-red-200'
                 }`}
             >
               {setting.required ? 'Make Optional' : 'Make Required'}
@@ -1264,8 +1264,8 @@ function SettingCard({
             <button
               onClick={onToggleImageVariant}
               className={`px-3 py-1 text-xs font-medium rounded transition-colors ${setting.affects_image_variant
-                  ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                  : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
                 }`}
               title={setting.affects_image_variant
                 ? 'This step affects product image variants'
@@ -1568,6 +1568,7 @@ function OptionCard({
       if (pricingType === 'diamond_type') {
         const priceCol = getMarketColumnName('price');
         const priceLabCol = getMarketColumnName('price_lab_grown');
+
         // Use type assertion or key access to get the correct value from editedOption
         priceData[priceCol] = (editedOption as any)[priceCol] || null;
         priceData[priceLabCol] = (editedOption as any)[priceLabCol] || null;
