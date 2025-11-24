@@ -1570,13 +1570,21 @@ function OptionCard({
         const priceLabCol = getMarketColumnName('price_lab_grown');
 
         // Use type assertion or key access to get the correct value from editedOption
-        priceData[priceCol] = (editedOption as any)[priceCol] || null;
-        priceData[priceLabCol] = (editedOption as any)[priceLabCol] || null;
+        // Fix: Use explicit check for undefined/null to allow 0 as a valid price
+        const priceVal = (editedOption as any)[priceCol];
+        priceData[priceCol] = (priceVal !== undefined && priceVal !== null && !isNaN(priceVal)) ? priceVal : null;
+
+        const priceLabVal = (editedOption as any)[priceLabCol];
+        priceData[priceLabCol] = (priceLabVal !== undefined && priceLabVal !== null && !isNaN(priceLabVal)) ? priceLabVal : null;
       } else {
         const priceGoldCol = getMarketColumnName('price_gold');
         const priceSilverCol = getMarketColumnName('price_silver');
-        priceData[priceGoldCol] = (editedOption as any)[priceGoldCol] || null;
-        priceData[priceSilverCol] = (editedOption as any)[priceSilverCol] || null;
+
+        const priceGoldVal = (editedOption as any)[priceGoldCol];
+        priceData[priceGoldCol] = (priceGoldVal !== undefined && priceGoldVal !== null && !isNaN(priceGoldVal)) ? priceGoldVal : null;
+
+        const priceSilverVal = (editedOption as any)[priceSilverCol];
+        priceData[priceSilverCol] = (priceSilverVal !== undefined && priceSilverVal !== null && !isNaN(priceSilverVal)) ? priceSilverVal : null;
       }
 
       await supabase
