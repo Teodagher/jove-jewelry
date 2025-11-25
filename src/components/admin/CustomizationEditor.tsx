@@ -1587,7 +1587,15 @@ function OptionCard({
         priceData[priceSilverCol] = (priceSilverVal !== undefined && priceSilverVal !== null && !isNaN(priceSilverVal)) ? priceSilverVal : null;
       }
 
-      await supabase
+      console.log('DEBUG: Saving option', {
+        id: option.id,
+        pricingType,
+        selectedMarket,
+        priceData,
+        editedOption
+      });
+
+      const { error } = await supabase
         .from('customization_options')
         .update({
           option_name: editedOption.option_name,
@@ -1596,6 +1604,12 @@ function OptionCard({
           is_active: editedOption.is_active
         })
         .eq('id', option.id);
+
+      if (error) {
+        console.error('DEBUG: Supabase update error:', error);
+      } else {
+        console.log('DEBUG: Supabase update success');
+      }
 
       // Update local state
       const newSettings = allSettings.map(setting => {
