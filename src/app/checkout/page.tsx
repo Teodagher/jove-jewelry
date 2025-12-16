@@ -71,6 +71,17 @@ export default function CheckoutPage() {
   const [orderCompleted, setOrderCompleted] = useState(false);
   const router = useRouter();
 
+  // Promo code state
+  const [promoCode, setPromoCode] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string;
+    discountAmount: number;
+    promoCodeId: string;
+    discountType: string;
+    discountValue: number;
+  } | null>(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+
   const { createCheckoutSession, loading: stripeLoading } = useStripeCheckout({ market });
 
   // Get available payment methods for current market
@@ -119,9 +130,61 @@ export default function CheckoutPage() {
     );
   };
 
+  const handleApplyPromoCode = async () => {
+    if (!promoCode.trim()) {
+      showError('Enter Promo Code', 'Please enter a promo code to apply.');
+      return;
+    }
+
+    setPromoLoading(true);
+    try {
+      const response = await fetch('/api/promo-codes/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: promoCode.trim(),
+          subtotal: subtotal,
+          customerEmail: formData.email || 'guest@jove.com'
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.valid && data.discount) {
+        setAppliedPromo({
+          code: data.promoCode.code,
+          discountAmount: data.discount.amount,
+          promoCodeId: data.promoCode.id,
+          discountType: data.discount.type,
+          discountValue: data.discount.value
+        });
+        showSuccess(
+          'Promo Code Applied!',
+          data.message || `You saved ${formatPrice(data.discount.amount)}!`
+        );
+      } else {
+        showError('Invalid Promo Code', data.message || 'This promo code is not valid.');
+      }
+    } catch (error) {
+      console.error('Promo code validation error:', error);
+      showError('Error', 'Failed to validate promo code. Please try again.');
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const handleRemovePromoCode = () => {
+    setAppliedPromo(null);
+    setPromoCode('');
+    showSuccess('Promo Code Removed', 'The promo code has been removed from your order.');
+  };
+
   const formatPrice = (price: number) => {
     return formatPriceForMarket(price, market);
   };
+
+  // Calculate final total with discount
+  const finalTotal = appliedPromo ? subtotal - appliedPromo.discountAmount : subtotal;
 
   const formatJewelryType = (type: string) => {
     const map: Record<string, string> = {
@@ -191,7 +254,7 @@ export default function CheckoutPage() {
     Object.entries(customizationData).forEach(([key, value]) => {
       if (value) {
         const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-        const formattedValue = typeof value === 'string' 
+        const formattedValue = typeof value === 'string'
           ? value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
           : value;
         parts.push(`${formattedKey}: ${formattedValue}`);
@@ -227,7 +290,7 @@ export default function CheckoutPage() {
         }
         return false;
       }
-      
+
       // Check minimum length
       if (typeof value === 'string' && value.trim().length < minLength) {
         showError(
@@ -342,7 +405,7 @@ export default function CheckoutPage() {
           longitude: sanitizedFormData.longitude,
         };
 
-        const result = await createCheckoutSession(items, customerInfo, deliveryAddress);
+        const result = await createCheckoutSession(items, customerInfo, deliveryAddress, appliedPromo);
 
         if (result.success) {
           // Stripe will redirect, so we don't need to do anything else
@@ -408,8 +471,8 @@ export default function CheckoutPage() {
           subtotal: Number(item.subtotal) || 0,
           preview_image_url: item.preview_image_url || null
         })),
-        total_amount: Number(subtotal),
-        
+        total_amount: Number(finalTotal),
+
         // Existing table structure for backward compatibility - all required fields
         customer_name: `${sanitizedFormData.firstName} ${sanitizedFormData.lastName}`,
         customer_email: sanitizedFormData.email,
@@ -421,11 +484,17 @@ export default function CheckoutPage() {
         delivery_latitude: sanitizedFormData.latitude, // 📍 New dedicated coordinate column
         delivery_longitude: sanitizedFormData.longitude, // 📍 New dedicated coordinate column
         subtotal: Number(subtotal),
-        total: Number(subtotal),
+        total: Number(finalTotal),
         payment_method: 'cash_on_delivery',
         status: 'pending',
         notes: sanitizedFormData.notes || null,
-        order_notes: sanitizedFormData.notes || null
+        order_notes: sanitizedFormData.notes || null,
+
+        // Promo code fields
+        discount_code: appliedPromo?.code || null,
+        discount_type: appliedPromo?.discountType || null,
+        discount_value: appliedPromo?.discountValue || null,
+        discount_amount: appliedPromo?.discountAmount || null
       };
 
       console.log('📋 Order data prepared:', {
@@ -473,7 +542,7 @@ export default function CheckoutPage() {
           subtotal: Number(item.subtotal) || 0,
           preview_image_url: item.preview_image_url || null
         };
-        
+
         console.log('🔍 Processing item:', {
           id: item.id,
           jewelry_type: itemData.jewelry_type,
@@ -482,7 +551,7 @@ export default function CheckoutPage() {
           quantity: itemData.quantity,
           subtotal: itemData.subtotal
         });
-        
+
         return itemData;
       });
 
@@ -509,6 +578,66 @@ export default function CheckoutPage() {
       }
 
       console.log('✅ Order items created successfully');
+
+      // Record promo code usage if applicable
+      if (appliedPromo) {
+        try {
+          console.log('🎟️ Recording promo code usage...');
+
+          // Fetch promo code details to get payout settings
+          const { data: promoCodeData } = await supabase
+            .from('promo_codes')
+            .select('influencer_payout_type, influencer_payout_value')
+            .eq('id', appliedPromo.promoCodeId)
+            .single();
+
+          // Calculate influencer payout
+          let influencerPayout = 0;
+          if (promoCodeData) {
+            const { influencer_payout_type, influencer_payout_value } = promoCodeData;
+
+            if (influencer_payout_type === 'percentage_of_sale' && influencer_payout_value) {
+              influencerPayout = (finalTotal * influencer_payout_value) / 100;
+            } else if (influencer_payout_type === 'fixed' && influencer_payout_value) {
+              influencerPayout = influencer_payout_value;
+            }
+          }
+
+          // Record usage with calculated payout
+          const { error: usageError } = await (supabase
+            .from('promo_code_usage') as any)
+            .insert({
+              promo_code_id: appliedPromo.promoCodeId,
+              order_id: order.id,
+              customer_email: sanitizedFormData.email.toLowerCase(),
+              discount_amount: appliedPromo.discountAmount,
+              order_subtotal: subtotal,
+              order_total: finalTotal,
+              influencer_payout_amount: influencerPayout,
+              payout_status: 'calculated'
+            });
+
+          if (usageError) {
+            console.error('⚠️ Failed to record promo code usage:', usageError);
+            // Don't throw - order is already created
+          } else {
+            // Increment promo code usage counter
+            const { error: updateError } = await (supabase
+              .from('promo_codes') as any)
+              .update({ current_uses: (supabase as any).raw('current_uses + 1') })
+              .eq('id', appliedPromo.promoCodeId);
+
+            if (updateError) {
+              console.error('⚠️ Failed to update promo code counter:', updateError);
+            } else {
+              console.log('✅ Promo code usage recorded with payout:', influencerPayout);
+            }
+          }
+        } catch (promoError) {
+          console.error('⚠️ Promo code tracking error:', promoError);
+          // Don't let this fail the order
+        }
+      }
 
       // Show luxury success message with Jové branding
       const orderNumber = order.order_number || order.id.slice(0, 8).toUpperCase();
@@ -537,7 +666,7 @@ export default function CheckoutPage() {
 
       // Redirect to order confirmation
       console.log('🚀 Redirecting to order confirmation:', `/order-confirmation/${order.id}`);
-      
+
       // Try Next.js router first
       try {
         router.push(`/order-confirmation/${order.id}`);
@@ -547,18 +676,18 @@ export default function CheckoutPage() {
         // Fallback to window.location if router fails
         window.location.href = `/order-confirmation/${order.id}`;
       }
-      
+
       // Note: Don't set setSubmitting(false) here as we're navigating away
     } catch (error: unknown) {
       console.error('Error creating order:', error);
       console.error('Error type:', typeof error);
       console.error('Error constructor:', error?.constructor?.name);
       console.error('Error keys:', error ? Object.keys(error) : 'no keys');
-      
+
       // More robust error extraction
       let errorMessage = '';
       let errorCode = '';
-      
+
       if (error && typeof error === 'object') {
         // Handle Supabase errors
         if ('message' in error && typeof error.message === 'string') {
@@ -576,13 +705,13 @@ export default function CheckoutPage() {
           errorCode = errorCode || String(error.status);
         }
       }
-      
+
       // Fallback for completely unknown errors
       if (!errorMessage && !errorCode) {
         errorMessage = error ? String(error) : 'Unknown error occurred';
         console.error('Fallback error message:', errorMessage);
       }
-      
+
       // Network/Connection errors
       if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorCode === 'NETWORK_ERROR') {
         showError(
@@ -643,10 +772,10 @@ export default function CheckoutPage() {
       else {
         // Try to provide more specific error details in development
         const isDevelopment = process.env.NODE_ENV === 'development';
-        const detailedMessage = isDevelopment 
+        const detailedMessage = isDevelopment
           ? `Error: ${errorMessage}${errorCode ? ` (Code: ${errorCode})` : ''}`
           : 'There was an unexpected error placing your order. Please try again or contact support.';
-        
+
         showError(
           'Order Failed',
           detailedMessage
@@ -691,7 +820,7 @@ export default function CheckoutPage() {
             {/* Customer Information */}
             <div className="jove-bg-card rounded-lg shadow-sm p-4 sm:p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Customer Information</h3>
-              
+
               <form onSubmit={handleSubmitOrder} className="space-y-4">
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -902,15 +1031,15 @@ export default function CheckoutPage() {
           <div className="lg:sticky lg:top-8 h-fit">
             <div className="jove-bg-card rounded-lg shadow-sm p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Order Summary</h3>
-              
+
               {/* Order Items */}
               <div className="space-y-4 mb-6">
                 {items.map((item) => (
                   <div key={item.id} className="flex items-start space-x-3 pb-4 border-b border-gray-200 last:border-b-0 last:pb-0">
                     <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0">
                       {item.preview_image_url ? (
-                        <img 
-                          src={item.preview_image_url} 
+                        <img
+                          src={item.preview_image_url}
                           alt="Custom jewelry"
                           className="w-full h-full object-cover rounded-lg"
                         />
@@ -947,9 +1076,66 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
+              {/* Promo Code Section */}
+              <div className="mb-4 pb-4 border-b border-gray-200">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Promo Code
+                </label>
+                {!appliedPromo ? (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      onKeyPress={(e) => e.key === 'Enter' && handleApplyPromoCode()}
+                      placeholder="Enter code"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 transition-colors text-sm uppercase"
+                      disabled={promoLoading}
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleApplyPromoCode}
+                      disabled={promoLoading || !promoCode.trim()}
+                      className="px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {promoLoading ? 'Checking...' : 'Apply'}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div>
+                          <p className="text-sm font-medium text-green-900">{appliedPromo.code}</p>
+                          <p className="text-xs text-green-700">-{formatPrice(appliedPromo.discountAmount)} discount</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemovePromoCode}
+                        className="text-green-600 hover:text-green-800 text-sm font-medium"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Discount Display */}
+              {appliedPromo && (
+                <div className="flex justify-between text-sm text-green-600 mb-3">
+                  <span>Discount ({appliedPromo.code})</span>
+                  <span>-{formatPrice(appliedPromo.discountAmount)}</span>
+                </div>
+              )}
+
               <div className="flex justify-between text-lg font-medium mb-6">
                 <span>Total</span>
-                <span>{formatPrice(subtotal)}</span>
+                <span>{formatPrice(finalTotal)}</span>
               </div>
 
               {/* Payment Method Selection */}
@@ -965,11 +1151,10 @@ export default function CheckoutPage() {
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('stripe')}
-                      className={`w-full p-4 rounded-lg border-2 transition-all ${
-                        paymentMethod === 'stripe'
-                          ? 'border-zinc-900 bg-zinc-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                      className={`w-full p-4 rounded-lg border-2 transition-all ${paymentMethod === 'stripe'
+                        ? 'border-zinc-900 bg-zinc-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                        }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
@@ -979,9 +1164,8 @@ export default function CheckoutPage() {
                             <p className="text-xs text-gray-500">Secure payment via Stripe</p>
                           </div>
                         </div>
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          paymentMethod === 'stripe' ? 'border-zinc-900' : 'border-gray-300'
-                        }`}>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'stripe' ? 'border-zinc-900' : 'border-gray-300'
+                          }`}>
                           {paymentMethod === 'stripe' && (
                             <div className="w-3 h-3 rounded-full bg-zinc-900"></div>
                           )}
@@ -995,11 +1179,10 @@ export default function CheckoutPage() {
                     <button
                       type="button"
                       onClick={() => setPaymentMethod('cash_on_delivery')}
-                      className={`w-full p-4 rounded-lg border-2 transition-all ${
-                        paymentMethod === 'cash_on_delivery'
-                          ? 'border-zinc-900 bg-zinc-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                      className={`w-full p-4 rounded-lg border-2 transition-all ${paymentMethod === 'cash_on_delivery'
+                        ? 'border-zinc-900 bg-zinc-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                        }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
@@ -1009,9 +1192,8 @@ export default function CheckoutPage() {
                             <p className="text-xs text-gray-500">Pay when you receive your order</p>
                           </div>
                         </div>
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          paymentMethod === 'cash_on_delivery' ? 'border-zinc-900' : 'border-gray-300'
-                        }`}>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'cash_on_delivery' ? 'border-zinc-900' : 'border-gray-300'
+                          }`}>
                           {paymentMethod === 'cash_on_delivery' && (
                             <div className="w-3 h-3 rounded-full bg-zinc-900"></div>
                           )}
@@ -1040,8 +1222,8 @@ export default function CheckoutPage() {
                   </div>
                 ) : (
                   paymentMethod === 'stripe'
-                    ? `Proceed to Payment — ${formatPrice(subtotal)}`
-                    : `Place Order — ${formatPrice(subtotal)}`
+                    ? `Proceed to Payment — ${formatPrice(finalTotal)}`
+                    : `Place Order — ${formatPrice(finalTotal)}`
                 )}
               </Button>
 

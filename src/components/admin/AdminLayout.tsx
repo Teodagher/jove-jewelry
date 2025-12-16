@@ -18,7 +18,8 @@ import {
   UserPlus,
   FileText,
   Settings,
-  Gift
+  Gift,
+  Tag
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -48,6 +49,7 @@ const navigation = [
     ]
   },
   { name: 'Orders', href: '/admin/orders', icon: Package },
+  { name: 'Promo Codes', href: '/admin/promo-codes', icon: Tag },
   { name: 'Customers', href: '/admin/customers', icon: Users },
   { name: 'Leads', href: '/admin/leads', icon: UserPlus },
   { name: 'Giveaways', href: '/admin/giveaways', icon: Gift },
@@ -63,16 +65,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
 
-  logger.log('🏗️ AdminLayout render:', { 
-    pathname, 
-    hasUser: !!user, 
+  logger.log('🏗️ AdminLayout render:', {
+    pathname,
+    hasUser: !!user,
     userId: user?.id,
-    loading 
+    loading
   });
 
   // Handle auth state
   useEffect(() => {
-    
+
     // Get initial user
     supabase.auth.getUser().then(({ data }) => {
       logger.log('🏗️ AdminLayout: Initial user check:', { hasUser: !!data.user, userId: data.user?.id });
@@ -147,7 +149,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     <div className="h-screen flex overflow-hidden jove-bg-primary">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         >
@@ -180,7 +182,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             {navigation.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
-              
+
               return (
                 <div key={item.name}>
                   <Link
@@ -188,8 +190,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     onClick={() => setSidebarOpen(false)}
                     className={`
                       group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200
-                      ${active 
-                        ? 'bg-zinc-100 text-zinc-900' 
+                      ${active
+                        ? 'bg-zinc-100 text-zinc-900'
                         : 'text-gray-600 jove-bg-accent-hover hover:text-gray-900'
                       }
                     `}
@@ -242,7 +244,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </svg>
             Go back to website
           </button>
-          <button 
+          <button
             onClick={handleSignOut}
             className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-600 rounded-lg jove-bg-accent-hover hover:text-gray-900 transition-colors duration-200"
           >

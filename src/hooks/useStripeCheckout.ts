@@ -32,6 +32,14 @@ interface DeliveryAddress {
   longitude?: number | null;
 }
 
+interface PromoCodeData {
+  code: string;
+  discountAmount: number;
+  promoCodeId: string;
+  discountType: string;
+  discountValue: number;
+}
+
 interface UseStripeCheckoutOptions {
   market: Market;
 }
@@ -43,7 +51,8 @@ export function useStripeCheckout({ market }: UseStripeCheckoutOptions) {
   const createCheckoutSession = async (
     cartItems: CartItem[],
     customerInfo: CustomerInfo,
-    deliveryAddress: DeliveryAddress
+    deliveryAddress: DeliveryAddress,
+    promoCode?: PromoCodeData | null
   ) => {
     setLoading(true);
 
@@ -62,6 +71,7 @@ export function useStripeCheckout({ market }: UseStripeCheckoutOptions) {
           deliveryAddress,
           market,
           currency,
+          promoCode,
         }),
       });
 

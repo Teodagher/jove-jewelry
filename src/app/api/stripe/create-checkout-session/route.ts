@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
       deliveryAddress,
       market,
       currency,
+      promoCode,
     } = await req.json();
 
     // Validate required fields
@@ -43,7 +44,11 @@ export async function POST(req: NextRequest) {
       0
     );
 
-    // Create line items for Stripe
+    // Apply promo code discount if provided
+    const discountAmount = promoCode?.discountAmount || 0;
+    const finalTotal = subtotal - discountAmount;
+
+    // Create line items for Stripe with discount applied proportionally
     const line_items = cartItems.map((item: any) => {
       const customizationText = Object.entries(item.customization_data || {})
         .filter(([_, value]) => value)
@@ -54,8 +59,8 @@ export async function POST(req: NextRequest) {
           const formattedValue =
             typeof value === 'string'
               ? value
-                  .replace(/_/g, ' ')
-                  .replace(/\b\w/g, (l: string) => l.toUpperCase())
+                .replace(/_/g, ' ')
+                .replace(/\b\w/g, (l: string) => l.toUpperCase())
               : value;
           return `${formattedKey}: ${formattedValue}`;
         })
@@ -65,6 +70,14 @@ export async function POST(req: NextRequest) {
       const formattedType =
         jewelryType.charAt(0).toUpperCase() +
         jewelryType.slice(1).replace(/_/g, ' ');
+
+      // Calculate item price with proportional discount applied
+      let itemPrice = item.total_price;
+      if (promoCode && discountAmount > 0) {
+        // Apply discount proportionally to each item
+        const discountRatio = discountAmount / subtotal;
+        itemPrice = item.total_price * (1 - discountRatio);
+      }
 
       return {
         price_data: {
@@ -78,7 +91,7 @@ export async function POST(req: NextRequest) {
               customization_summary: customizationText,
             },
           },
-          unit_amount: Math.round(item.total_price * 100), // Stripe expects cents
+          unit_amount: Math.round(itemPrice * 100), // Stripe expects cents, with discount applied
         },
         quantity: item.quantity,
       };
@@ -102,6 +115,11 @@ export async function POST(req: NextRequest) {
         market,
         currency,
         subtotal: subtotal.toString(),
+        promo_code: promoCode?.code || '',
+        promo_code_id: promoCode?.promoCodeId || '',
+        discount_type: promoCode?.discountType || '',
+        discount_value: promoCode?.discountValue?.toString() || '',
+        discount_amount: discountAmount.toString(),
       },
     });
 
