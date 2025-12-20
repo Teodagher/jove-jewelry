@@ -8,18 +8,38 @@ import Navbar from './Navbar'
 import { useCart } from '@/contexts/CartContext'
 import { useAuth } from '@/contexts/AuthContext'
 import AnimatedScrollButton from '@/components/AnimatedScrollButton'
+import { supabase } from '@/lib/supabase/client'
+
+interface ProductCategory {
+  id: string
+  name: string
+  slug: string
+  display_order: number
+}
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false)
+  const [categories, setCategories] = useState<ProductCategory[]>([])
   const { itemCount } = useCart()
   const { user, signOut } = useAuth()
 
-  const jewelryCategories = [
-    { name: 'NECKLACES', href: '/customize/necklaces' },
-    { name: 'RINGS', href: '/customize/rings' },
-    { name: 'BRACELETS', href: '/customize/bracelets' },
-  ]
+  // Fetch product categories from Supabase
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data, error } = await supabase
+        .from('product_categories')
+        .select('id, name, slug, display_order')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+
+      if (!error && data) {
+        setCategories(data)
+      }
+    }
+
+    fetchCategories()
+  }, [])
 
   return (
     <>
@@ -108,22 +128,28 @@ export default function Header() {
                 
                 {isMobileDropdownOpen && (
                   <div className="mt-2 space-y-0.5 bg-zinc-50 rounded-lg overflow-hidden border border-zinc-100">
-                    {jewelryCategories.map((category, index) => (
-                      <Link
-                        key={category.name}
-                        href={category.href}
-                        className="block text-sm font-light text-zinc-800 hover:text-zinc-900 hover:bg-zinc-100 py-4 px-6 tracking-widest transition-all duration-300"
-                        onClick={() => {
-                          setIsMenuOpen(false)
-                          setIsMobileDropdownOpen(false)
-                        }}
-                      >
-                        <div className="flex items-center justify-between group">
-                          <span>{category.name}</span>
-                          <span className="text-zinc-300 group-hover:text-zinc-800 transition-colors duration-300">→</span>
-                        </div>
-                      </Link>
-                    ))}
+                    {categories.length > 0 ? (
+                      categories.map((category, index) => (
+                        <Link
+                          key={category.id}
+                          href={`/customize/category/${category.slug}`}
+                          className="block text-sm font-light text-zinc-800 hover:text-zinc-900 hover:bg-zinc-100 py-4 px-6 tracking-widest transition-all duration-300"
+                          onClick={() => {
+                            setIsMenuOpen(false)
+                            setIsMobileDropdownOpen(false)
+                          }}
+                        >
+                          <div className="flex items-center justify-between group">
+                            <span>{category.name.toUpperCase()}</span>
+                            <span className="text-zinc-300 group-hover:text-zinc-800 transition-colors duration-300">→</span>
+                          </div>
+                        </Link>
+                      ))
+                    ) : (
+                      <div className="px-6 py-4 text-sm text-gray-500 text-center">
+                        No categories available
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

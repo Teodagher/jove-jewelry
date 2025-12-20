@@ -6,7 +6,7 @@ import { ChevronDown } from 'lucide-react'
 import AnimatedScrollButton from '@/components/AnimatedScrollButton'
 import { supabase } from '@/lib/supabase/client'
 
-interface JewelryItem {
+interface ProductCategory {
   id: string
   name: string
   slug: string
@@ -15,25 +15,24 @@ interface JewelryItem {
 
 export default function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [jewelryItems, setJewelryItems] = useState<JewelryItem[]>([])
+  const [categories, setCategories] = useState<ProductCategory[]>([])
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Fetch jewelry items from Supabase
+  // Fetch product categories from Supabase
   useEffect(() => {
-    const fetchJewelryItems = async () => {
+    const fetchCategories = async () => {
       const { data, error } = await supabase
-        .from('jewelry_items')
+        .from('product_categories')
         .select('id, name, slug, display_order')
         .eq('is_active', true)
-        .eq('product_type', 'customizable')
         .order('display_order', { ascending: true })
 
       if (!error && data) {
-        setJewelryItems(data)
+        setCategories(data)
       }
     }
 
-    fetchJewelryItems()
+    fetchCategories()
   }, [])
 
   // Close dropdown when clicking outside
@@ -69,29 +68,29 @@ export default function Navbar() {
         {isDropdownOpen && (
           <div className="absolute top-full left-0 mt-3 w-56 bg-stone-50 border border-amber-200 rounded-lg shadow-[0_4px_20px_rgba(0,0,0,0.08)] z-[9999] overflow-hidden">
             <div className="py-2 divide-y divide-zinc-100">
-              {jewelryItems.length > 0 ? (
-                jewelryItems.map((item, index) => (
+              {categories.length > 0 ? (
+                categories.map((category, index) => (
                   <Link
-                    key={item.id}
-                    href={`/customize/${item.slug}`}
+                    key={category.id}
+                    href={`/customize/category/${category.slug}`}
                     className={`
                       block px-6 py-4 text-sm font-light text-zinc-800 hover:text-zinc-900
                       hover:bg-zinc-50 transition-all duration-300 tracking-widest
                       cursor-pointer relative z-10
                       ${index === 0 ? 'rounded-t-lg' : ''}
-                      ${index === jewelryItems.length - 1 ? 'rounded-b-lg' : ''}
+                      ${index === categories.length - 1 ? 'rounded-b-lg' : ''}
                     `}
                     onClick={() => setIsDropdownOpen(false)}
                   >
                     <div className="flex items-center justify-between group">
-                      <span>{item.name.toUpperCase()}</span>
+                      <span>{category.name.toUpperCase()}</span>
                       <span className="text-zinc-300 group-hover:text-zinc-800 transition-colors duration-300">→</span>
                     </div>
                   </Link>
                 ))
               ) : (
                 <div className="px-6 py-4 text-sm text-gray-500 text-center">
-                  No products available
+                  No categories available
                 </div>
               )}
             </div>
