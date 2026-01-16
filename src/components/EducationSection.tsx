@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Gem, CircleDot, Sparkles, Hammer } from 'lucide-react';
+import Link from 'next/link';
 
 interface EducationTopic {
   id: string;
@@ -257,7 +258,7 @@ export default function EducationSection() {
                 {/* Footer */}
                 <div className="mt-12 pt-8 border-t border-maison-warm">
                   <p className="text-maison-graphite/60 text-sm font-light text-center">
-                    Have questions? <a href="/#contact" className="text-maison-gold hover:underline">Contact our team</a> for personalised guidance.
+                    Have questions? <Link href="/#contact" className="text-maison-gold hover:underline">Contact our team</Link> for personalised guidance.
                   </p>
                 </div>
               </div>

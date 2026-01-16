@@ -29,7 +29,7 @@ export default function Home() {
       <EducationSection />
       
       {/* Our Work Gallery - Infinite scroll */}
-      <OurWorkGallery />
+      {/* <OurWorkGallery /> */}
       
       {/* Lab-Grown Diamonds Info */}
       <CraftsmanshipSection />
@@ -43,7 +43,7 @@ export default function Home() {
       <Footer />
       
       {/* Live Chat Widget */}
-      <LiveChatWidget />
+      {/* <LiveChatWidget /> */}
       
       {/* Admin Quick Access Bar (only visible to admins) */}
       <AdminQuickAccessBar />
