@@ -1,6 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { ChevronDown, Instagram, Mail, Phone, MapPin, Gem } from 'lucide-react'
 import PoweredByAstry from './PoweredByAstry'
 
 export default function Footer() {
@@ -14,137 +17,217 @@ export default function Footer() {
   }
 
   return (
-    <footer className="bg-[#111] text-[#eee] py-16 px-8" style={{ fontFamily: 'Arial, sans-serif' }}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
-        
-        {/* CUSTOMER CARE */}
-        <div className="footer-section">
-          <h4 className="text-base mb-5 uppercase text-white font-normal">CUSTOMER CARE</h4>
-          <ul className="list-none p-0 m-0 space-y-3">
-            {/* Shipping Information */}
-            <li className="text-sm">
-              <button 
-                onClick={() => toggleSection('shipping')}
-                className="flex items-center justify-between w-full text-left hover:text-[#f5c542] transition-colors"
-              >
-                <strong>Shipping Information</strong>
-                <span className="ml-2 text-xs">
-                  {expandedSections.shipping ? '−' : '+'}
-                </span>
-              </button>
-                             {expandedSections.shipping && (
-                 <div className="mt-3 pl-4 py-2 text-xs text-[#ccc] border-l-2 border-[#333]">
-                   Delivery available all over Lebanon. Standard delivery takes 3-5 business days. Express delivery available for urgent orders.
-                 </div>
-               )}
-            </li>
-
-            {/* Returns & Exchanges */}
-            <li className="text-sm">
-              <button 
-                onClick={() => toggleSection('returns')}
-                className="flex items-center justify-between w-full text-left hover:text-[#f5c542] transition-colors"
-              >
-                <strong>Returns & Exchanges</strong>
-                <span className="ml-2 text-xs">
-                  {expandedSections.returns ? '−' : '+'}
-                </span>
-              </button>
-                             {expandedSections.returns && (
-                 <div className="mt-3 pl-4 py-2 text-xs text-[#ccc] border-l-2 border-[#333]">
-                   You can exchange or return your product if, upon delivery, it doesn't meet your requirements. Returns must be initiated within 30 days of delivery. Items must be in original condition.
-                 </div>
-               )}
-            </li>
-
-            {/* Lifetime Warranty */}
-            <li className="text-sm">
-              <button 
-                onClick={() => toggleSection('warranty')}
-                className="flex items-center justify-between w-full text-left hover:text-[#f5c542] transition-colors"
-              >
-                <strong>Lifetime Warranty</strong>
-                <span className="ml-2 text-xs">
-                  {expandedSections.warranty ? '−' : '+'}
-                </span>
-              </button>
-                             {expandedSections.warranty && (
-                 <div className="mt-3 pl-4 py-2 text-xs text-[#ccc] border-l-2 border-[#333]">
-                   If any of our products come with a manufacturer defect, you are fully covered with a lifetime warranty. This covers material defects and craftsmanship issues.
-                 </div>
-               )}
-            </li>
-
-            {/* Size Guide */}
-            <li className="text-sm">
-              <button 
-                onClick={() => toggleSection('sizeGuide')}
-                className="flex items-center justify-between w-full text-left hover:text-[#f5c542] transition-colors"
-              >
-                <strong>Size Guide</strong>
-                <span className="ml-2 text-xs">
-                  {expandedSections.sizeGuide ? '−' : '+'}
-                </span>
-              </button>
-            </li>
-          </ul>
-
-                     {/* SIZE GUIDE TABLE */}
-           {expandedSections.sizeGuide && (
-             <div className="mt-4 overflow-x-auto">
-              <table className="w-full border-collapse text-xs">
-                <thead>
-                  <tr>
-                    <th className="border border-[#444] p-1.5 text-center bg-[#222] text-white">US Size</th>
-                    <th className="border border-[#444] p-1.5 text-center bg-[#222] text-white">Inside Diameter (mm)</th>
-                    <th className="border border-[#444] p-1.5 text-center bg-[#222] text-white">Inside Circumference (mm)</th>
-                    <th className="border border-[#444] p-1.5 text-center bg-[#222] text-white">EU Size</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr><td className="border border-[#444] p-1.5 text-center">5</td><td className="border border-[#444] p-1.5 text-center">15.7</td><td className="border border-[#444] p-1.5 text-center">49.3</td><td className="border border-[#444] p-1.5 text-center">49</td></tr>
-                  <tr><td className="border border-[#444] p-1.5 text-center">6</td><td className="border border-[#444] p-1.5 text-center">16.5</td><td className="border border-[#444] p-1.5 text-center">51.9</td><td className="border border-[#444] p-1.5 text-center">52</td></tr>
-                  <tr><td className="border border-[#444] p-1.5 text-center">7</td><td className="border border-[#444] p-1.5 text-center">17.3</td><td className="border border-[#444] p-1.5 text-center">54.4</td><td className="border border-[#444] p-1.5 text-center">54</td></tr>
-                  <tr><td className="border border-[#444] p-1.5 text-center">8</td><td className="border border-[#444] p-1.5 text-center">18.1</td><td className="border border-[#444] p-1.5 text-center">57.0</td><td className="border border-[#444] p-1.5 text-center">57</td></tr>
-                  <tr><td className="border border-[#444] p-1.5 text-center">9</td><td className="border border-[#444] p-1.5 text-center">18.9</td><td className="border border-[#444] p-1.5 text-center">59.5</td><td className="border border-[#444] p-1.5 text-center">60</td></tr>
-                  <tr><td className="border border-[#444] p-1.5 text-center">10</td><td className="border border-[#444] p-1.5 text-center">19.8</td><td className="border border-[#444] p-1.5 text-center">62.1</td><td className="border border-[#444] p-1.5 text-center">62</td></tr>
-                  <tr><td className="border border-[#444] p-1.5 text-center">11</td><td className="border border-[#444] p-1.5 text-center">20.6</td><td className="border border-[#444] p-1.5 text-center">64.6</td><td className="border border-[#444] p-1.5 text-center">65</td></tr>
-                  <tr><td className="border border-[#444] p-1.5 text-center">12</td><td className="border border-[#444] p-1.5 text-center">21.4</td><td className="border border-[#444] p-1.5 text-center">67.2</td><td className="border border-[#444] p-1.5 text-center">67</td></tr>
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-                 {/* JEWELRY */}
-         <div className="footer-section">
-           <h4 className="text-base mb-5 uppercase text-white font-normal">JEWELRY</h4>
-           <ul className="list-none p-0 m-0 space-y-3">
-            <li className="text-sm">Custom Bracelets</li>
-            <li className="text-sm">Custom Necklaces</li>
-            <li className="text-sm">Custom Rings</li>
-          </ul>
-        </div>
-
-                 {/* MATERIAL GUIDE */}
-         <div className="footer-section">
-           <h4 className="text-base mb-5 uppercase text-white font-normal">MATERIAL GUIDE</h4>
-           <p className="text-sm m-0 leading-relaxed">We only use <strong>18kt gold</strong> for all our creations.</p>
-        </div>
-
-                 {/* CONTACT */}
-         <div className="footer-section">
-           <h4 className="text-base mb-5 uppercase text-white font-normal">CONTACT</h4>
-           <ul className="list-none p-0 m-0 space-y-3">
-            <li className="text-sm">Email: <a href="mailto:support@maisonjove.com" className="text-[#f5c542] no-underline hover:underline">support@maisonjove.com</a></li>
-            <li className="text-sm">Phone/WhatsApp: <a href="tel:+96171777422" className="text-[#f5c542] no-underline hover:underline">+961 71 777 422</a></li>
-          </ul>
-        </div>
-
-      </div>
+    <footer className="bg-maison-black text-maison-ivory">
+      {/* Top accent line */}
+      <div className="h-px bg-gradient-to-r from-transparent via-maison-gold/40 to-transparent" />
       
-      {/* Powered by Astry */}
-      <PoweredByAstry />
+      {/* Main footer content */}
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-16 md:py-20 lg:py-24">
+        {/* Brand section */}
+        <div className="text-center mb-16 md:mb-20">
+          <Link href="/" className="inline-block group">
+            <h2 className="font-serif text-2xl md:text-3xl font-light tracking-[0.2em] text-maison-ivory group-hover:text-maison-gold transition-colors duration-300">
+              MAISON JOVÉ
+            </h2>
+            <p className="text-xs text-maison-ivory/50 tracking-[0.3em] mt-2 font-light">
+              FINE JEWELLERY
+            </p>
+          </Link>
+          <div className="w-16 h-px bg-maison-gold/40 mx-auto mt-6" />
+          <p className="text-maison-ivory/60 font-light text-sm md:text-base max-w-xl mx-auto mt-6 leading-relaxed">
+            Built on over 35 years of family jewellery heritage, Maison Jové creates bespoke fine jewellery 
+            that tells your unique story. Each piece is handcrafted with exceptional precision and care.
+          </p>
+        </div>
+
+        {/* Links grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8 mb-16">
+          {/* Collections */}
+          <div>
+            <h3 className="text-xs uppercase tracking-[0.2em] text-maison-gold mb-6 font-medium">
+              Collections
+            </h3>
+            <ul className="space-y-3">
+              <li>
+                <Link href="/customize/category/bracelets" className="text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light">
+                  Bracelets
+                </Link>
+              </li>
+              <li>
+                <Link href="/customize/category/necklaces" className="text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light">
+                  Necklaces
+                </Link>
+              </li>
+              <li>
+                <Link href="/customize/category/rings" className="text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light">
+                  Rings
+                </Link>
+              </li>
+              <li>
+                <Link href="/customize" className="text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light">
+                  All Jewellery
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Education */}
+          <div>
+            <h3 className="text-xs uppercase tracking-[0.2em] text-maison-gold mb-6 font-medium">
+              Education
+            </h3>
+            <ul className="space-y-3">
+              <li>
+                <Link href="/#education" className="text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light">
+                  Gold & Metals Guide
+                </Link>
+              </li>
+              <li>
+                <Link href="/#education" className="text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light">
+                  Gemstone Education
+                </Link>
+              </li>
+              <li>
+                <Link href="/#education" className="text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light">
+                  Craftsmanship
+                </Link>
+              </li>
+              <li>
+                <Link href="/#education" className="text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light">
+                  Customisation Process
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Customer Care */}
+          <div>
+            <h3 className="text-xs uppercase tracking-[0.2em] text-maison-gold mb-6 font-medium">
+              Customer Care
+            </h3>
+            <ul className="space-y-3">
+              <li>
+                <button 
+                  onClick={() => toggleSection('shipping')}
+                  className="flex items-center gap-2 text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light"
+                >
+                  <span>Shipping Information</span>
+                  <ChevronDown size={12} className={`transition-transform duration-200 ${expandedSections.shipping ? 'rotate-180' : ''}`} />
+                </button>
+                {expandedSections.shipping && (
+                  <motion.p 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="text-xs text-maison-ivory/50 mt-2 pl-0 leading-relaxed"
+                  >
+                    Delivery available worldwide. Standard delivery takes 5-10 business days.
+                  </motion.p>
+                )}
+              </li>
+              <li>
+                <button 
+                  onClick={() => toggleSection('returns')}
+                  className="flex items-center gap-2 text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light"
+                >
+                  <span>Returns & Exchanges</span>
+                  <ChevronDown size={12} className={`transition-transform duration-200 ${expandedSections.returns ? 'rotate-180' : ''}`} />
+                </button>
+                {expandedSections.returns && (
+                  <motion.p 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="text-xs text-maison-ivory/50 mt-2 pl-0 leading-relaxed"
+                  >
+                    30-day returns on all items in original condition.
+                  </motion.p>
+                )}
+              </li>
+              <li>
+                <button 
+                  onClick={() => toggleSection('warranty')}
+                  className="flex items-center gap-2 text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light"
+                >
+                  <span>Lifetime Warranty</span>
+                  <ChevronDown size={12} className={`transition-transform duration-200 ${expandedSections.warranty ? 'rotate-180' : ''}`} />
+                </button>
+                {expandedSections.warranty && (
+                  <motion.p 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="text-xs text-maison-ivory/50 mt-2 pl-0 leading-relaxed"
+                  >
+                    Full coverage for manufacturing defects.
+                  </motion.p>
+                )}
+              </li>
+            </ul>
+          </div>
+
+          {/* Contact */}
+          <div>
+            <h3 className="text-xs uppercase tracking-[0.2em] text-maison-gold mb-6 font-medium">
+              Contact
+            </h3>
+            <ul className="space-y-4">
+              <li>
+                <a 
+                  href="mailto:support@maisonjove.com" 
+                  className="flex items-center gap-3 text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light"
+                >
+                  <Mail size={14} strokeWidth={1.5} className="text-maison-gold/60" />
+                  support@maisonjove.com
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="tel:+96171777422" 
+                  className="flex items-center gap-3 text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light"
+                >
+                  <Phone size={14} strokeWidth={1.5} className="text-maison-gold/60" />
+                  +961 71 777 422
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="https://instagram.com/maisonjove" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light"
+                >
+                  <Instagram size={14} strokeWidth={1.5} className="text-maison-gold/60" />
+                  @maisonjove
+                </a>
+              </li>
+            </ul>
+
+            {/* Partner mention */}
+            <div className="mt-8 pt-6 border-t border-maison-graphite/30">
+              <p className="text-xs text-maison-ivory/40 font-light leading-relaxed">
+                Proud partner of <span className="text-maison-ivory/60">Pierre Diamonds, Sydney</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom section */}
+        <div className="pt-8 border-t border-maison-graphite/30">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            {/* Copyright */}
+            <p className="text-xs text-maison-ivory/40 font-light tracking-wide">
+              © {new Date().getFullYear()} Maison Jové. All rights reserved.
+            </p>
+
+            {/* Material badge */}
+            <div className="flex items-center gap-2 text-xs text-maison-ivory/40 font-light">
+              <Gem size={12} strokeWidth={1.5} className="text-maison-gold/50" />
+              <span>Exclusively 18kt Gold</span>
+            </div>
+
+            {/* Powered by */}
+            <PoweredByAstry />
+          </div>
+        </div>
+      </div>
     </footer>
   )
 }

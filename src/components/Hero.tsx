@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { ChevronDown } from 'lucide-react'
 import HeroCarousel from './HeroCarousel'
 import { fetchHeroImagesProgressive } from '@/services/heroImageService'
 
@@ -16,17 +17,14 @@ export default function Hero() {
       try {
         const { firstImage: first, allImages } = await fetchHeroImagesProgressive()
         
-        // Set first image immediately if available
         if (first) {
           setFirstImage(first)
           setIsLoading(false)
         }
         
-        // Load remaining images in background
         const images = await allImages
         setHeroImages(images)
         
-        // If we didn't have a first image, we're done loading now
         if (!first) {
           setIsLoading(false)
         }
@@ -41,40 +39,110 @@ export default function Hero() {
     loadHeroImages()
   }, [])
 
+  const scrollToContent = () => {
+    window.scrollTo({
+      top: window.innerHeight,
+      behavior: 'smooth'
+    })
+  }
+
   return (
-    <section className="relative h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden bg-stone-50">
+    <section className="relative h-screen flex items-center justify-center overflow-hidden bg-maison-black">
       {/* Hero Carousel Background */}
       <HeroCarousel 
         images={heroImages} 
         firstImage={firstImage}
-        interval={5000} 
+        interval={6000} 
         isInitialLoading={isLoading} 
       />
       
+      {/* Dark overlay for better text contrast */}
+      <div className="absolute inset-0 bg-gradient-to-b from-maison-black/40 via-maison-black/20 to-maison-black/60 z-[1]" />
+      
       {/* Content */}
-      <div className="relative z-10 text-center text-white px-4 max-w-4xl mx-auto">
-        <h1 className="text-3xl sm:text-4xl md:text-6xl font-light mb-4 md:mb-6 tracking-wide text-white drop-shadow-lg">
-          CUSTOMIZE YOUR STORY
-        </h1>
-        <p className="text-lg sm:text-xl md:text-2xl font-light mb-6 md:mb-8 tracking-wide text-white/90 drop-shadow-md">
-          Create custom bracelets, necklaces, rings.
-        </p>
-        {/* Hide detailed description on mobile, show on tablet and up */}
-        <p className="hidden sm:block text-lg text-white/80 mb-12 max-w-2xl mx-auto leading-relaxed drop-shadow-md">
-          Choose your metals, select your gemstones.
-          Handcrafted to perfection and delivered to your door.
-        </p>
+      <div className="relative z-10 text-center px-6 max-w-5xl mx-auto">
+        {/* Overline */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="text-maison-gold text-xs md:text-sm tracking-[0.3em] uppercase mb-6 md:mb-8 font-light"
+        >
+          Maison Jové
+        </motion.p>
 
-        <div className="flex justify-center mt-8 sm:mt-0">
-          <Link href="/customize">
-            <Button
-              size="lg"
-              className="bg-zinc-900 text-white hover:bg-zinc-800 px-6 sm:px-8 py-3 text-base sm:text-lg tracking-wider"
-            >
-              START CUSTOMIZING
-            </Button>
+        {/* Main Headline */}
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.4 }}
+          className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-light text-white mb-6 md:mb-8 tracking-wide leading-tight"
+        >
+          Fine Jewellery,
+          <br />
+          <span className="italic">Crafted for Your Story</span>
+        </motion.h1>
+
+        {/* Gold accent line */}
+        <motion.div
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 0.8, delay: 0.8 }}
+          className="w-24 h-px bg-maison-gold mx-auto mb-8 md:mb-10"
+        />
+
+        {/* Subheadline */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 1 }}
+          className="text-white/80 text-base md:text-lg lg:text-xl font-light tracking-wide max-w-2xl mx-auto mb-10 md:mb-14 leading-relaxed"
+        >
+          Choose your gold. Select your stones. Watch it transform.
+        </motion.p>
+
+        {/* CTA Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 1.2 }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6"
+        >
+          <Link
+            href="/customize"
+            className="group relative inline-flex items-center justify-center px-10 py-4 bg-white text-maison-black text-sm tracking-[0.2em] uppercase font-light overflow-hidden transition-all duration-500 hover:bg-maison-gold"
+          >
+            <span className="relative z-10">Start Customising</span>
           </Link>
-        </div>
+          
+          <Link
+            href="/#our-work"
+            className="inline-flex items-center justify-center px-10 py-4 border border-white/40 text-white text-sm tracking-[0.2em] uppercase font-light transition-all duration-500 hover:border-maison-gold hover:text-maison-gold"
+          >
+            View Our Work
+          </Link>
+        </motion.div>
+      </div>
+
+      {/* Scroll Indicator */}
+      <motion.button
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, delay: 1.5 }}
+        onClick={scrollToContent}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-white/60 hover:text-maison-gold transition-colors duration-300 cursor-pointer"
+        aria-label="Scroll down"
+      >
+        <span className="text-xs tracking-[0.2em] uppercase font-light">Discover</span>
+        <ChevronDown size={20} strokeWidth={1} className="animate-scroll-hint" />
+      </motion.button>
+
+      {/* Side accent lines */}
+      <div className="hidden lg:block absolute left-8 top-1/2 -translate-y-1/2 z-10">
+        <div className="w-px h-32 bg-gradient-to-b from-transparent via-maison-gold/40 to-transparent" />
+      </div>
+      <div className="hidden lg:block absolute right-8 top-1/2 -translate-y-1/2 z-10">
+        <div className="w-px h-32 bg-gradient-to-b from-transparent via-maison-gold/40 to-transparent" />
       </div>
     </section>
   )

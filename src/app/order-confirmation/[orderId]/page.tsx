@@ -4,7 +4,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Download } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 
 interface Order {
@@ -200,6 +200,14 @@ export default function OrderConfirmationPage() {
 
           {/* Action Buttons */}
           <div className="space-y-4">
+            <Button
+              onClick={() => window.open(`/api/invoice/${order.id}`, '_blank')}
+              className="w-full bg-maison-gold hover:bg-maison-gold-muted text-maison-black py-4 text-sm font-light tracking-[0.15em] transition-all duration-500 rounded-none border-0 uppercase flex items-center justify-center gap-2"
+            >
+              <Download size={16} />
+              Download Invoice
+            </Button>
+            
             <Button
               onClick={() => router.push('/customize')}
               className="w-full bg-black hover:bg-zinc-800 text-white py-4 text-sm font-light tracking-[0.15em] transition-all duration-500 rounded-none border-0 uppercase"

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -29,6 +31,22 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
+    
+    /* Maison Jove Luxury Variables */
+    --maison-black: #0a0a0a;
+    --maison-charcoal: #1a1a1a;
+    --maison-graphite: #2d2d2d;
+    --maison-ivory: #faf8f5;
+    --maison-cream: #f5f2ed;
+    --maison-warm: #ebe6df;
+    --maison-gold: #b8a06a;
+    --maison-gold-muted: #a69660;
+    --maison-gold-light: #d4c9a8;
+    --maison-champagne: #e8dcc8;
+    
+    /* Typography */
+    --font-serif: 'Cormorant Garamond', Georgia, serif;
+    --font-sans: 'Inter', system-ui, sans-serif;
   }
 
   .dark {
@@ -63,8 +81,28 @@
   * {
     @apply border-border;
   }
+  
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
   body {
-    @apply bg-stone-50 text-foreground;
+    @apply bg-maison-ivory text-maison-charcoal;
+    font-family: var(--font-sans);
+  }
+  
+  /* Luxury Typography Base */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+    font-weight: 300;
+  }
+  
+  /* Selection styling */
+  ::selection {
+    background-color: var(--maison-gold-light);
+    color: var(--maison-black);
   }
 }
 
@@ -104,6 +142,180 @@
   
   .jove-gradient-accent {
     @apply bg-gradient-to-r from-amber-100 via-amber-300 to-amber-100;
+  }
+
+  /* ========================================
+     MAISON JOVE LUXURY DESIGN SYSTEM
+     ======================================== */
+  
+  /* Luxury Backgrounds */
+  .maison-bg-dark {
+    @apply bg-maison-black;
+  }
+  
+  .maison-bg-light {
+    @apply bg-maison-ivory;
+  }
+  
+  .maison-bg-cream {
+    @apply bg-maison-cream;
+  }
+  
+  /* Luxury Text Styles */
+  .maison-heading-display {
+    font-family: var(--font-serif);
+    @apply text-display-lg md:text-display-xl font-light tracking-tight;
+  }
+  
+  .maison-heading-xl {
+    font-family: var(--font-serif);
+    @apply text-heading-xl md:text-display font-light;
+  }
+  
+  .maison-heading-lg {
+    font-family: var(--font-serif);
+    @apply text-heading-lg md:text-heading-xl font-light;
+  }
+  
+  .maison-heading {
+    font-family: var(--font-serif);
+    @apply text-heading font-light;
+  }
+  
+  .maison-body-lg {
+    font-family: var(--font-sans);
+    @apply text-body-lg font-light leading-relaxed;
+  }
+  
+  .maison-body {
+    font-family: var(--font-sans);
+    @apply text-body font-light leading-relaxed;
+  }
+  
+  .maison-overline {
+    font-family: var(--font-sans);
+    @apply text-overline uppercase tracking-luxury font-medium;
+  }
+  
+  .maison-caption {
+    font-family: var(--font-sans);
+    @apply text-caption font-light tracking-wide;
+  }
+  
+  /* Luxury Buttons */
+  .maison-btn-primary {
+    @apply inline-flex items-center justify-center px-8 py-4 
+           bg-maison-black text-maison-ivory 
+           text-sm font-light tracking-luxury uppercase
+           transition-all duration-500 ease-luxury
+           hover:bg-maison-charcoal
+           focus:outline-none focus:ring-1 focus:ring-maison-gold focus:ring-offset-2;
+  }
+  
+  .maison-btn-secondary {
+    @apply inline-flex items-center justify-center px-8 py-4 
+           bg-transparent text-maison-black 
+           border border-maison-black
+           text-sm font-light tracking-luxury uppercase
+           transition-all duration-500 ease-luxury
+           hover:bg-maison-black hover:text-maison-ivory
+           focus:outline-none focus:ring-1 focus:ring-maison-gold focus:ring-offset-2;
+  }
+  
+  .maison-btn-gold {
+    @apply inline-flex items-center justify-center px-8 py-4 
+           bg-maison-gold text-maison-black 
+           text-sm font-light tracking-luxury uppercase
+           transition-all duration-500 ease-luxury
+           hover:bg-maison-gold-muted
+           focus:outline-none focus:ring-1 focus:ring-maison-gold focus:ring-offset-2;
+  }
+  
+  /* Luxury Links */
+  .maison-link {
+    @apply relative text-maison-charcoal font-light tracking-wide
+           transition-colors duration-300
+           hover:text-maison-gold;
+  }
+  
+  .maison-link-underline {
+    @apply relative text-maison-charcoal font-light tracking-wide
+           after:absolute after:bottom-0 after:left-0 after:w-0 after:h-px
+           after:bg-maison-gold after:transition-all after:duration-500
+           hover:after:w-full;
+  }
+  
+  /* Luxury Cards */
+  .maison-card {
+    @apply bg-maison-ivory border border-maison-warm/50
+           transition-all duration-500 ease-luxury
+           hover:border-maison-gold/30 hover:shadow-lg;
+  }
+  
+  .maison-card-dark {
+    @apply bg-maison-charcoal border border-maison-graphite/50
+           transition-all duration-500 ease-luxury
+           hover:border-maison-gold/30;
+  }
+  
+  /* Luxury Dividers */
+  .maison-divider {
+    @apply h-px bg-gradient-to-r from-transparent via-maison-gold/40 to-transparent;
+  }
+  
+  .maison-divider-vertical {
+    @apply w-px bg-gradient-to-b from-transparent via-maison-gold/40 to-transparent;
+  }
+  
+  /* Luxury Input Fields */
+  .maison-input {
+    @apply w-full px-4 py-4 
+           bg-transparent border border-maison-warm
+           text-maison-charcoal font-light tracking-wide
+           placeholder:text-maison-graphite/50
+           transition-all duration-300
+           focus:outline-none focus:border-maison-gold focus:ring-0;
+  }
+  
+  .maison-input-dark {
+    @apply w-full px-4 py-4 
+           bg-transparent border border-maison-graphite
+           text-maison-ivory font-light tracking-wide
+           placeholder:text-maison-ivory/40
+           transition-all duration-300
+           focus:outline-none focus:border-maison-gold focus:ring-0;
+  }
+  
+  /* Luxury Modal/Overlay */
+  .maison-overlay {
+    @apply fixed inset-0 bg-maison-black/60 backdrop-blur-sm
+           transition-opacity duration-500;
+  }
+  
+  .maison-modal {
+    @apply bg-maison-ivory p-8 md:p-12
+           shadow-2xl
+           animate-scale-in;
+  }
+  
+  /* Gold Accent Line */
+  .maison-gold-line {
+    @apply h-px w-16 bg-maison-gold;
+  }
+  
+  .maison-gold-line-long {
+    @apply h-px w-32 bg-gradient-to-r from-maison-gold via-maison-gold-light to-transparent;
+  }
+  
+  /* Scroll Indicator */
+  .maison-scroll-indicator {
+    @apply flex flex-col items-center gap-2 text-maison-ivory/60;
+  }
+  
+  .maison-scroll-indicator::after {
+    content: '';
+    @apply w-px h-12 bg-gradient-to-b from-maison-gold/60 to-transparent
+           animate-scroll-hint;
   }
 
   /* iPad-specific optimizations */

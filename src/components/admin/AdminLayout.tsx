@@ -19,7 +19,8 @@ import {
   FileText,
   Settings,
   Gift,
-  Tag
+  Tag,
+  MessageCircle
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -49,6 +50,7 @@ const navigation = [
     ]
   },
   { name: 'Orders', href: '/admin/orders', icon: Package },
+  { name: 'Live Chat', href: '/admin/chat', icon: MessageCircle },
   { name: 'Promo Codes', href: '/admin/promo-codes', icon: Tag },
   { name: 'Customers', href: '/admin/customers', icon: Users },
   { name: 'Leads', href: '/admin/leads', icon: UserPlus },
