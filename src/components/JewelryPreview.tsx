@@ -191,25 +191,20 @@ export default function JewelryPreview({
 
       {/* Zoom Preview - Right Corner of Preview Box */}
       {enableZoom && isHovering && !imageLoading && imageUrl && (
-        <div className="absolute bottom-4 right-4 w-32 h-32 bg-white border-2 border-gray-300 rounded-lg shadow-lg overflow-hidden z-50 pointer-events-none">
-          <div className="relative w-full h-full">
-            <Image
-              src={imageUrl}
-              alt={`${alt} zoomed`}
-              fill
-              className="object-contain transition-transform duration-150 ease-out"
-              style={{
-                transform: `translate(-${mousePosition.x * 1.5 - 50}%, -${mousePosition.y * 1.5 - 50}%) scale(2)`,
-                transformOrigin: 'center'
-              }}
-              quality={90}
-              sizes="128px"
-            />
-          </div>
-          
+        <div className="absolute bottom-4 right-4 w-40 h-40 bg-white border-2 border-gray-300 rounded-lg shadow-lg overflow-hidden z-50 pointer-events-none">
+          <div
+            className="w-full h-full"
+            style={{
+              backgroundImage: `url(${imageUrl})`,
+              backgroundSize: '450%',
+              backgroundPosition: `${mousePosition.x}% ${mousePosition.y}%`,
+              backgroundRepeat: 'no-repeat',
+            }}
+          />
+
           {/* Zoom indicator */}
           <div className="absolute top-2 left-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
-            2x Zoom
+            4.5x Zoom
           </div>
         </div>
       )}
