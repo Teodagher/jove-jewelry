@@ -142,8 +142,9 @@ export default function ProductImages({ productId, productType, productSlug, ref
         [variantId]: { ...prev[variantId], progress: 50 }
       }));
 
-      // Upload to Supabase Storage
-      const uploadPath = variantGenerator.generateUploadPath(productType, variant.filename);
+      // Upload to Supabase Storage - ensure .webp extension since we convert to webp
+      const webpFilename = variant.filename.replace(/\.[^/.]+$/, '.webp');
+      const uploadPath = variantGenerator.generateUploadPath(productType, webpFilename);
       
       const { data, error } = await supabase.storage
         .from('customization-item')

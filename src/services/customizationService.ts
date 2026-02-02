@@ -512,13 +512,41 @@ export class CustomizationService {
         option_id: optionId
       }));
 
-      // Generate filename using dynamic service
+      // Generate filename using dynamic service (returns with .webp extension)
       const filename = await DynamicFilenameService.generateDynamicFilename(jewelryType, variantOptions);
-      const finalUrl = `${baseUrl}/${jewelryType}s/${filename}`;
-      
-      console.log('✅ Generated URL using dynamic service:', finalUrl);
+      const baseName = filename.replace(/\.[^/.]+$/, ''); // Strip extension
+      const folder = `${jewelryType}s`;
+
+      // Check which file extension actually exists in storage (.webp preferred, fallback to .PNG/.png)
+      const extensions = ['.webp', '.PNG', '.png'];
+
+      try {
+        const { data: files } = await supabase.storage
+          .from('customization-item')
+          .list(folder, { search: baseName });
+
+        if (files && files.length > 0) {
+          // Find the first matching file with a supported extension
+          const match = files.find(f => {
+            const fBase = f.name.replace(/\.[^/.]+$/, '');
+            return fBase === baseName && extensions.some(ext => f.name.endsWith(ext));
+          });
+
+          if (match) {
+            const finalUrl = `${baseUrl}/${folder}/${match.name}`;
+            console.log('✅ Found existing file with resolved extension:', finalUrl);
+            return finalUrl;
+          }
+        }
+      } catch (storageError) {
+        console.warn('⚠️ Could not check storage for file extension, defaulting to .webp:', storageError);
+      }
+
+      // Default to .webp if no file found (new upload expected)
+      const finalUrl = `${baseUrl}/${folder}/${filename}`;
+      console.log('✅ Generated URL (default .webp):', finalUrl);
       return finalUrl;
-      
+
     } catch (error) {
       console.error('❌ Error generating dynamic variant URL:', error);
       return null;
