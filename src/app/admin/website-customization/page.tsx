@@ -2,9 +2,10 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { 
-  Images, 
-  ArrowRight
+import {
+  Images,
+  ArrowRight,
+  FileText
 } from 'lucide-react';
 
 const customizationSections = [
@@ -15,6 +16,14 @@ const customizationSections = [
     icon: Images,
     color: 'bg-blue-500',
     features: ['Hero carousel images', 'Product photography', 'Gallery management']
+  },
+  {
+    name: 'About Us',
+    description: 'Edit the About page text, founder details, and quote',
+    href: '/admin/website-customization/about',
+    icon: FileText,
+    color: 'bg-emerald-500',
+    features: ['Founder story', 'Quote & legacy badge', 'Mobile & desktop text']
   },
 ];
 

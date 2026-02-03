@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { ChevronDown } from 'lucide-react'
-import AnimatedScrollButton from '@/components/AnimatedScrollButton'
 import { supabase } from '@/lib/supabase/client'
 
 interface ProductCategory {
@@ -99,12 +98,12 @@ export default function Navbar() {
       </div>
 
       {/* About Us Link */}
-      <AnimatedScrollButton
-        targetId="about"
+      <Link
+        href="/about"
         className="text-xl font-light text-zinc-800 hover:text-zinc-900 transition-all duration-300 py-3 px-4 rounded-lg hover:bg-zinc-50 font-serif tracking-wider"
       >
         ABOUT US
-      </AnimatedScrollButton>
+      </Link>
     </nav>
   )
 } 

@@ -8,7 +8,6 @@ import LogicRulesEngine, { type RulesEngineResult } from '@/services/logicRulesE
 import { supabase } from '@/lib/supabase/client';
 import JewelryPreview from './JewelryPreview';
 import RingSizeSelector from './RingSizeSelector';
-import RealLifeImageViewer from './RealLifeImageViewer';
 import { useCart } from '@/contexts/CartContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { BuyNowButton } from '@/components/ui/buy-now-button';
@@ -919,9 +918,6 @@ export default function CustomizationComponent({
                 enableZoom={false}
                 priority={false} // Only prioritize desktop version
               />
-              <RealLifeImageViewer 
-                     jewelryType={jewelryItem.type as 'bracelet' | 'ring' | 'necklace'}
-              />
             </div>
           </div>
 
@@ -1133,9 +1129,6 @@ export default function CustomizationComponent({
                     className="w-96 h-96"
                     enableZoom={true}
                     priority={true} // Prioritize desktop version
-                  />
-                  <RealLifeImageViewer 
-                     jewelryType={jewelryItem.type as 'bracelet' | 'ring' | 'necklace'}
                   />
                 </div>
                 

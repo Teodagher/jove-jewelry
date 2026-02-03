@@ -145,8 +145,8 @@ export default function Header() {
                 CUSTOMISE
               </Link>
 
-              <Link 
-                href="/#education" 
+              <Link
+                href="/education"
                 className="text-sm font-light tracking-wider text-maison-charcoal hover:text-maison-gold transition-colors duration-300"
               >
                 EDUCATION
@@ -159,8 +159,8 @@ export default function Header() {
                 OUR WORK
               </Link>
 
-              <Link 
-                href="/#about" 
+              <Link
+                href="/about"
                 className="text-sm font-light tracking-wider text-maison-charcoal hover:text-maison-gold transition-colors duration-300"
               >
                 ABOUT
@@ -295,7 +295,7 @@ export default function Header() {
               </Link>
 
               <Link
-                href="/#education"
+                href="/education"
                 onClick={() => setIsMenuOpen(false)}
                 className="block font-serif text-lg font-light tracking-wider text-maison-charcoal hover:text-maison-gold transition-colors duration-300"
               >
@@ -311,7 +311,7 @@ export default function Header() {
               </Link>
 
               <Link
-                href="/#about"
+                href="/about"
                 onClick={() => setIsMenuOpen(false)}
                 className="block font-serif text-lg font-light tracking-wider text-maison-charcoal hover:text-maison-gold transition-colors duration-300"
               >

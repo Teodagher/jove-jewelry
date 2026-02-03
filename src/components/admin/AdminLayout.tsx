@@ -47,6 +47,7 @@ const navigation = [
     icon: Palette,
     children: [
       { name: 'Pictures', href: '/admin/website-customization/pictures' },
+      { name: 'About Us', href: '/admin/website-customization/about' },
     ]
   },
   { name: 'Orders', href: '/admin/orders', icon: Package },

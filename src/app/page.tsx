@@ -2,9 +2,7 @@ import Hero from '@/components/Hero'
 import TrustSection from '@/components/TrustSection'
 import NaturalDiamondsSection from '@/components/NaturalDiamondsSection'
 import CraftsmanshipSection from '@/components/CraftsmanshipSection'
-import WorkshopSection from '@/components/WorkshopSection'
 import BespokeSection from '@/components/BespokeSection'
-import EducationSection from '@/components/EducationSection'
 import OurWorkGallery from '@/components/OurWorkGallery'
 import Footer from '@/components/Footer'
 import LiveChatWidget from '@/components/LiveChatWidget'
@@ -25,19 +23,11 @@ export default function Home() {
       {/* Bespoke/Customization Section */}
       <BespokeSection />
       
-      {/* Education Section */}
-      <EducationSection />
-      
       {/* Our Work Gallery - Infinite scroll */}
       {/* <OurWorkGallery /> */}
       
       {/* Lab-Grown Diamonds Info */}
       <CraftsmanshipSection />
-      
-      {/* Workshop/About Section */}
-      <section id="about">
-        <WorkshopSection />
-      </section>
       
       {/* Footer */}
       <Footer />
