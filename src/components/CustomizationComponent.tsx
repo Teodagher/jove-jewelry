@@ -45,6 +45,7 @@ export default function CustomizationComponent({
   const [selectedMetalType, setSelectedMetalType] = useState<MetalType>('gold');
   const [rulesEngine, setRulesEngine] = useState<LogicRulesEngine | null>(null);
   const [appliedRules, setAppliedRules] = useState<RulesEngineResult | null>(null);
+  const [rulesStateHash, setRulesStateHash] = useState<string>(''); // Track which state the rules were computed for
   const [rulesLoading, setRulesLoading] = useState(true);
   const [userSelections, setUserSelections] = useState<Set<string>>(new Set()); // Track user-made selections
   const { addCustomJewelryToCart } = useCart();
@@ -413,6 +414,15 @@ export default function CustomizationComponent({
 
       const result = rulesEngine.applyRules(settings, stateForRules);
       setAppliedRules(result);
+      // Track which state these rules were computed for (excluding virtual settings like DIAMOND_TYPE/METAL_TYPE)
+      // This ensures the hash matches what the URL generation effect computes
+      const hashState: Record<string, string> = {};
+      Object.entries(customizationState).forEach(([key, value]) => {
+        if (typeof value === 'string') {
+          hashState[key] = value;
+        }
+      });
+      setRulesStateHash(JSON.stringify(hashState));
 
       // Apply auto-selections if any
       if (result.autoSelections && Object.keys(result.autoSelections).length > 0) {
@@ -516,9 +526,37 @@ export default function CustomizationComponent({
         return;
       }
 
+      // Wait for rules to be applied - this ensures auto-selections are included
+      // Without this, we might generate URL before auto-select rules update the state
+      if (rulesLoading || !appliedRules) {
+        console.log('⏳ Waiting for rules to be applied before generating preview URL');
+        return;
+      }
+
+      // Check if rules are stale (computed for different state)
+      // This prevents generating URLs with old auto-selections before rules are re-computed
+      const currentStateHash = JSON.stringify(
+        Object.fromEntries(
+          Object.entries(customizationState).filter(([, v]) => typeof v === 'string')
+        )
+      );
+      if (rulesStateHash && rulesStateHash !== currentStateHash) {
+        console.log('⏳ Waiting for rules to be re-computed for current state');
+        return;
+      }
+
+      // Merge auto-selections into state for URL generation
+      // This ensures we use the correct values even before state update propagates
+      const effectiveState = { ...customizationState };
+      if (appliedRules.autoSelections) {
+        Object.entries(appliedRules.autoSelections).forEach(([settingId, optionId]) => {
+          effectiveState[settingId] = optionId;
+        });
+      }
+
       // Check if all required image variant settings have values selected
       const requiredSettingsWithValues = Array.from(imageVariantSettings).filter(settingId => {
-        const settingValue = customizationState[settingId];
+        const settingValue = effectiveState[settingId];
         return settingValue && settingValue !== '';
       });
 
@@ -528,15 +566,16 @@ export default function CustomizationComponent({
         allVariantSettings: Array.from(imageVariantSettings),
         settingsWithValues: requiredSettingsWithValues,
         hasAllRequired: hasAllRequiredImageVariants,
-        customizationState
+        effectiveState,
+        autoSelections: appliedRules.autoSelections
       });
 
       // Only generate variant URL if we have values for ALL settings that affect image variants
       if (hasAllRequiredImageVariants) {
-        // Convert CustomizationState to string-only object for the service, but only include image variant settings
+        // Convert effective state to string-only object for the service, but only include image variant settings
         const stringCustomizations: { [key: string]: string } = {};
         Array.from(imageVariantSettings).forEach(settingId => {
-          const value = customizationState[settingId];
+          const value = effectiveState[settingId];
           if (typeof value === 'string' && value !== '') {
             stringCustomizations[settingId] = value;
           }
@@ -573,7 +612,7 @@ export default function CustomizationComponent({
     };
 
     generatePreviewUrl();
-  }, [customizationState, jewelryItem, imageVariantSettings]);
+  }, [customizationState, jewelryItem, imageVariantSettings, rulesLoading, appliedRules, rulesStateHash]);
 
 
 
@@ -610,10 +649,10 @@ export default function CustomizationComponent({
       }
     }
     
-    // Auto-select Black Onyx + Emerald combination when Black Onyx is selected as first stone
+    // Auto-select Black Onyx for second stone when Black Onyx is selected as first stone
     if (settingId === 'first_stone' && optionId === 'black_onyx') {
-      // Automatically select the Black Onyx + Emerald combination for second stone
-      newState.second_stone = 'black_onyx_emerald';
+      // Automatically select Black Onyx for second stone (matches database option_id)
+      newState.second_stone = 'second_stone_black_onyx';
       
       // Auto-select default black onyx stone size (small)
       newState.black_onyx_stone_size = 'small_onyx_08ct';
