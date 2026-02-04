@@ -533,7 +533,9 @@ export class CustomizationService {
           });
 
           if (match) {
-            const finalUrl = `${baseUrl}/${folder}/${match.name}`;
+            // Add cache buster using file's updated_at timestamp to bust Next.js image cache
+            const cacheBuster = match.updated_at ? `?t=${new Date(match.updated_at).getTime()}` : '';
+            const finalUrl = `${baseUrl}/${folder}/${match.name}${cacheBuster}`;
             console.log('✅ Found existing file with resolved extension:', finalUrl);
             return finalUrl;
           }

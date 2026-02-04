@@ -6,7 +6,7 @@ const nextConfig = {
   },
   images: {
     unoptimized: false, // Enable optimization for better performance
-    minimumCacheTTL: 604800, // Cache images for 1 week (604800 seconds)
+    minimumCacheTTL: 3600, // Cache images for 1 hour (cache busting via ?t= handles updates)
     dangerouslyAllowSVG: false,
     contentDispositionType: 'attachment',
     domains: [
