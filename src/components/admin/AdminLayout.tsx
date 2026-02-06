@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import logger from '@/lib/logger';
+import { Market, MARKET_INFO, ADMIN_MARKETS, setMarketClient, getMarketClient } from '@/lib/market-client';
 import {
   Home,
   DollarSign,
@@ -21,7 +22,8 @@ import {
   Gift,
   Tag,
   MessageCircle,
-  Images
+  Images,
+  Globe
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -67,8 +69,24 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedMarket, setSelectedMarket] = useState<Market>('lb');
+  const [marketSelectorOpen, setMarketSelectorOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  
+  // Load saved market on mount
+  useEffect(() => {
+    const savedMarket = getMarketClient();
+    setSelectedMarket(savedMarket);
+  }, []);
+  
+  // Handle market change
+  const handleMarketChange = (market: Market) => {
+    setSelectedMarket(market);
+    setMarketClient(market);
+    // Reload page to apply new market
+    window.location.reload();
+  };
 
   logger.log('🏗️ AdminLayout render:', {
     pathname,
@@ -232,6 +250,55 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </div>
               );
             })}
+          </div>
+          
+          {/* Market Preview Selector */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <button
+              onClick={() => setMarketSelectorOpen(!marketSelectorOpen)}
+              className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+            >
+              <div className="flex items-center">
+                <Globe className="mr-3 h-5 w-5 text-gray-400" />
+                <span>Market Preview</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{MARKET_INFO[selectedMarket].flag}</span>
+                <svg className={`w-4 h-4 transition-transform ${marketSelectorOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </button>
+            
+            {marketSelectorOpen && (
+              <div className="mt-2 ml-3 space-y-1">
+                {ADMIN_MARKETS.map((market) => {
+                  const info = MARKET_INFO[market];
+                  const isSelected = selectedMarket === market;
+                  
+                  return (
+                    <button
+                      key={market}
+                      onClick={() => handleMarketChange(market)}
+                      className={`
+                        flex items-center gap-2 w-full px-3 py-2 text-sm rounded-lg transition-colors duration-200
+                        ${isSelected 
+                          ? 'bg-zinc-900 text-white' 
+                          : 'text-gray-600 hover:bg-gray-100'
+                        }
+                      `}
+                    >
+                      <span className="text-lg">{info.flag}</span>
+                      <span>{info.name}</span>
+                      <span className="text-xs opacity-70">({info.currency})</span>
+                    </button>
+                  );
+                })}
+                <p className="px-3 py-2 text-xs text-gray-500">
+                  Preview site as customer from selected country
+                </p>
+              </div>
+            )}
           </div>
         </nav>
 
