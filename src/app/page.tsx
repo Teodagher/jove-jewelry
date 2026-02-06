@@ -1,4 +1,5 @@
 import Hero from '@/components/Hero'
+import ValentinesHero from '@/components/ValentinesHero'
 import TrustSection from '@/components/TrustSection'
 import NaturalDiamondsSection from '@/components/NaturalDiamondsSection'
 import CraftsmanshipSection from '@/components/CraftsmanshipSection'
@@ -9,13 +10,16 @@ import LiveChatWidget from '@/components/LiveChatWidget'
 import AdminQuickAccessBar from '@/components/AdminQuickAccessBar'
 import ScrollToHashOnLoad from '@/components/ScrollToHashOnLoad'
 
+// Valentine's campaign: true until Feb 15
+const VALENTINES_CAMPAIGN = true
+
 export default function Home() {
   return (
     <main className="min-h-screen bg-maison-ivory">
       <ScrollToHashOnLoad />
       
       {/* Hero - Full screen cinematic experience */}
-      <Hero />
+      {VALENTINES_CAMPAIGN ? <ValentinesHero /> : <Hero />}
       
       {/* Trust Section - Immediately after hero */}
       <TrustSection />

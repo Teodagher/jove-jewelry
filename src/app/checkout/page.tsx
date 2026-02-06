@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { MapPin, CreditCard, Truck, Clock, Banknote } from 'lucide-react';
+import ValentinesGiftBox from '@/components/ValentinesGiftBox';
 import PaymentMethodCard from '@/components/ui/payment-method-card';
 import { useToast } from '@/contexts/ToastContext';
 import GoogleMapsModal from '@/components/GoogleMapsModal';
@@ -1207,6 +1208,11 @@ export default function CheckoutPage() {
               {/* Handcrafted Banner */}
               <div className="mb-6">
                 <HandcraftedBanner />
+              </div>
+
+              {/* Valentine's Gift Packaging Message */}
+              <div className="mb-6">
+                <ValentinesGiftBox variant="checkout" />
               </div>
 
               {/* Place Order Button */}

@@ -1,0 +1,130 @@
+'use client'
+
+import Link from 'next/link'
+import { motion } from 'framer-motion'
+import { ChevronDown, Heart } from 'lucide-react'
+
+export default function ValentinesHero() {
+  const scrollToContent = () => {
+    window.scrollTo({
+      top: window.innerHeight,
+      behavior: 'smooth'
+    })
+  }
+
+  return (
+    <section className="relative h-screen flex items-center justify-center overflow-hidden">
+      {/* Warm romantic gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-amber-100 via-rose-100 to-orange-100" />
+      
+      {/* Golden sunset overlay effect */}
+      <div className="absolute inset-0 bg-gradient-to-t from-amber-200/30 via-transparent to-rose-200/20" />
+      
+      {/* Subtle pattern overlay */}
+      <div className="absolute inset-0 opacity-5" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+      }} />
+
+      {/* Content */}
+      <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
+        {/* Floating hearts decoration */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8 }}
+          className="flex justify-center gap-3 mb-8"
+        >
+          <Heart className="w-5 h-5 text-rose-400" fill="currentColor" />
+          <Heart className="w-4 h-4 text-rose-300" fill="currentColor" />
+          <Heart className="w-5 h-5 text-rose-400" fill="currentColor" />
+        </motion.div>
+
+        {/* Main Headline */}
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.2 }}
+          className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-light text-maison-black mb-6 md:mb-8 tracking-wide leading-tight"
+        >
+          Made for Two.
+          <br />
+          <span className="italic text-rose-600">Designed by You.</span>
+        </motion.h1>
+
+        {/* Rose gold accent line */}
+        <motion.div
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+          className="w-24 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent mx-auto mb-8 md:mb-10"
+        />
+
+        {/* Subheadline */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.8 }}
+          className="text-maison-charcoal text-lg md:text-xl lg:text-2xl font-light tracking-wide max-w-2xl mx-auto mb-10 md:mb-14 leading-relaxed"
+        >
+          This Valentine&apos;s, create a piece that tells your story.
+          <br className="hidden sm:block" />
+          <span className="text-maison-graphite">Choose your gold. Select your stones. Craft a symbol of your love.</span>
+        </motion.p>
+
+        {/* CTA Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 1 }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6"
+        >
+          <Link
+            href="/customize"
+            className="group relative inline-flex items-center justify-center px-10 py-4 bg-rose-500 text-white text-sm tracking-[0.15em] uppercase font-light overflow-hidden transition-all duration-500 hover:bg-rose-600 shadow-lg shadow-rose-200"
+          >
+            <Heart className="w-4 h-4 mr-2" />
+            <span>Create Your Valentine&apos;s Piece</span>
+          </Link>
+          
+          <Link
+            href="/valentines"
+            className="inline-flex items-center justify-center px-10 py-4 border border-maison-charcoal/30 text-maison-charcoal text-sm tracking-[0.15em] uppercase font-light transition-all duration-500 hover:border-rose-400 hover:text-rose-600"
+          >
+            Shop Valentine&apos;s Collection
+          </Link>
+        </motion.div>
+
+        {/* Micro-copy */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 1.3 }}
+          className="mt-8 text-sm text-maison-graphite/70 font-light tracking-wider"
+        >
+          Made to be shared. ♥ Made for two.
+        </motion.p>
+      </div>
+
+      {/* Scroll Indicator */}
+      <motion.button
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, delay: 1.5 }}
+        onClick={scrollToContent}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-maison-graphite/60 hover:text-rose-500 transition-colors duration-300 cursor-pointer"
+        aria-label="Scroll down"
+      >
+        <span className="text-xs tracking-[0.2em] uppercase font-light">Discover</span>
+        <ChevronDown size={20} strokeWidth={1} className="animate-scroll-hint" />
+      </motion.button>
+
+      {/* Side decorative elements */}
+      <div className="hidden lg:block absolute left-8 top-1/2 -translate-y-1/2 z-10">
+        <div className="w-px h-32 bg-gradient-to-b from-transparent via-rose-300/50 to-transparent" />
+      </div>
+      <div className="hidden lg:block absolute right-8 top-1/2 -translate-y-1/2 z-10">
+        <div className="w-px h-32 bg-gradient-to-b from-transparent via-rose-300/50 to-transparent" />
+      </div>
+    </section>
+  )
+}

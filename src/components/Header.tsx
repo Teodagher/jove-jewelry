@@ -185,6 +185,14 @@ export default function Header() {
               {/* Dynamic category nav items */}
               {topLevelCategories.map(renderDesktopNavItem)}
 
+              {/* Valentine's Edit - Seasonal */}
+              <Link 
+                href="/valentines" 
+                className="text-sm font-light tracking-wider text-rose-500 hover:text-rose-600 transition-colors duration-300 flex items-center gap-1"
+              >
+                <span>♥</span> VALENTINE&apos;S EDIT
+              </Link>
+
               <Link 
                 href="/customize" 
                 className="text-sm font-light tracking-wider text-maison-charcoal hover:text-maison-gold transition-colors duration-300"

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Header from '@/components/Header';
+import ValentinesBanner from '@/components/ValentinesBanner';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -20,7 +21,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   return (
     <div className="antialiased">
-      {mounted && !isAdminRoute && <Header />}
+      {mounted && !isAdminRoute && (
+        <>
+          <ValentinesBanner />
+          <Header />
+        </>
+      )}
       {children}
     </div>
   );

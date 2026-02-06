@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from './button';
 import { formatPrice as formatCurrencyPrice, type Currency } from '@/lib/currency';
+import ValentinesGiftBox from '@/components/ValentinesGiftBox';
 
 interface BuyNowButtonProps {
   onAddToCart?: () => void;
@@ -89,6 +90,9 @@ export function BuyNowButton({
       >
         {loading ? 'Adding...' : 'Add to Cart'}
       </Button>
+
+      {/* Valentine's Gift Box - shown during campaign */}
+      <ValentinesGiftBox variant="product" />
     </div>
   );
 }
