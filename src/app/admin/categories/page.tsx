@@ -122,7 +122,14 @@ export default function CategoriesPage() {
 
     const slug = formData.slug || generateSlug(formData.name)
     
-    const categoryData = {
+    const categoryData: {
+      name: string
+      slug: string
+      description: string | null
+      image_url: string | null
+      is_active: boolean
+      display_order?: number
+    } = {
       name: formData.name.trim(),
       slug: slug,
       description: formData.description.trim() || null,
@@ -132,7 +139,8 @@ export default function CategoriesPage() {
 
     if (editingCategory) {
       // Update existing
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('product_categories')
         .update(categoryData)
         .eq('id', editingCategory.id)
@@ -147,12 +155,11 @@ export default function CategoriesPage() {
         ? Math.max(...categories.map(c => c.display_order)) 
         : -1
 
-      const { error } = await supabase
+      categoryData.display_order = maxOrder + 1
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('product_categories')
-        .insert({
-          ...categoryData,
-          display_order: maxOrder + 1
-        })
+        .insert(categoryData)
 
       if (error) {
         console.error('Insert error:', error)
@@ -182,7 +189,8 @@ export default function CategoriesPage() {
   }
 
   async function toggleActive(category: Category) {
-    const { error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any)
       .from('product_categories')
       .update({ is_active: !category.is_active })
       .eq('id', category.id)
@@ -204,8 +212,9 @@ export default function CategoriesPage() {
     newCategories[newIndex] = temp
 
     // Update display_order for both
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updates = newCategories.map((cat, i) => 
-      supabase
+      (supabase as any)
         .from('product_categories')
         .update({ display_order: i })
         .eq('id', cat.id)
