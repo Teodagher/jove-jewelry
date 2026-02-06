@@ -7,6 +7,7 @@ import { CustomizationService } from '@/services/customizationService';
 import LogicRulesEngine, { type RulesEngineResult } from '@/services/logicRulesEngine';
 import { supabase } from '@/lib/supabase/client';
 import JewelryPreview from './JewelryPreview';
+import ImageGallery from './ImageGallery';
 import RingSizeSelector from './RingSizeSelector';
 import { useCart } from '@/contexts/CartContext';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -489,6 +490,7 @@ export default function CustomizationComponent({
   // Generate preview image URL based on customization state (async)
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(jewelryItem.baseImage);
   const [imageVariantSettings, setImageVariantSettings] = useState<Set<string>>(new Set());
+  const [currentVariantKey, setCurrentVariantKey] = useState<string | null>(null);
 
   // Load which settings affect image variants from database
   useEffect(() => {
@@ -586,6 +588,11 @@ export default function CustomizationComponent({
         const generatedUrl = await CustomizationService.generateVariantImageUrl(jewelryItem.type, stringCustomizations);
         if (generatedUrl) {
           setPreviewImageUrl(generatedUrl);
+          // Extract variant key from URL for gallery lookup
+          const urlParts = generatedUrl.split('/');
+          const filename = urlParts[urlParts.length - 1].split('?')[0];
+          const variantKey = filename.replace(/\.[^/.]+$/, '');
+          setCurrentVariantKey(variantKey);
           return;
         }
       }
@@ -948,14 +955,15 @@ export default function CustomizationComponent({
           {/* Live Preview - Mobile */}
           <div className="mb-12 sm:mb-20">
             <div className="relative w-[320px] h-[320px] sm:w-72 sm:h-72 mx-auto">
-              <JewelryPreview
-                imageUrl={previewImageUrl}
+              <ImageGallery
+                primaryImageUrl={previewImageUrl}
+                variantKey={currentVariantKey || undefined}
                 alt={`${jewelryItem.name} preview`}
                 width={320}
                 height={320}
                 className="w-full h-full"
                 enableZoom={false}
-                priority={false} // Only prioritize desktop version
+                priority={false}
               />
             </div>
           </div>
@@ -1160,14 +1168,15 @@ export default function CustomizationComponent({
               <div className="flex flex-col items-center">
                 {/* Preview Image */}
                 <div className="relative mb-8 mx-auto">
-                  <JewelryPreview
-                    imageUrl={previewImageUrl}
+                  <ImageGallery
+                    primaryImageUrl={previewImageUrl}
+                    variantKey={currentVariantKey || undefined}
                     alt={`${jewelryItem.name} preview`}
                     width={384}
                     height={384}
                     className="w-96 h-96"
                     enableZoom={true}
-                    priority={true} // Prioritize desktop version
+                    priority={true}
                   />
                 </div>
                 

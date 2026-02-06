@@ -18,6 +18,7 @@ import {
 import Link from 'next/link';
 import CustomizationEditor from '@/components/admin/CustomizationEditor';
 import ProductImages from '@/components/admin/ProductImages';
+import ProductImagesGallery from '@/components/admin/ProductImagesGallery';
 import LogicRulesEditor from '@/components/admin/LogicRulesEditor';
 import { ToastProvider } from '@/components/ui/toast-provider';
 import MarketSelector from '@/components/admin/MarketSelector';
@@ -134,6 +135,7 @@ export default function EditProductPage() {
   const [activeTab, setActiveTab] = useState<'basic' | 'pricing' | 'customization' | 'images' | 'logic'>('basic');
   const [imagesRefreshKey, setImagesRefreshKey] = useState(0);
   const [selectedMarket, setSelectedMarket] = useState<Market>('lb');
+  const [galleryMode, setGalleryMode] = useState(false);
 
   // Callback when customization options change
   const handleCustomizationChange = () => {
@@ -534,13 +536,52 @@ export default function EditProductPage() {
         )}
 
         {activeTab === 'images' && product.product_type === 'customizable' && (
-          <ProductImages
-            key={imagesRefreshKey}
-            productId={productId}
-            productType={product.type}
-            productSlug={product.slug}
-            refreshTrigger={imagesRefreshKey}
-          />
+          <div className="space-y-4">
+            {/* Gallery Mode Toggle */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <h4 className="font-medium text-gray-900">Gallery Mode</h4>
+                <p className="text-sm text-gray-500">
+                  {galleryMode 
+                    ? 'Upload multiple images per variant with drag-to-reorder' 
+                    : 'Upload single image per variant (legacy mode)'
+                  }
+                </p>
+              </div>
+              <button
+                onClick={() => setGalleryMode(!galleryMode)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                  galleryMode 
+                    ? 'bg-blue-500 focus:ring-blue-500' 
+                    : 'bg-gray-200 focus:ring-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                    galleryMode ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+            
+            {galleryMode ? (
+              <ProductImagesGallery
+                key={imagesRefreshKey}
+                productId={productId}
+                productType={product.type}
+                productSlug={product.slug}
+                refreshTrigger={imagesRefreshKey}
+              />
+            ) : (
+              <ProductImages
+                key={imagesRefreshKey}
+                productId={productId}
+                productType={product.type}
+                productSlug={product.slug}
+                refreshTrigger={imagesRefreshKey}
+              />
+            )}
+          </div>
         )}
 
         {activeTab === 'logic' && product.product_type === 'customizable' && (
