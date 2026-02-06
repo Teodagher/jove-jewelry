@@ -193,11 +193,6 @@ export default function EditProductPage() {
             price_lab_grown: option.price_lab_grown,
             price_gold: option.price_gold,
             price_silver: option.price_silver,
-            // Australian market prices
-            price_au: option.price_au,
-            price_lab_grown_au: option.price_lab_grown_au,
-            price_gold_au: option.price_gold_au,
-            price_silver_au: option.price_silver_au,
             image_url: option.image_url,
             color_gradient: option.color_gradient,
             display_order: option.display_order ?? 0,
