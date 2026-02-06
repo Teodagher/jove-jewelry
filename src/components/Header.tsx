@@ -160,9 +160,20 @@ export default function Header() {
 
   return (
     <>
+      {/* Valentine's Promo Banner - only when style is active */}
+      {siteStyle === 'valentines' && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-rose-500 via-rose-400 to-rose-500 text-white text-center py-2 px-4">
+          <p className="text-xs md:text-sm font-medium tracking-wide">
+            ♥ Order before 11 Feb to get it in time for Valentine&apos;s Day ♥
+          </p>
+        </div>
+      )}
+
       {/* Main header */}
       <header 
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        className={`fixed left-0 right-0 z-50 transition-all duration-500 ${
+          siteStyle === 'valentines' ? 'top-[32px] md:top-[36px]' : 'top-0'
+        } ${
           isScrolled 
             ? 'bg-maison-ivory/95 backdrop-blur-md shadow-sm' 
             : 'bg-maison-ivory'
@@ -354,7 +365,9 @@ export default function Header() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="fixed top-[73px] left-0 right-0 bg-maison-ivory border-b border-maison-warm z-40 md:hidden overflow-hidden"
+            className={`fixed left-0 right-0 bg-maison-ivory border-b border-maison-warm z-40 md:hidden overflow-hidden ${
+              siteStyle === 'valentines' ? 'top-[105px]' : 'top-[73px]'
+            }`}
           >
             <nav className="px-6 py-8 space-y-6">
               {/* Jewellery dropdown with all categories */}
@@ -509,8 +522,8 @@ export default function Header() {
         )}
       </AnimatePresence>
 
-      {/* Spacer for fixed header */}
-      <div className="h-18 md:h-20" />
+      {/* Spacer for fixed header (+ banner when Valentine's active) */}
+      <div className={siteStyle === 'valentines' ? 'h-[104px] md:h-[116px]' : 'h-18 md:h-20'} />
 
       {/* Auth Modal */}
       <AuthModal

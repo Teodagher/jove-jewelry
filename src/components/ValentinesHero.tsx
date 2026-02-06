@@ -69,21 +69,11 @@ export default function ValentinesHero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.8 }}
-          className="text-white/90 text-lg md:text-xl lg:text-2xl font-light tracking-wide max-w-2xl mx-auto mb-6 md:mb-8 leading-relaxed drop-shadow"
+          className="text-white/90 text-lg md:text-xl lg:text-2xl font-light tracking-wide max-w-2xl mx-auto mb-10 md:mb-14 leading-relaxed drop-shadow"
         >
           This Valentine&apos;s, create a piece that tells your story.
           <br className="hidden sm:block" />
           <span className="text-white/80">Choose your gold. Select your stones. Craft a symbol of your love.</span>
-        </motion.p>
-
-        {/* Urgency banner */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 1 }}
-          className="text-rose-300 text-sm md:text-base font-medium tracking-wide mb-8 md:mb-10"
-        >
-          Order before 11 Feb to get it in time for Valentine&apos;s Day ♥
         </motion.p>
 
         {/* CTA Buttons */}
