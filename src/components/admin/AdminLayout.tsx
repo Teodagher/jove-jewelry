@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import logger from '@/lib/logger';
 import { Market, MARKET_INFO, ADMIN_MARKETS, setMarketClient, getMarketClient } from '@/lib/market-client';
+import WebsiteStyleSelector from './WebsiteStyleSelector';
 import {
   Home,
   DollarSign,
@@ -252,8 +253,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             })}
           </div>
           
-          {/* Market Preview Selector */}
+          {/* Website Style Selector */}
           <div className="mt-6 pt-6 border-t border-gray-200">
+            <WebsiteStyleSelector />
+          </div>
+
+          {/* Market Preview Selector */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
             <button
               onClick={() => setMarketSelectorOpen(!marketSelectorOpen)}
               className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 transition-colors duration-200"
