@@ -2,47 +2,75 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { geolocation } from '@vercel/functions'
 import { updateSession } from './lib/supabase/middleware'
 
-export type Market = 'lb' | 'au' | 'intl'
+export type Market = 'lb' | 'au' | 'eu' | 'ae' | 'sa' | 'qa' | 'intl'
 
 const DOMAIN_MARKET_MAP: Record<string, Market> = {
   'maisonjove.com': 'lb',
-  'maisonjove.com.au': 'au',
+  'maisonjove.com.au': 'intl', // Default to intl, geo will override
 }
 
 const MARKET_DOMAIN_MAP: Record<Market, string> = {
   lb: 'maisonjove.com',
   intl: 'maisonjove.com.au',
   au: 'maisonjove.com.au',
+  eu: 'maisonjove.com.au',
+  ae: 'maisonjove.com.au',
+  sa: 'maisonjove.com.au',
+  qa: 'maisonjove.com.au',
 }
 
+/**
+ * EU country codes
+ */
+const EU_COUNTRIES = [
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 
+  'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 
+  'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE',
+  'GB', 'CH', 'NO', 'IS' // UK, Switzerland, Norway, Iceland
+]
+
 function getMarketFromDomain(hostname: string): Market {
-  // Remove www. prefix if present
   const cleanHostname = hostname.replace(/^www\./, '')
-  // Default to 'lb' for localhost and unknown domains
   return DOMAIN_MARKET_MAP[cleanHostname] || 'lb'
 }
 
 function getTargetDomainForGeo(country?: string): string | null {
-  // If geo-location fails or is unavailable, return null (no redirect)
   if (!country) return null
-
+  
   // Lebanon users stay on maisonjove.com
   if (country === 'LB') return 'maisonjove.com'
-
-  // All other known countries go to maisonjove.com.au
+  
+  // All other countries go to maisonjove.com.au
   return 'maisonjove.com.au'
 }
 
+/**
+ * Get market for pricing based on country code
+ * This determines currency display and payment methods
+ */
 function getMarketForPricing(country?: string): Market {
-  // Market determines pricing currency AND payment methods
-  // 'lb' = USD pricing + Cash on Delivery + Stripe (Lebanon only)
-  // 'intl' = USD pricing + Stripe only (International)
-  // 'au' = AUD pricing + Stripe only (Australia only)
-
-  if (country === 'AU') return 'au' // Australia gets AUD pricing + Stripe only
-  if (country === 'LB') return 'lb' // Lebanon gets USD pricing + Cash on Delivery + Stripe
-
-  return 'intl' // Everyone else gets USD pricing + Stripe only
+  if (!country) return 'intl' // Default to international (USD + Stripe)
+  
+  // Lebanon - USD + Cash on Delivery available
+  if (country === 'LB') return 'lb'
+  
+  // Australia - AUD
+  if (country === 'AU') return 'au'
+  
+  // UAE (Dubai, Abu Dhabi) - AED
+  if (country === 'AE') return 'ae'
+  
+  // Saudi Arabia - SAR
+  if (country === 'SA') return 'sa'
+  
+  // Qatar - QAR
+  if (country === 'QA') return 'qa'
+  
+  // European countries - EUR
+  if (EU_COUNTRIES.includes(country)) return 'eu'
+  
+  // All other countries - USD (international)
+  return 'intl'
 }
 
 export async function middleware(request: NextRequest) {
@@ -84,11 +112,6 @@ export async function middleware(request: NextRequest) {
   const marketOverride = url.searchParams.get('market')
 
   // If user is on the wrong domain for their geo-location, redirect them
-  // Only redirect if:
-  // 1. We're on a production domain (not localhost)
-  // 2. We have geo-location data (targetDomain is not null)
-  // 3. The current domain doesn't match the target domain
-  // 4. No market override query parameter (for testing)
   if (
     !hostname.includes('localhost') &&
     !hostname.includes('127.0.0.1') &&
@@ -99,28 +122,23 @@ export async function middleware(request: NextRequest) {
     const redirectUrl = new URL(request.url)
     redirectUrl.host = targetDomain
 
-    // Set market cookie based on geo-location (determines pricing)
     const pricingMarket = getMarketForPricing(country)
 
-    // Add query parameters to show notification
     redirectUrl.searchParams.set('redirected', 'true')
-    // Set the "from" parameter based on market (determines notification text)
-    const fromLabel = pricingMarket === 'au' ? 'AU' : pricingMarket === 'intl' ? 'International' : 'LB'
+    const fromLabel = pricingMarket.toUpperCase()
     redirectUrl.searchParams.set('from', fromLabel)
 
     const redirectResponse = NextResponse.redirect(redirectUrl)
 
-    // Copy over Supabase cookies
     response.cookies.getAll().forEach(cookie => {
       redirectResponse.cookies.set(cookie.name, cookie.value, cookie)
     })
     redirectResponse.cookies.set('market', pricingMarket, {
-      maxAge: 60 * 60 * 24 * 365, // 1 year
+      maxAge: 60 * 60 * 24 * 365,
       path: '/',
       sameSite: 'lax',
     })
 
-    // DEBUG: Add headers to verify middleware is running
     redirectResponse.headers.set('x-market-detected', pricingMarket)
     redirectResponse.headers.set('x-geo-country', country || 'undefined')
     redirectResponse.headers.set('x-middleware-ran', 'true')
@@ -129,41 +147,35 @@ export async function middleware(request: NextRequest) {
   }
 
   // No redirect needed - set market based on geo-location, domain, or override
-  // Market determines pricing currency (lb=USD, intl=USD, au=AUD) and payment methods
   let market: Market
-  if (marketOverride === 'au' || marketOverride === 'lb' || marketOverride === 'intl') {
-    // Query parameter override for testing
+  
+  // Valid market values for override
+  const validMarkets: Market[] = ['lb', 'au', 'eu', 'ae', 'sa', 'qa', 'intl']
+  
+  if (marketOverride && validMarkets.includes(marketOverride as Market)) {
     market = marketOverride as Market
   } else if (country) {
-    // We have geo-location data - use it
     market = getMarketForPricing(country)
   } else {
-    // No geo-location data - determine by domain
-    // maisonjove.com → 'lb' (Lebanon market with Cash on Delivery)
-    // maisonjove.com.au → 'intl' (International market with Stripe only)
     market = currentDomain === 'maisonjove.com' ? 'lb' : 'intl'
   }
 
-  // Create new response with market cookie
   const newResponse = NextResponse.next({
     request: {
       headers: request.headers,
     },
   })
 
-  // Copy all cookies from supabase response
   response.cookies.getAll().forEach(cookie => {
     newResponse.cookies.set(cookie.name, cookie.value, cookie)
   })
 
-  // Set market cookie based on domain
   newResponse.cookies.set('market', market, {
-    maxAge: 60 * 60 * 24 * 365, // 1 year
+    maxAge: 60 * 60 * 24 * 365,
     path: '/',
     sameSite: 'lax',
   })
 
-  // DEBUG: Add headers to verify middleware is running
   newResponse.headers.set('x-market-detected', market)
   newResponse.headers.set('x-geo-country', country || 'undefined')
   newResponse.headers.set('x-middleware-ran', 'true')

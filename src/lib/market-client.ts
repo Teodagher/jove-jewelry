@@ -3,7 +3,7 @@
  * This file can be imported in Client Components
  */
 
-export type Market = 'lb' | 'au' | 'intl'
+export type Market = 'lb' | 'au' | 'eu' | 'ae' | 'sa' | 'qa' | 'intl'
 
 export const MARKET_INFO = {
   lb: {
@@ -11,14 +11,7 @@ export const MARKET_INFO = {
     currency: 'USD',
     flag: '🇱🇧',
     domain: 'maisonjove.com',
-    paymentMethods: ['cash_on_delivery', 'stripe'] as const,
-  },
-  intl: {
-    name: 'International',
-    currency: 'USD',
-    flag: '🌍',
-    domain: 'maisonjove.com.au',
-    paymentMethods: ['stripe'] as const,
+    paymentMethods: ['cash_on_delivery', 'stripe'] as const, // Lebanon ONLY has COD option
   },
   au: {
     name: 'Australia',
@@ -27,11 +20,59 @@ export const MARKET_INFO = {
     domain: 'maisonjove.com.au',
     paymentMethods: ['stripe'] as const,
   },
+  eu: {
+    name: 'Europe',
+    currency: 'EUR',
+    flag: '🇪🇺',
+    domain: 'maisonjove.com.au',
+    paymentMethods: ['stripe'] as const,
+  },
+  ae: {
+    name: 'UAE',
+    currency: 'AED',
+    flag: '🇦🇪',
+    domain: 'maisonjove.com.au',
+    paymentMethods: ['stripe'] as const,
+  },
+  sa: {
+    name: 'Saudi Arabia',
+    currency: 'SAR',
+    flag: '🇸🇦',
+    domain: 'maisonjove.com.au',
+    paymentMethods: ['stripe'] as const,
+  },
+  qa: {
+    name: 'Qatar',
+    currency: 'QAR',
+    flag: '🇶🇦',
+    domain: 'maisonjove.com.au',
+    paymentMethods: ['stripe'] as const,
+  },
+  intl: {
+    name: 'International',
+    currency: 'USD',
+    flag: '🌍',
+    domain: 'maisonjove.com.au',
+    paymentMethods: ['stripe'] as const,
+  },
 } as const
 
 // All markets available
-export const MARKETS: Market[] = ['lb', 'intl', 'au']
+export const MARKETS: Market[] = ['lb', 'au', 'eu', 'ae', 'sa', 'qa', 'intl']
+
+// Markets shown in admin for pricing (Lebanon=USD base, Australia=AUD separate pricing)
 export const ADMIN_MARKETS: Market[] = ['lb', 'au']
+
+/**
+ * EU country codes for market detection
+ */
+export const EU_COUNTRIES = [
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 
+  'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 
+  'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE',
+  // Also include UK, Switzerland, Norway for EUR display
+  'GB', 'CH', 'NO', 'IS'
+]
 
 /**
  * Client-side: Read market from document.cookie
@@ -70,7 +111,7 @@ export function setMarketClient(market: Market): void {
  * Validate if a string is a valid market
  */
 function isValidMarket(value: string): value is Market {
-  return value === 'lb' || value === 'au' || value === 'intl'
+  return MARKETS.includes(value as Market)
 }
 
 /**
@@ -78,4 +119,12 @@ function isValidMarket(value: string): value is Market {
  */
 export function getMarketInfo(market: Market) {
   return MARKET_INFO[market]
+}
+
+/**
+ * Check if a market allows Cash on Delivery
+ * Only Lebanon (lb) allows COD
+ */
+export function allowsCashOnDelivery(market: Market): boolean {
+  return market === 'lb'
 }
