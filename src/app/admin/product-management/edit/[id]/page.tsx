@@ -31,6 +31,7 @@ interface JewelryItem {
   type: string;
   slug: string;
   product_type: 'simple' | 'customizable';
+  // All prices in USD - conversion happens at display time
   base_price: number;
   base_price_lab_grown: number | null;
   base_price_gold: number | null;
@@ -39,15 +40,6 @@ interface JewelryItem {
   black_onyx_base_price_lab_grown: number | null;
   black_onyx_base_price_gold: number | null;
   black_onyx_base_price_silver: number | null;
-  // Australian market prices
-  base_price_au: number | null;
-  base_price_lab_grown_au: number | null;
-  base_price_gold_au: number | null;
-  base_price_silver_au: number | null;
-  black_onyx_base_price_au: number | null;
-  black_onyx_base_price_lab_grown_au: number | null;
-  black_onyx_base_price_gold_au: number | null;
-  black_onyx_base_price_silver_au: number | null;
   pricing_type: 'diamond_type' | 'metal_type';
   base_image_url: string | null;
   is_active: boolean;
@@ -70,15 +62,11 @@ interface OptionSummary {
   id: string;
   option_id: string;
   option_name: string;
+  // All prices in USD - conversion happens at display time
   price: number;
   price_lab_grown: number | null;
   price_gold: number | null;
   price_silver: number | null;
-  // Australian market prices
-  price_au: number | null;
-  price_lab_grown_au: number | null;
-  price_gold_au: number | null;
-  price_silver_au: number | null;
   image_url: string | null;
   color_gradient: string | null;
   display_order: number;
@@ -106,15 +94,11 @@ interface CustomizationOption {
   affects_image_variant: boolean | null;
   option_id: string;
   option_name: string;
+  // All prices in USD - conversion happens at display time
   price: number;
   price_lab_grown: number | null;
   price_gold: number | null;
   price_silver: number | null;
-  // Australian market prices
-  price_au: number | null;
-  price_lab_grown_au: number | null;
-  price_gold_au: number | null;
-  price_silver_au: number | null;
   image_url: string | null;
   color_gradient: string | null;
   display_order: number | null;
@@ -421,74 +405,65 @@ export default function EditProductPage() {
 
         {activeTab === 'pricing' && (
           <div className="space-y-6">
-            <MarketSelector
-              selectedMarket={selectedMarket}
-              onMarketChange={setSelectedMarket}
-            />
+            {/* Market Preview Selector */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 mb-2">Preview Market</h4>
+              <p className="text-sm text-blue-700 mb-3">
+                Select a market to preview how prices will appear to customers. All prices are stored in USD and converted automatically.
+              </p>
+              <MarketSelector
+                selectedMarket={selectedMarket}
+                onMarketChange={setSelectedMarket}
+                showRates={true}
+              />
+            </div>
 
             <MarketPricingForm
               market={selectedMarket}
               priceFields={[
                 {
                   label: 'Base Price',
-                  key: selectedMarket === 'lb' ? 'base_price' : `base_price_${selectedMarket}`,
-                  value: selectedMarket === 'lb'
-                    ? product.base_price
-                    : (product as any)[`base_price_${selectedMarket}`] || null
+                  key: 'base_price',
+                  value: product.base_price
                 },
                 {
                   label: 'Lab Grown Diamond Base Price',
-                  key: selectedMarket === 'lb' ? 'base_price_lab_grown' : `base_price_lab_grown_${selectedMarket}`,
-                  value: selectedMarket === 'lb'
-                    ? product.base_price_lab_grown
-                    : (product as any)[`base_price_lab_grown_${selectedMarket}`] || null
+                  key: 'base_price_lab_grown',
+                  value: product.base_price_lab_grown
                 },
                 {
                   label: 'Gold Base Price',
-                  key: selectedMarket === 'lb' ? 'base_price_gold' : `base_price_gold_${selectedMarket}`,
-                  value: selectedMarket === 'lb'
-                    ? product.base_price_gold
-                    : (product as any)[`base_price_gold_${selectedMarket}`] || null
+                  key: 'base_price_gold',
+                  value: product.base_price_gold
                 },
                 {
                   label: 'Silver Base Price',
-                  key: selectedMarket === 'lb' ? 'base_price_silver' : `base_price_silver_${selectedMarket}`,
-                  value: selectedMarket === 'lb'
-                    ? product.base_price_silver
-                    : (product as any)[`base_price_silver_${selectedMarket}`] || null
+                  key: 'base_price_silver',
+                  value: product.base_price_silver
                 },
                 {
                   label: 'Black Onyx Base Price',
-                  key: selectedMarket === 'lb' ? 'black_onyx_base_price' : `black_onyx_base_price_${selectedMarket}`,
-                  value: selectedMarket === 'lb'
-                    ? product.black_onyx_base_price
-                    : (product as any)[`black_onyx_base_price_${selectedMarket}`] || null
+                  key: 'black_onyx_base_price',
+                  value: product.black_onyx_base_price
                 },
                 {
                   label: 'Black Onyx Lab Grown Price',
-                  key: selectedMarket === 'lb' ? 'black_onyx_base_price_lab_grown' : `black_onyx_base_price_lab_grown_${selectedMarket}`,
-                  value: selectedMarket === 'lb'
-                    ? product.black_onyx_base_price_lab_grown
-                    : (product as any)[`black_onyx_base_price_lab_grown_${selectedMarket}`] || null
+                  key: 'black_onyx_base_price_lab_grown',
+                  value: product.black_onyx_base_price_lab_grown
                 },
                 {
                   label: 'Black Onyx Gold Price',
-                  key: selectedMarket === 'lb' ? 'black_onyx_base_price_gold' : `black_onyx_base_price_gold_${selectedMarket}`,
-                  value: selectedMarket === 'lb'
-                    ? product.black_onyx_base_price_gold
-                    : (product as any)[`black_onyx_base_price_gold_${selectedMarket}`] || null
+                  key: 'black_onyx_base_price_gold',
+                  value: product.black_onyx_base_price_gold
                 },
                 {
                   label: 'Black Onyx Silver Price',
-                  key: selectedMarket === 'lb' ? 'black_onyx_base_price_silver' : `black_onyx_base_price_silver_${selectedMarket}`,
-                  value: selectedMarket === 'lb'
-                    ? product.black_onyx_base_price_silver
-                    : (product as any)[`black_onyx_base_price_silver_${selectedMarket}`] || null
+                  key: 'black_onyx_base_price_silver',
+                  value: product.black_onyx_base_price_silver
                 },
               ]}
               onSave={async (prices) => {
                 try {
-                  // Keys now match database columns directly, so no transformation needed
                   const { error } = await (supabase as any)
                     .from('jewelry_items')
                     .update(prices)
@@ -507,8 +482,8 @@ export default function EditProductPage() {
                   return false;
                 }
               }}
-              title="Base Prices"
-              description="Set prices for this product in different markets"
+              title="Base Prices (USD)"
+              description="Enter all prices in USD - they will be automatically converted for each market"
             />
           </div>
         )}

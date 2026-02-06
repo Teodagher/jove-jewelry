@@ -60,8 +60,9 @@ export const MARKET_INFO = {
 // All markets available
 export const MARKETS: Market[] = ['lb', 'au', 'eu', 'ae', 'sa', 'qa', 'intl']
 
-// Markets shown in admin for pricing (Lebanon=USD base, Australia=AUD separate pricing)
-export const ADMIN_MARKETS: Market[] = ['lb', 'au']
+// Markets shown in admin for market preview
+// All prices are stored in USD - conversion happens at display time
+export const ADMIN_MARKETS: Market[] = ['lb', 'au', 'eu', 'ae', 'sa', 'qa', 'intl']
 
 /**
  * EU country codes for market detection

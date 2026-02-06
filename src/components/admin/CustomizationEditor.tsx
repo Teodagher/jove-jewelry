@@ -34,15 +34,11 @@ interface CustomizationOption {
   id: string;
   option_id: string;
   option_name: string;
+  // All prices in USD - conversion happens at display time
   price: number;
   price_lab_grown: number | null;
   price_gold: number | null;
   price_silver: number | null;
-  // Australian market prices
-  price_au: number | null;
-  price_lab_grown_au: number | null;
-  price_gold_au: number | null;
-  price_silver_au: number | null;
   image_url: string | null;
   color_gradient: string | null;
   display_order: number;
@@ -744,18 +740,15 @@ function SettingCard({
   const { addToast } = useToast();
   const currency = getCurrency(selectedMarket);
 
-  // Helper functions to get market-specific column names
+  // Helper functions to get price column names (always USD base columns)
   const getMarketColumnName = (baseColumn: string): string => {
-    if (selectedMarket === 'lb') {
-      return baseColumn; // Lebanon uses base columns (USD pricing)
-    }
-    return `${baseColumn}_au`; // Australia uses AUD prices (with _au suffix)
+    // All prices stored in USD - no market-specific columns needed
+    return baseColumn;
   };
 
-  // Helper to get market-specific price from option
+  // Helper to get price from option (always USD)
   const getMarketPrice = (option: any, baseColumn: string): number | null => {
-    const columnName = getMarketColumnName(baseColumn);
-    const value = option[columnName];
+    const value = option[baseColumn];
     return value !== undefined && value !== null ? Number(value) : null;
   };
 
