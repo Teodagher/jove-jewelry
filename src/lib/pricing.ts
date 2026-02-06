@@ -65,8 +65,10 @@ export interface CustomizationOptionWithMarketPrices {
  * Get base price for a jewelry item in a specific market
  * Returns null if the price is not available in that market
  *
- * Note: Lebanon (lb) and International (intl) use base columns with USD pricing
- * Australia (au) has separate AUD prices (columns with _au suffix)
+ * Note: 
+ * - Lebanon (lb) and International (intl) use base columns with USD pricing
+ * - Australia (au) has separate AUD prices (columns with _au suffix)
+ * - Other markets (eu, ae, sa, qa) use USD base columns - conversion happens at display time
  */
 export function getBasePrice(
   item: JewelryItemWithMarketPrices,
@@ -76,13 +78,13 @@ export function getBasePrice(
   // The variant IS the column name already, we just need to append _au for Australia
   let columnName: string
 
-  if (market === 'lb' || market === 'intl') {
-    // Lebanon and International markets use base columns (USD pricing)
-    // The variant parameter already IS the column name
-    columnName = variant
-  } else {
+  if (market === 'au') {
     // Australia market uses AUD prices (with _au suffix)
     columnName = `${variant}_au`
+  } else {
+    // All other markets use base USD columns
+    // Currency conversion happens at display time in formatPrice()
+    columnName = variant
   }
 
   const price = (item as any)[columnName]
@@ -98,6 +100,10 @@ export function getBasePrice(
 /**
  * Get price for a customization option in a specific market
  * Returns null if the price is not available in that market
+ * 
+ * Note:
+ * - Australia (au) has separate AUD prices (columns with _au suffix)
+ * - All other markets use USD base columns - conversion happens at display time
  */
 export function getOptionPrice(
   option: CustomizationOptionWithMarketPrices,
@@ -107,12 +113,13 @@ export function getOptionPrice(
   // Build the column name based on market and variant
   let columnName: string
 
-  if (market === 'lb' || market === 'intl') {
-    // Lebanon and International markets use base columns (USD pricing)
-    columnName = variant === 'default' ? 'price' : `price_${variant}`
-  } else {
+  if (market === 'au') {
     // Australia market uses AUD prices (with _au suffix)
     columnName = variant === 'default' ? `price_au` : `price_${variant}_au`
+  } else {
+    // All other markets use USD base columns
+    // Currency conversion happens at display time in formatPrice()
+    columnName = variant === 'default' ? 'price' : `price_${variant}`
   }
 
   const price = (option as any)[columnName]
