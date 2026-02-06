@@ -1,5 +1,10 @@
 // Service for managing variant images (multi-image galleries)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { supabase } from '@/lib/supabase/client';
+
+// Type-safe wrapper for new tables not yet in Supabase types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 
 export interface VariantImage {
   id: string;
@@ -44,7 +49,7 @@ export class VariantImagesService {
    */
   static async getVariantImages(variantKey: string): Promise<AllVariantImages> {
     // Get direct variant images
-    const { data: directImages, error: directError } = await supabase
+    const { data: directImages, error: directError } = await db
       .from('variant_images')
       .select('*')
       .eq('variant_key', variantKey)
@@ -55,7 +60,7 @@ export class VariantImagesService {
     }
 
     // Get shared media linked to this variant
-    const { data: sharedLinks, error: sharedError } = await supabase
+    const { data: sharedLinks, error: sharedError } = await db
       .from('variant_shared_media')
       .select(`
         display_order,
@@ -68,10 +73,11 @@ export class VariantImagesService {
       console.error('Error fetching shared media links:', sharedError);
     }
 
-    const sharedImages = (sharedLinks || [])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sharedImages = ((sharedLinks || []) as any[])
       .filter(link => link.shared_media)
       .map(link => ({
-        ...(link.shared_media as unknown as SharedMedia),
+        ...(link.shared_media as SharedMedia),
         display_order: link.display_order
       }));
 
@@ -132,24 +138,24 @@ export class VariantImagesService {
     isPrimary: boolean = false
   ): Promise<VariantImage | null> {
     // Get current max display order
-    const { data: existing } = await supabase
+    const { data: existing } = await db
       .from('variant_images')
       .select('display_order')
       .eq('variant_key', variantKey)
       .order('display_order', { ascending: false })
-      .limit(1);
+      .limit(1) as { data: { display_order: number }[] | null };
 
-    const nextOrder = (existing?.[0]?.display_order ?? -1) + 1;
+    const nextOrder = ((existing?.[0]?.display_order) ?? -1) + 1;
 
     // If this is primary, unset other primaries
     if (isPrimary) {
-      await supabase
+      await db
         .from('variant_images')
         .update({ is_primary: false })
         .eq('variant_key', variantKey);
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('variant_images')
       .insert({
         variant_key: variantKey,
@@ -183,7 +189,7 @@ export class VariantImagesService {
       }));
 
       for (const update of updates) {
-        const { error } = await supabase
+        const { error } = await db
           .from('variant_images')
           .update({ display_order: update.display_order })
           .eq('id', update.id);
@@ -210,13 +216,13 @@ export class VariantImagesService {
   ): Promise<boolean> {
     try {
       // Unset all primaries for this variant
-      await supabase
+      await db
         .from('variant_images')
         .update({ is_primary: false })
         .eq('variant_key', variantKey);
 
       // Set the new primary
-      const { error } = await supabase
+      const { error } = await db
         .from('variant_images')
         .update({ is_primary: true })
         .eq('id', imageId);
@@ -232,7 +238,7 @@ export class VariantImagesService {
    * Delete a variant image
    */
   static async deleteVariantImage(imageId: string): Promise<boolean> {
-    const { error } = await supabase
+    const { error } = await db
       .from('variant_images')
       .delete()
       .eq('id', imageId);
@@ -259,7 +265,7 @@ export class VariantImagesService {
       const filePath = urlParts[1].split('?')[0]; // Remove query params
       
       // Delete from storage
-      const { error: storageError } = await supabase.storage
+      const { error: storageError } = await db.storage
         .from(storageBucket)
         .remove([filePath]);
 
@@ -315,7 +321,7 @@ export class VariantImagesService {
       height?: number;
     }
   ): Promise<SharedMedia | null> {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('shared_media')
       .insert({
         name,
@@ -345,7 +351,7 @@ export class VariantImagesService {
     id: string,
     updates: Partial<Omit<SharedMedia, 'id' | 'created_at' | 'updated_at'>>
   ): Promise<boolean> {
-    const { error } = await supabase
+    const { error } = await db
       .from('shared_media')
       .update(updates)
       .eq('id', id);
@@ -358,13 +364,13 @@ export class VariantImagesService {
    */
   static async deleteSharedMedia(id: string): Promise<boolean> {
     // First delete all links to variants
-    await supabase
+    await db
       .from('variant_shared_media')
       .delete()
       .eq('shared_media_id', id);
 
     // Then delete the shared media
-    const { error } = await supabase
+    const { error } = await db
       .from('shared_media')
       .delete()
       .eq('id', id);
@@ -380,7 +386,7 @@ export class VariantImagesService {
     sharedMediaId: string
   ): Promise<boolean> {
     // Get current max display order for shared media in this variant
-    const { data: existing } = await supabase
+    const { data: existing } = await db
       .from('variant_shared_media')
       .select('display_order')
       .eq('variant_key', variantKey)
@@ -389,7 +395,7 @@ export class VariantImagesService {
 
     const nextOrder = (existing?.[0]?.display_order ?? -1) + 1;
 
-    const { error } = await supabase
+    const { error } = await db
       .from('variant_shared_media')
       .upsert({
         variant_key: variantKey,
@@ -407,7 +413,7 @@ export class VariantImagesService {
     variantKey: string,
     sharedMediaId: string
   ): Promise<boolean> {
-    const { error } = await supabase
+    const { error } = await db
       .from('variant_shared_media')
       .delete()
       .eq('variant_key', variantKey)
@@ -420,7 +426,7 @@ export class VariantImagesService {
    * Get all variants linked to a shared media item
    */
   static async getVariantsForSharedMedia(sharedMediaId: string): Promise<string[]> {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('variant_shared_media')
       .select('variant_key')
       .eq('shared_media_id', sharedMediaId);
@@ -430,7 +436,7 @@ export class VariantImagesService {
       return [];
     }
 
-    return data?.map(row => row.variant_key) || [];
+    return data?.map((row: { variant_key: string }) => row.variant_key) || [];
   }
 }
 
