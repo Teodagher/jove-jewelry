@@ -195,8 +195,54 @@ export default function Header() {
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-8">
-              {/* Dynamic category nav items */}
-              {topLevelCategories.map(renderDesktopNavItem)}
+              {/* Jewellery Dropdown - contains all categories */}
+              <div className="relative group">
+                <button className="flex items-center gap-1.5 text-sm font-light tracking-wider text-maison-charcoal hover:text-maison-gold transition-colors duration-300 py-2">
+                  <span>JEWELLERY</span>
+                  <ChevronDown size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:rotate-180" />
+                </button>
+                
+                {/* Dropdown Menu */}
+                <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
+                  <div className="bg-maison-ivory border border-maison-warm shadow-lg min-w-[220px]">
+                    <div className="py-2">
+                      {/* All Collections link */}
+                      <Link
+                        href="/customize"
+                        className="block px-6 py-3 text-sm font-medium tracking-wide text-maison-charcoal hover:text-maison-gold hover:bg-maison-cream/50 transition-all duration-300 border-b border-maison-warm/30"
+                      >
+                        All Collections
+                      </Link>
+                      {/* Individual categories */}
+                      {topLevelCategories.map((category) => {
+                        // If it has children, show children; otherwise show the category itself
+                        const hasChildren = category.children && category.children.length > 0
+                        if (hasChildren) {
+                          return category.children!.map((child) => (
+                            <Link
+                              key={child.id}
+                              href={`/customize/category/${child.slug}`}
+                              className="block px-6 py-3 text-sm font-light tracking-wide text-maison-charcoal hover:text-maison-gold hover:bg-maison-cream/50 transition-all duration-300"
+                            >
+                              {child.name}
+                            </Link>
+                          ))
+                        } else {
+                          return (
+                            <Link
+                              key={category.id}
+                              href={`/customize/category/${category.slug}`}
+                              className="block px-6 py-3 text-sm font-light tracking-wide text-maison-charcoal hover:text-maison-gold hover:bg-maison-cream/50 transition-all duration-300"
+                            >
+                              {category.name}
+                            </Link>
+                          )
+                        }
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* Valentine's Edit - Only when Valentine's style is active */}
               {siteStyle === 'valentines' && (
@@ -311,67 +357,79 @@ export default function Header() {
             className="fixed top-[73px] left-0 right-0 bg-maison-ivory border-b border-maison-warm z-40 md:hidden overflow-hidden"
           >
             <nav className="px-6 py-8 space-y-6">
-              {/* Dynamic Categories - renders parent categories with expandable children */}
-              {topLevelCategories.map((category) => {
-                const hasChildren = category.children && category.children.length > 0
+              {/* Jewellery dropdown with all categories */}
+              <div>
+                <button
+                  onClick={() => setIsMobileDropdownOpen(!isMobileDropdownOpen)}
+                  className="flex items-center justify-between w-full text-left"
+                >
+                  <span className="font-serif text-lg font-light tracking-wider text-maison-charcoal">
+                    Jewellery
+                  </span>
+                  <ChevronDown 
+                    size={18} 
+                    strokeWidth={1.5}
+                    className={`text-maison-graphite transition-transform duration-300 ${isMobileDropdownOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
                 
-                if (hasChildren) {
-                  return (
-                    <div key={category.id}>
-                      <button
-                        onClick={() => setIsMobileDropdownOpen(!isMobileDropdownOpen)}
-                        className="flex items-center justify-between w-full text-left"
-                      >
-                        <span className="font-serif text-lg font-light tracking-wider text-maison-charcoal">
-                          {category.name}
-                        </span>
-                        <ChevronDown 
-                          size={18} 
-                          strokeWidth={1.5}
-                          className={`text-maison-graphite transition-transform duration-300 ${isMobileDropdownOpen ? 'rotate-180' : ''}`}
-                        />
-                      </button>
-                      
-                      <AnimatePresence>
-                        {isMobileDropdownOpen && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="mt-4 ml-4 space-y-3 overflow-hidden"
-                          >
-                            {category.children!.map((child) => (
-                              <Link
-                                key={child.id}
-                                href={`/customize/category/${child.slug}`}
-                                onClick={() => {
-                                  setIsMenuOpen(false)
-                                  setIsMobileDropdownOpen(false)
-                                }}
-                                className="block text-sm font-light tracking-wide text-maison-graphite hover:text-maison-gold transition-colors duration-300"
-                              >
-                                {child.name}
-                              </Link>
-                            ))}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  )
-                } else {
-                  return (
-                    <Link
-                      key={category.id}
-                      href={`/customize/category/${category.slug}`}
-                      onClick={() => setIsMenuOpen(false)}
-                      className="block font-serif text-lg font-light tracking-wider text-maison-charcoal hover:text-maison-gold transition-colors duration-300"
+                <AnimatePresence>
+                  {isMobileDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="mt-4 ml-4 space-y-3 overflow-hidden"
                     >
-                      {category.name}
-                    </Link>
-                  )
-                }
-              })}
+                      {/* All Collections */}
+                      <Link
+                        href="/customize"
+                        onClick={() => {
+                          setIsMenuOpen(false)
+                          setIsMobileDropdownOpen(false)
+                        }}
+                        className="block text-sm font-medium tracking-wide text-maison-charcoal hover:text-maison-gold transition-colors duration-300"
+                      >
+                        All Collections
+                      </Link>
+                      {/* Individual categories */}
+                      {topLevelCategories.map((category) => {
+                        const hasChildren = category.children && category.children.length > 0
+                        if (hasChildren) {
+                          return category.children!.map((child) => (
+                            <Link
+                              key={child.id}
+                              href={`/customize/category/${child.slug}`}
+                              onClick={() => {
+                                setIsMenuOpen(false)
+                                setIsMobileDropdownOpen(false)
+                              }}
+                              className="block text-sm font-light tracking-wide text-maison-graphite hover:text-maison-gold transition-colors duration-300"
+                            >
+                              {child.name}
+                            </Link>
+                          ))
+                        } else {
+                          return (
+                            <Link
+                              key={category.id}
+                              href={`/customize/category/${category.slug}`}
+                              onClick={() => {
+                                setIsMenuOpen(false)
+                                setIsMobileDropdownOpen(false)
+                              }}
+                              className="block text-sm font-light tracking-wide text-maison-graphite hover:text-maison-gold transition-colors duration-300"
+                            >
+                              {category.name}
+                            </Link>
+                          )
+                        }
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
               <div className="h-px bg-maison-warm/50" />
 
