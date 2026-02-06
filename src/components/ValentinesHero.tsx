@@ -21,12 +21,13 @@ export default function ValentinesHero() {
           src="/images/valentines-hero-bg.jpg"
           alt="Valentine's Collection"
           fill
-          className="object-cover"
+          className="object-cover object-center md:object-[center_30%]"
           priority
+          sizes="100vw"
         />
         {/* Soft overlay for readability */}
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-900/40 via-rose-900/30 to-orange-900/40" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-900/30 via-rose-900/20 to-orange-900/30" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
       </div>
 
       {/* Content */}

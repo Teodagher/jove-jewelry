@@ -184,11 +184,11 @@ export default function Header() {
             </button>
 
             {/* Logo */}
-            <Link href="/" className="flex flex-col items-center group">
-              <span className="font-serif text-xl md:text-2xl font-light text-maison-black tracking-[0.15em] transition-colors duration-300 group-hover:text-maison-gold">
+            <Link href="/" className="flex flex-col items-start group">
+              <span className="font-serif text-lg md:text-xl font-light text-maison-black tracking-[0.2em] transition-colors duration-300 group-hover:text-maison-gold whitespace-nowrap">
                 MAISON JOVÉ
               </span>
-              <span className="text-[10px] md:text-xs text-maison-graphite/70 font-light tracking-[0.25em] mt-0.5">
+              <span className="text-[9px] md:text-[10px] text-maison-graphite/70 font-light tracking-[0.3em]">
                 FINE JEWELLERY
               </span>
             </Link>
