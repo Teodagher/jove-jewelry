@@ -14,6 +14,8 @@ interface ProductCategory {
   name: string
   slug: string
   display_order: number
+  parent_id?: string | null
+  children?: ProductCategory[]
 }
 
 export default function Header() {
@@ -21,6 +23,7 @@ export default function Header() {
   const [isMobileDropdownOpen, setIsMobileDropdownOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const [categories, setCategories] = useState<ProductCategory[]>([])
+  const [topLevelCategories, setTopLevelCategories] = useState<ProductCategory[]>([])
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login')
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
@@ -36,17 +39,40 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Fetch product categories from Supabase
+  // Fetch product categories from Supabase and build hierarchy
   useEffect(() => {
     const fetchCategories = async () => {
+      // Try to fetch with parent_id, fallback to without if column doesn't exist
       const { data, error } = await supabase
         .from('product_categories')
-        .select('id, name, slug, display_order')
+        .select('*')
         .eq('is_active', true)
         .order('display_order', { ascending: true })
 
       if (!error && data) {
-        setCategories(data)
+        // Cast to our interface
+        const typedData = data as ProductCategory[]
+        setCategories(typedData)
+        
+        // Check if parent_id exists in the data
+        const hasParentId = typedData.length > 0 && 'parent_id' in typedData[0]
+        
+        if (hasParentId) {
+          // Build hierarchy - top level categories have null/undefined parent_id
+          const topLevel = typedData.filter(c => !c.parent_id)
+          const children = typedData.filter(c => c.parent_id)
+          
+          // Attach children to their parents
+          const categoriesWithChildren = topLevel.map(parent => ({
+            ...parent,
+            children: children.filter(c => c.parent_id === parent.id)
+          }))
+          
+          setTopLevelCategories(categoriesWithChildren)
+        } else {
+          // No parent_id column yet - treat all as top-level without children
+          setTopLevelCategories(typedData.map(c => ({ ...c, children: [] })))
+        }
       }
     }
 
@@ -74,6 +100,49 @@ export default function Header() {
   const handleSignOut = async () => {
     await signOut()
     setIsAccountMenuOpen(false)
+  }
+
+  // Render desktop nav item - handles both parent categories (with dropdowns) and standalone links
+  const renderDesktopNavItem = (category: ProductCategory) => {
+    const hasChildren = category.children && category.children.length > 0
+    
+    if (hasChildren) {
+      return (
+        <div key={category.id} className="relative group">
+          <button className="flex items-center gap-1.5 text-sm font-light tracking-wider text-maison-charcoal hover:text-maison-gold transition-colors duration-300 py-2">
+            <span>{category.name.toUpperCase()}</span>
+            <ChevronDown size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:rotate-180" />
+          </button>
+          
+          {/* Dropdown Menu */}
+          <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
+            <div className="bg-maison-ivory border border-maison-warm shadow-lg min-w-[200px]">
+              <div className="py-2">
+                {category.children!.map((child) => (
+                  <Link
+                    key={child.id}
+                    href={`/customize/category/${child.slug}`}
+                    className="block px-6 py-3 text-sm font-light tracking-wide text-maison-charcoal hover:text-maison-gold hover:bg-maison-cream/50 transition-all duration-300"
+                  >
+                    {child.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )
+    } else {
+      return (
+        <Link
+          key={category.id}
+          href={`/customize/category/${category.slug}`}
+          className="text-sm font-light tracking-wider text-maison-charcoal hover:text-maison-gold transition-colors duration-300 py-2"
+        >
+          {category.name.toUpperCase()}
+        </Link>
+      )
+    }
   }
 
   return (
@@ -113,30 +182,8 @@ export default function Header() {
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-8">
-              {/* Jewellery Dropdown */}
-              <div className="relative group">
-                <button className="flex items-center gap-1.5 text-sm font-light tracking-wider text-maison-charcoal hover:text-maison-gold transition-colors duration-300 py-2">
-                  <span>JEWELLERY</span>
-                  <ChevronDown size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:rotate-180" />
-                </button>
-                
-                {/* Dropdown Menu */}
-                <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
-                  <div className="bg-maison-ivory border border-maison-warm shadow-lg min-w-[200px]">
-                    <div className="py-2">
-                      {categories.map((category) => (
-                        <Link
-                          key={category.id}
-                          href={`/customize/category/${category.slug}`}
-                          className="block px-6 py-3 text-sm font-light tracking-wide text-maison-charcoal hover:text-maison-gold hover:bg-maison-cream/50 transition-all duration-300"
-                        >
-                          {category.name}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {/* Dynamic category nav items */}
+              {topLevelCategories.map(renderDesktopNavItem)}
 
               <Link 
                 href="/customize" 
@@ -241,48 +288,67 @@ export default function Header() {
             className="fixed top-[73px] left-0 right-0 bg-maison-ivory border-b border-maison-warm z-40 md:hidden overflow-hidden"
           >
             <nav className="px-6 py-8 space-y-6">
-              {/* Categories Dropdown */}
-              <div>
-                <button
-                  onClick={() => setIsMobileDropdownOpen(!isMobileDropdownOpen)}
-                  className="flex items-center justify-between w-full text-left"
-                >
-                  <span className="font-serif text-lg font-light tracking-wider text-maison-charcoal">
-                    Jewellery
-                  </span>
-                  <ChevronDown 
-                    size={18} 
-                    strokeWidth={1.5}
-                    className={`text-maison-graphite transition-transform duration-300 ${isMobileDropdownOpen ? 'rotate-180' : ''}`}
-                  />
-                </button>
+              {/* Dynamic Categories - renders parent categories with expandable children */}
+              {topLevelCategories.map((category) => {
+                const hasChildren = category.children && category.children.length > 0
                 
-                <AnimatePresence>
-                  {isMobileDropdownOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="mt-4 ml-4 space-y-3 overflow-hidden"
-                    >
-                      {categories.map((category) => (
-                        <Link
-                          key={category.id}
-                          href={`/customize/category/${category.slug}`}
-                          onClick={() => {
-                            setIsMenuOpen(false)
-                            setIsMobileDropdownOpen(false)
-                          }}
-                          className="block text-sm font-light tracking-wide text-maison-graphite hover:text-maison-gold transition-colors duration-300"
-                        >
+                if (hasChildren) {
+                  return (
+                    <div key={category.id}>
+                      <button
+                        onClick={() => setIsMobileDropdownOpen(!isMobileDropdownOpen)}
+                        className="flex items-center justify-between w-full text-left"
+                      >
+                        <span className="font-serif text-lg font-light tracking-wider text-maison-charcoal">
                           {category.name}
-                        </Link>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                        </span>
+                        <ChevronDown 
+                          size={18} 
+                          strokeWidth={1.5}
+                          className={`text-maison-graphite transition-transform duration-300 ${isMobileDropdownOpen ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+                      
+                      <AnimatePresence>
+                        {isMobileDropdownOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="mt-4 ml-4 space-y-3 overflow-hidden"
+                          >
+                            {category.children!.map((child) => (
+                              <Link
+                                key={child.id}
+                                href={`/customize/category/${child.slug}`}
+                                onClick={() => {
+                                  setIsMenuOpen(false)
+                                  setIsMobileDropdownOpen(false)
+                                }}
+                                className="block text-sm font-light tracking-wide text-maison-graphite hover:text-maison-gold transition-colors duration-300"
+                              >
+                                {child.name}
+                              </Link>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )
+                } else {
+                  return (
+                    <Link
+                      key={category.id}
+                      href={`/customize/category/${category.slug}`}
+                      onClick={() => setIsMenuOpen(false)}
+                      className="block font-serif text-lg font-light tracking-wider text-maison-charcoal hover:text-maison-gold transition-colors duration-300"
+                    >
+                      {category.name}
+                    </Link>
+                  )
+                }
+              })}
 
               <div className="h-px bg-maison-warm/50" />
 
