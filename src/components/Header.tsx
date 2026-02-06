@@ -15,6 +15,7 @@ interface ProductCategory {
   slug: string
   display_order: number
   parent_id?: string | null
+  show_in_menu?: boolean
   children?: ProductCategory[]
 }
 
@@ -68,8 +69,10 @@ export default function Header() {
         
         if (hasParentId) {
           // Build hierarchy - top level categories have null/undefined parent_id
-          const topLevel = typedData.filter(c => !c.parent_id)
-          const children = typedData.filter(c => c.parent_id)
+          // Only show categories marked show_in_menu (default true if not set)
+          const menuCategories = typedData.filter(c => c.show_in_menu !== false)
+          const topLevel = menuCategories.filter(c => !c.parent_id)
+          const children = menuCategories.filter(c => c.parent_id)
           
           // Attach children to their parents
           const categoriesWithChildren = topLevel.map(parent => ({
@@ -80,7 +83,8 @@ export default function Header() {
           setTopLevelCategories(categoriesWithChildren)
         } else {
           // No parent_id column yet - treat all as top-level without children
-          setTopLevelCategories(typedData.map(c => ({ ...c, children: [] })))
+          const menuCategories = typedData.filter(c => c.show_in_menu !== false)
+          setTopLevelCategories(menuCategories.map(c => ({ ...c, children: [] })))
         }
       }
     }

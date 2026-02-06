@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import { Plus, Pencil, Trash2, GripVertical, Eye, EyeOff, Upload, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, GripVertical, Eye, EyeOff, Upload, X, ChevronRight, Menu } from 'lucide-react'
 import Image from 'next/image'
 
 interface Category {
@@ -13,6 +13,8 @@ interface Category {
   image_url: string | null
   display_order: number
   is_active: boolean
+  parent_id: string | null
+  show_in_menu: boolean
   created_at: string
 }
 
@@ -30,7 +32,9 @@ export default function CategoriesPage() {
     slug: '',
     description: '',
     image_url: '',
-    is_active: true
+    is_active: true,
+    parent_id: '',
+    show_in_menu: true
   })
 
   useEffect(() => {
@@ -52,14 +56,22 @@ export default function CategoriesPage() {
     setLoading(false)
   }
 
-  function openAddModal() {
+  // Get parent categories (categories without a parent)
+  const parentCategories = categories.filter(c => !c.parent_id)
+  
+  // Get children for a parent
+  const getChildren = (parentId: string) => categories.filter(c => c.parent_id === parentId)
+
+  function openAddModal(parentId?: string) {
     setEditingCategory(null)
     setFormData({
       name: '',
       slug: '',
       description: '',
       image_url: '',
-      is_active: true
+      is_active: true,
+      parent_id: parentId || '',
+      show_in_menu: true
     })
     setShowModal(true)
   }
@@ -71,7 +83,9 @@ export default function CategoriesPage() {
       slug: category.slug,
       description: category.description || '',
       image_url: category.image_url || '',
-      is_active: category.is_active
+      is_active: category.is_active,
+      parent_id: category.parent_id || '',
+      show_in_menu: category.show_in_menu ?? true
     })
     setShowModal(true)
   }
@@ -128,13 +142,17 @@ export default function CategoriesPage() {
       description: string | null
       image_url: string | null
       is_active: boolean
+      parent_id: string | null
+      show_in_menu: boolean
       display_order?: number
     } = {
       name: formData.name.trim(),
       slug: slug,
       description: formData.description.trim() || null,
       image_url: formData.image_url || null,
-      is_active: formData.is_active
+      is_active: formData.is_active,
+      parent_id: formData.parent_id || null,
+      show_in_menu: formData.show_in_menu
     }
 
     if (editingCategory) {
@@ -173,6 +191,13 @@ export default function CategoriesPage() {
   }
 
   async function handleDelete(category: Category) {
+    // Check if it has children
+    const children = getChildren(category.id)
+    if (children.length > 0) {
+      alert(`Cannot delete "${category.name}" because it has ${children.length} sub-categories. Delete them first.`)
+      return
+    }
+    
     if (!confirm(`Delete "${category.name}"? This cannot be undone.`)) return
 
     const { error } = await supabase
@@ -202,26 +227,132 @@ export default function CategoriesPage() {
     }
   }
 
-  async function moveCategory(index: number, direction: 'up' | 'down') {
-    const newIndex = direction === 'up' ? index - 1 : index + 1
-    if (newIndex < 0 || newIndex >= categories.length) return
-
-    const newCategories = [...categories]
-    const temp = newCategories[index]
-    newCategories[index] = newCategories[newIndex]
-    newCategories[newIndex] = temp
-
-    // Update display_order for both
+  async function toggleShowInMenu(category: Category) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updates = newCategories.map((cat, i) => 
-      (supabase as any)
-        .from('product_categories')
-        .update({ display_order: i })
-        .eq('id', cat.id)
-    )
+    const { error } = await (supabase as any)
+      .from('product_categories')
+      .update({ show_in_menu: !category.show_in_menu })
+      .eq('id', category.id)
 
-    await Promise.all(updates)
-    fetchCategories()
+    if (error) {
+      console.error('Toggle error:', error)
+    } else {
+      fetchCategories()
+    }
+  }
+
+  // Render a category row
+  function CategoryRow({ category, isChild = false }: { category: Category, isChild?: boolean }) {
+    const children = getChildren(category.id)
+    
+    return (
+      <>
+        <tr className={`hover:bg-gray-50 ${isChild ? 'bg-gray-50/50' : ''}`}>
+          <td className="px-4 py-3">
+            {isChild && <div className="w-6 border-l-2 border-b-2 border-gray-200 h-4 ml-2 rounded-bl" />}
+          </td>
+          <td className="px-4 py-3">
+            {category.image_url ? (
+              <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100">
+                <Image
+                  src={category.image_url}
+                  alt={category.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+            ) : (
+              <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+                <span className="text-gray-400 text-xs">No img</span>
+              </div>
+            )}
+          </td>
+          <td className="px-4 py-3">
+            <div className="flex items-center gap-2">
+              {!isChild && children.length > 0 && (
+                <span className="text-xs bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded">
+                  {children.length} sub
+                </span>
+              )}
+              <span className={`font-medium ${isChild ? 'text-gray-700' : 'text-gray-900'}`}>
+                {category.name}
+              </span>
+            </div>
+          </td>
+          <td className="px-4 py-3">
+            <code className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+              {category.slug}
+            </code>
+          </td>
+          <td className="px-4 py-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => toggleActive(category)}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                  category.is_active
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                {category.is_active ? (
+                  <>
+                    <Eye className="w-3 h-3" />
+                    Active
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="w-3 h-3" />
+                    Hidden
+                  </>
+                )}
+              </button>
+            </div>
+          </td>
+          <td className="px-4 py-3">
+            <button
+              onClick={() => toggleShowInMenu(category)}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                category.show_in_menu
+                  ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              <Menu className="w-3 h-3" />
+              {category.show_in_menu ? 'In Menu' : 'Not in Menu'}
+            </button>
+          </td>
+          <td className="px-4 py-3 text-right">
+            <div className="flex items-center justify-end gap-2">
+              {!isChild && (
+                <button
+                  onClick={() => openAddModal(category.id)}
+                  className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                  title="Add sub-category"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              )}
+              <button
+                onClick={() => openEditModal(category)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleDelete(category)}
+                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </td>
+        </tr>
+        {/* Render children */}
+        {children.map(child => (
+          <CategoryRow key={child.id} category={child} isChild />
+        ))}
+      </>
+    )
   }
 
   return (
@@ -230,15 +361,23 @@ export default function CategoriesPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-serif font-light text-gray-900">Categories</h1>
-          <p className="mt-1 text-sm text-gray-600">Manage product categories</p>
+          <p className="mt-1 text-sm text-gray-600">Manage product categories and menu structure</p>
         </div>
         <button
-          onClick={openAddModal}
+          onClick={() => openAddModal()}
           className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Add Category
+          Add Parent Category
         </button>
+      </div>
+
+      {/* Info */}
+      <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-lg">
+        <p className="text-sm text-blue-800">
+          <strong>Parent categories</strong> (like &ldquo;Fine Jewellery&rdquo;) group sub-categories together. 
+          Categories marked &ldquo;In Menu&rdquo; will appear in the website sidebar.
+        </p>
       </div>
 
       {/* Categories List */}
@@ -248,7 +387,7 @@ export default function CategoriesPage() {
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">No categories yet</p>
           <button
-            onClick={openAddModal}
+            onClick={() => openAddModal()}
             className="text-rose-600 hover:text-rose-700 font-medium"
           >
             Create your first category
@@ -264,86 +403,13 @@ export default function CategoriesPage() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Menu</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {categories.map((category, index) => (
-                <tr key={category.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-1">
-                      <button
-                        onClick={() => moveCategory(index, 'up')}
-                        disabled={index === 0}
-                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-                      >
-                        <GripVertical className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    {category.image_url ? (
-                      <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100">
-                        <Image
-                          src={category.image_url}
-                          alt={category.name}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
-                        <span className="text-gray-400 text-xs">No img</span>
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="font-medium text-gray-900">{category.name}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <code className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                      {category.slug}
-                    </code>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => toggleActive(category)}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                        category.is_active
-                          ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                      }`}
-                    >
-                      {category.is_active ? (
-                        <>
-                          <Eye className="w-3 h-3" />
-                          Active
-                        </>
-                      ) : (
-                        <>
-                          <EyeOff className="w-3 h-3" />
-                          Hidden
-                        </>
-                      )}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => openEditModal(category)}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(category)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+              {parentCategories.map((category) => (
+                <CategoryRow key={category.id} category={category} />
               ))}
             </tbody>
           </table>
@@ -356,7 +422,7 @@ export default function CategoriesPage() {
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h2 className="text-lg font-medium text-gray-900">
-                {editingCategory ? 'Edit Category' : 'Add Category'}
+                {editingCategory ? 'Edit Category' : formData.parent_id ? 'Add Sub-Category' : 'Add Parent Category'}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
@@ -367,6 +433,29 @@ export default function CategoriesPage() {
             </div>
 
             <div className="p-6 space-y-5">
+              {/* Parent selector (only for editing or if not pre-set) */}
+              {(editingCategory || !formData.parent_id) && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Parent Category
+                  </label>
+                  <select
+                    value={formData.parent_id}
+                    onChange={(e) => setFormData(prev => ({ ...prev, parent_id: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                  >
+                    <option value="">None (Top-level category)</option>
+                    {parentCategories
+                      .filter(c => c.id !== editingCategory?.id) // Can't be parent of itself
+                      .map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))
+                    }
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">Leave empty for a top-level parent category</p>
+                </div>
+              )}
+
               {/* Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -383,7 +472,7 @@ export default function CategoriesPage() {
                     }))
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-                  placeholder="e.g. Necklaces"
+                  placeholder="e.g. Fine Jewellery"
                 />
               </div>
 
@@ -455,18 +544,33 @@ export default function CategoriesPage() {
                 )}
               </div>
 
-              {/* Active */}
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="is_active"
-                  checked={formData.is_active}
-                  onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
-                  className="w-4 h-4 text-rose-600 border-gray-300 rounded focus:ring-rose-500"
-                />
-                <label htmlFor="is_active" className="text-sm text-gray-700">
-                  Active (visible on site)
-                </label>
+              {/* Checkboxes */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="is_active"
+                    checked={formData.is_active}
+                    onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                    className="w-4 h-4 text-rose-600 border-gray-300 rounded focus:ring-rose-500"
+                  />
+                  <label htmlFor="is_active" className="text-sm text-gray-700">
+                    Active (visible on site)
+                  </label>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="show_in_menu"
+                    checked={formData.show_in_menu}
+                    onChange={(e) => setFormData(prev => ({ ...prev, show_in_menu: e.target.checked }))}
+                    className="w-4 h-4 text-rose-600 border-gray-300 rounded focus:ring-rose-500"
+                  />
+                  <label htmlFor="show_in_menu" className="text-sm text-gray-700">
+                    Show in website sidebar menu
+                  </label>
+                </div>
               </div>
             </div>
 
