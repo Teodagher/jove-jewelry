@@ -24,7 +24,8 @@ import {
   Tag,
   MessageCircle,
   Images,
-  Globe
+  Globe,
+  FolderOpen
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -33,6 +34,7 @@ interface AdminLayoutProps {
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: Home },
+  { name: 'Categories', href: '/admin/categories', icon: FolderOpen },
   { name: 'Product Management', href: '/admin/product-management', icon: Settings },
   {
     name: 'Pricing',
