@@ -1,13 +1,21 @@
 'use client'
 
 import { Heart } from 'lucide-react'
+import { useState, useEffect } from 'react'
 
 export default function ValentinesBanner() {
-  // Check if Valentine's season (show until Feb 14)
-  const now = new Date()
-  const isValentinesSeason = now.getMonth() === 1 && now.getDate() <= 14
+  const [siteStyle, setSiteStyle] = useState<string>('original')
+  
+  useEffect(() => {
+    // Fetch current site style
+    fetch('/api/admin/site-style')
+      .then(res => res.json())
+      .then(data => setSiteStyle(data.style || 'original'))
+      .catch(() => setSiteStyle('original'))
+  }, [])
 
-  if (!isValentinesSeason) return null
+  // Only show if Valentine's style is active
+  if (siteStyle !== 'valentines') return null
 
   return (
     <div className="bg-gradient-to-r from-rose-500 via-rose-400 to-rose-500 text-white py-2.5 px-4">

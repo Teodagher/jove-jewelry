@@ -5,6 +5,19 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 
+// Valentine's intro component
+function ValentinesIntro({ show }: { show: boolean }) {
+  if (!show) return null
+  return (
+    <div className="text-center mb-8">
+      <p className="text-rose-500 text-sm font-light tracking-widest mb-3">♥ VALENTINE&apos;S SPECIAL</p>
+      <p className="text-maison-graphite text-lg md:text-xl font-light max-w-2xl mx-auto leading-relaxed">
+        This Valentine&apos;s, don&apos;t just give jewellery. Give a piece that was designed for them, by you.
+      </p>
+    </div>
+  )
+}
+
 interface JewelryItem {
   id: string;
   name: string;
@@ -20,10 +33,15 @@ interface JewelryItem {
 export default function CustomizePage() {
   const [jewelryItems, setJewelryItems] = useState<JewelryItem[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const [siteStyle, setSiteStyle] = useState<string>('original');
 
   useEffect(() => {
     fetchJewelryItems();
+    // Fetch site style
+    fetch('/api/admin/site-style')
+      .then(res => res.json())
+      .then(data => setSiteStyle(data.style || 'original'))
+      .catch(() => setSiteStyle('original'))
   }, []);
 
   const fetchJewelryItems = async () => {
@@ -77,13 +95,8 @@ export default function CustomizePage() {
   return (
     <div className="min-h-screen jove-bg-primary px-4 py-12 md:py-16 lg:py-20">
       <div className="max-w-7xl w-full mx-auto">
-        {/* Valentine's Campaign Intro */}
-        <div className="text-center mb-8">
-          <p className="text-rose-500 text-sm font-light tracking-widest mb-3">♥ VALENTINE&apos;S SPECIAL</p>
-          <p className="text-maison-graphite text-lg md:text-xl font-light max-w-2xl mx-auto leading-relaxed">
-            This Valentine&apos;s, don&apos;t just give jewellery. Give a piece that was designed for them, by you.
-          </p>
-        </div>
+        {/* Valentine's Campaign Intro - only when style is active */}
+        <ValentinesIntro show={siteStyle === 'valentines'} />
         
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-light text-center mb-12 sm:mb-16 md:mb-20 tracking-wide text-zinc-900">
           Choose Your Jewelry Type

@@ -1,17 +1,24 @@
 'use client'
 
 import { Gift, Heart } from 'lucide-react'
+import { useState, useEffect } from 'react'
 
 interface ValentinesGiftBoxProps {
   variant?: 'product' | 'checkout'
 }
 
 export default function ValentinesGiftBox({ variant = 'product' }: ValentinesGiftBoxProps) {
-  // Check if Valentine's season (show until Feb 14)
-  const now = new Date()
-  const isValentinesSeason = now.getMonth() === 1 && now.getDate() <= 14
+  const [siteStyle, setSiteStyle] = useState<string>('original')
+  
+  useEffect(() => {
+    fetch('/api/admin/site-style')
+      .then(res => res.json())
+      .then(data => setSiteStyle(data.style || 'original'))
+      .catch(() => setSiteStyle('original'))
+  }, [])
 
-  if (!isValentinesSeason) return null
+  // Only show if Valentine's style is active
+  if (siteStyle !== 'valentines') return null
 
   if (variant === 'checkout') {
     return (

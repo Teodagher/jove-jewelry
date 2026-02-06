@@ -27,8 +27,17 @@ export default function Header() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login')
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
+  const [siteStyle, setSiteStyle] = useState<string>('original')
   const { itemCount } = useCart()
   const { user, signOut } = useAuth()
+  
+  // Fetch site style
+  useEffect(() => {
+    fetch('/api/admin/site-style')
+      .then(res => res.json())
+      .then(data => setSiteStyle(data.style || 'original'))
+      .catch(() => setSiteStyle('original'))
+  }, [])
 
   // Handle scroll effect
   useEffect(() => {
@@ -185,13 +194,15 @@ export default function Header() {
               {/* Dynamic category nav items */}
               {topLevelCategories.map(renderDesktopNavItem)}
 
-              {/* Valentine's Edit - Seasonal */}
-              <Link 
-                href="/valentines" 
-                className="text-sm font-light tracking-wider text-rose-500 hover:text-rose-600 transition-colors duration-300 flex items-center gap-1"
-              >
-                <span>♥</span> VALENTINE&apos;S EDIT
-              </Link>
+              {/* Valentine's Edit - Only when Valentine's style is active */}
+              {siteStyle === 'valentines' && (
+                <Link 
+                  href="/valentines" 
+                  className="text-sm font-light tracking-wider text-rose-500 hover:text-rose-600 transition-colors duration-300 flex items-center gap-1"
+                >
+                  <span>♥</span> VALENTINE&apos;S EDIT
+                </Link>
+              )}
 
               <Link 
                 href="/customize" 

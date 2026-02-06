@@ -14,6 +14,7 @@ import {
   UserPlus,
   Gift
 } from 'lucide-react';
+import SiteStyleSelector from './SiteStyleSelector';
 
 interface Stats {
   name: string;
@@ -230,6 +231,9 @@ export default function AdminDashboard() {
           );
         })}
       </div>
+
+      {/* Website Style Selector */}
+      <SiteStyleSelector />
 
       {/* Quick Actions */}
       <div className="jove-bg-card shadow-sm rounded-lg">
