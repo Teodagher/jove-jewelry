@@ -2,10 +2,31 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, Heart } from 'lucide-react'
+import { useState, useEffect } from 'react'
+
+// Desktop slideshow images (rings)
+const desktopImages = [
+  '/images/valentines-hero-1.jpg',
+  '/images/valentines-hero-2.jpg',
+  '/images/valentines-hero-3.jpg',
+]
+
+// Mobile uses the bracelet image
+const mobileImage = '/images/valentines-hero-bg.jpg'
 
 export default function ValentinesHero() {
+  const [currentSlide, setCurrentSlide] = useState(0)
+
+  // Auto-advance slideshow every 4 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % desktopImages.length)
+    }, 4000)
+    return () => clearInterval(timer)
+  }, [])
+
   const scrollToContent = () => {
     window.scrollTo({
       top: window.innerHeight,
@@ -15,19 +36,61 @@ export default function ValentinesHero() {
 
   return (
     <section className="relative h-screen flex items-center justify-center overflow-hidden">
-      {/* Background Image */}
-      <div className="absolute inset-0 z-0">
+      {/* Mobile Background Image (bracelet) */}
+      <div className="absolute inset-0 z-0 md:hidden">
         <Image 
-          src="/images/valentines-hero-bg.jpg"
+          src={mobileImage}
           alt="Valentine's Collection"
           fill
-          className="object-cover object-center md:object-[center_30%]"
+          className="object-cover object-center"
           priority
           sizes="100vw"
         />
         {/* Soft overlay for readability */}
         <div className="absolute inset-0 bg-gradient-to-br from-amber-900/30 via-rose-900/20 to-orange-900/30" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/10" />
+      </div>
+
+      {/* Desktop Slideshow Background (rings) */}
+      <div className="absolute inset-0 z-0 hidden md:block">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentSlide}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1 }}
+            className="absolute inset-0"
+          >
+            <Image 
+              src={desktopImages[currentSlide]}
+              alt="Valentine's Collection"
+              fill
+              className="object-cover object-center"
+              priority
+              sizes="100vw"
+            />
+          </motion.div>
+        </AnimatePresence>
+        {/* Soft overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-900/40 via-rose-900/30 to-orange-900/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
+      </div>
+
+      {/* Slide indicators (desktop only) */}
+      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 hidden md:flex gap-2">
+        {desktopImages.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => setCurrentSlide(index)}
+            className={`w-2 h-2 rounded-full transition-all duration-300 ${
+              index === currentSlide 
+                ? 'bg-white w-6' 
+                : 'bg-white/50 hover:bg-white/70'
+            }`}
+            aria-label={`Go to slide ${index + 1}`}
+          />
+        ))}
       </div>
 
       {/* Content */}
