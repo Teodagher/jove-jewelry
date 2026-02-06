@@ -11,6 +11,10 @@ import AdminQuickAccessBar from '@/components/AdminQuickAccessBar'
 import ScrollToHashOnLoad from '@/components/ScrollToHashOnLoad'
 import { createClient } from '@supabase/supabase-js'
 
+// Disable caching so style changes take effect immediately
+export const revalidate = 0
+export const dynamic = 'force-dynamic'
+
 // Fetch site style from database
 async function getSiteStyle(): Promise<'original' | 'valentines'> {
   try {
@@ -65,4 +69,3 @@ export default async function Home() {
     </main>
   )
 }
-// cache bust 1770413106
