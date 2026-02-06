@@ -14,11 +14,15 @@ export default function WebsiteStyleSelector() {
   const [currentStyle, setCurrentStyle] = useState<SiteStyle>('original')
   const [isOpen, setIsOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/admin/site-style')
       .then(res => res.json())
-      .then(data => setCurrentStyle(data.style || 'original'))
+      .then(data => {
+        setCurrentStyle(data.style || 'original')
+        if (data.error) setError(data.error)
+      })
       .catch(() => {})
   }, [])
 
@@ -26,6 +30,7 @@ export default function WebsiteStyleSelector() {
     if (style === currentStyle || saving) return
     
     setSaving(true)
+    setError(null)
     try {
       const res = await fetch('/api/admin/site-style', {
         method: 'POST',
@@ -33,14 +38,22 @@ export default function WebsiteStyleSelector() {
         body: JSON.stringify({ style })
       })
 
-      if (res.ok) {
+      const data = await res.json()
+      
+      if (res.ok && data.success) {
         setCurrentStyle(style)
         setIsOpen(false)
         // Refresh frontend to show changes
         window.location.reload()
+      } else if (data.sql) {
+        // Show SQL that needs to be run
+        setError(`Database table missing. Run this SQL in Supabase:\n\n${data.sql}`)
+      } else {
+        setError(data.error || 'Failed to update')
       }
     } catch (error) {
       console.error('Error updating style:', error)
+      setError('Network error')
     } finally {
       setSaving(false)
     }
@@ -92,6 +105,11 @@ export default function WebsiteStyleSelector() {
           <p className="px-3 py-2 text-xs text-gray-500">
             Changes how the website looks to customers
           </p>
+          {error && (
+            <div className="px-3 py-2 text-xs text-red-600 bg-red-50 rounded whitespace-pre-wrap max-h-32 overflow-auto">
+              {error}
+            </div>
+          )}
         </div>
       )}
     </div>

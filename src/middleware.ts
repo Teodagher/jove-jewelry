@@ -146,17 +146,26 @@ export async function middleware(request: NextRequest) {
     return redirectResponse
   }
 
-  // No redirect needed - set market based on geo-location, domain, or override
+  // No redirect needed - set market based on: query override > existing cookie > geo > domain default
   let market: Market
   
   // Valid market values for override
   const validMarkets: Market[] = ['lb', 'au', 'eu', 'ae', 'sa', 'qa', 'intl']
   
+  // Check for existing market cookie (user selection in admin takes priority)
+  const existingMarketCookie = request.cookies.get('market')?.value
+  
   if (marketOverride && validMarkets.includes(marketOverride as Market)) {
+    // Query parameter override (for testing)
     market = marketOverride as Market
+  } else if (existingMarketCookie && validMarkets.includes(existingMarketCookie as Market)) {
+    // Respect existing cookie (user selected market in admin)
+    market = existingMarketCookie as Market
   } else if (country) {
+    // Auto-detect from geo-location
     market = getMarketForPricing(country)
   } else {
+    // Default based on domain
     market = currentDomain === 'maisonjove.com' ? 'lb' : 'intl'
   }
 

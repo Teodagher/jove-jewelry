@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { ChevronDown, Heart } from 'lucide-react'
 
@@ -14,16 +15,19 @@ export default function ValentinesHero() {
 
   return (
     <section className="relative h-screen flex items-center justify-center overflow-hidden">
-      {/* Warm romantic gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-amber-100 via-rose-100 to-orange-100" />
-      
-      {/* Golden sunset overlay effect */}
-      <div className="absolute inset-0 bg-gradient-to-t from-amber-200/30 via-transparent to-rose-200/20" />
-      
-      {/* Subtle pattern overlay */}
-      <div className="absolute inset-0 opacity-5" style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-      }} />
+      {/* Background Image */}
+      <div className="absolute inset-0 z-0">
+        <Image 
+          src="/images/valentines-hero-bg.jpg"
+          alt="Valentine's Collection"
+          fill
+          className="object-cover"
+          priority
+        />
+        {/* Soft overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-br from-amber-900/40 via-rose-900/30 to-orange-900/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
+      </div>
 
       {/* Content */}
       <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
@@ -34,9 +38,9 @@ export default function ValentinesHero() {
           transition={{ duration: 0.8 }}
           className="flex justify-center gap-3 mb-8"
         >
-          <Heart className="w-5 h-5 text-rose-400" fill="currentColor" />
-          <Heart className="w-4 h-4 text-rose-300" fill="currentColor" />
-          <Heart className="w-5 h-5 text-rose-400" fill="currentColor" />
+          <Heart className="w-5 h-5 text-rose-300" fill="currentColor" />
+          <Heart className="w-4 h-4 text-rose-200" fill="currentColor" />
+          <Heart className="w-5 h-5 text-rose-300" fill="currentColor" />
         </motion.div>
 
         {/* Main Headline */}
@@ -44,11 +48,11 @@ export default function ValentinesHero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.2 }}
-          className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-light text-maison-black mb-6 md:mb-8 tracking-wide leading-tight"
+          className="font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-light text-white mb-6 md:mb-8 tracking-wide leading-tight drop-shadow-lg"
         >
           Made for Two.
           <br />
-          <span className="italic text-rose-600">Designed by You.</span>
+          <span className="italic text-rose-300">Designed by You.</span>
         </motion.h1>
 
         {/* Rose gold accent line */}
@@ -56,7 +60,7 @@ export default function ValentinesHero() {
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ duration: 0.8, delay: 0.6 }}
-          className="w-24 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent mx-auto mb-8 md:mb-10"
+          className="w-24 h-px bg-gradient-to-r from-transparent via-rose-300 to-transparent mx-auto mb-8 md:mb-10"
         />
 
         {/* Subheadline */}
@@ -64,11 +68,11 @@ export default function ValentinesHero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.8 }}
-          className="text-maison-charcoal text-lg md:text-xl lg:text-2xl font-light tracking-wide max-w-2xl mx-auto mb-10 md:mb-14 leading-relaxed"
+          className="text-white/90 text-lg md:text-xl lg:text-2xl font-light tracking-wide max-w-2xl mx-auto mb-10 md:mb-14 leading-relaxed drop-shadow"
         >
           This Valentine&apos;s, create a piece that tells your story.
           <br className="hidden sm:block" />
-          <span className="text-maison-graphite">Choose your gold. Select your stones. Craft a symbol of your love.</span>
+          <span className="text-white/80">Choose your gold. Select your stones. Craft a symbol of your love.</span>
         </motion.p>
 
         {/* CTA Buttons */}
@@ -80,7 +84,7 @@ export default function ValentinesHero() {
         >
           <Link
             href="/customize"
-            className="group relative inline-flex items-center justify-center px-10 py-4 bg-rose-500 text-white text-sm tracking-[0.15em] uppercase font-light overflow-hidden transition-all duration-500 hover:bg-rose-600 shadow-lg shadow-rose-200"
+            className="group relative inline-flex items-center justify-center px-10 py-4 bg-white text-rose-600 text-sm tracking-[0.15em] uppercase font-light overflow-hidden transition-all duration-500 hover:bg-rose-50 shadow-lg"
           >
             <Heart className="w-4 h-4 mr-2" />
             <span>Create Your Valentine&apos;s Piece</span>
@@ -88,7 +92,7 @@ export default function ValentinesHero() {
           
           <Link
             href="/valentines"
-            className="inline-flex items-center justify-center px-10 py-4 border border-maison-charcoal/30 text-maison-charcoal text-sm tracking-[0.15em] uppercase font-light transition-all duration-500 hover:border-rose-400 hover:text-rose-600"
+            className="inline-flex items-center justify-center px-10 py-4 border border-white/50 text-white text-sm tracking-[0.15em] uppercase font-light transition-all duration-500 hover:border-white hover:bg-white/10"
           >
             Shop Valentine&apos;s Collection
           </Link>
@@ -99,7 +103,7 @@ export default function ValentinesHero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 1.3 }}
-          className="mt-8 text-sm text-maison-graphite/70 font-light tracking-wider"
+          className="mt-8 text-sm text-white/60 font-light tracking-wider"
         >
           Made to be shared. ♥ Made for two.
         </motion.p>
@@ -111,7 +115,7 @@ export default function ValentinesHero() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8, delay: 1.5 }}
         onClick={scrollToContent}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-maison-graphite/60 hover:text-rose-500 transition-colors duration-300 cursor-pointer"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-white/60 hover:text-rose-300 transition-colors duration-300 cursor-pointer"
         aria-label="Scroll down"
       >
         <span className="text-xs tracking-[0.2em] uppercase font-light">Discover</span>
@@ -120,10 +124,10 @@ export default function ValentinesHero() {
 
       {/* Side decorative elements */}
       <div className="hidden lg:block absolute left-8 top-1/2 -translate-y-1/2 z-10">
-        <div className="w-px h-32 bg-gradient-to-b from-transparent via-rose-300/50 to-transparent" />
+        <div className="w-px h-32 bg-gradient-to-b from-transparent via-white/30 to-transparent" />
       </div>
       <div className="hidden lg:block absolute right-8 top-1/2 -translate-y-1/2 z-10">
-        <div className="w-px h-32 bg-gradient-to-b from-transparent via-rose-300/50 to-transparent" />
+        <div className="w-px h-32 bg-gradient-to-b from-transparent via-white/30 to-transparent" />
       </div>
     </section>
   )

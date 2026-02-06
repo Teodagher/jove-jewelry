@@ -4,6 +4,21 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Heart, Gift, Sparkles } from 'lucide-react'
 
+// Product images from the website
+const CATEGORY_IMAGES = {
+  rings: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/categories-pictures/categories/1770078449145-8c8f3318-87bc-40bb-b2ac-a59442c91e68-jeqzw2yofh.webp',
+  necklaces: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/categories-pictures/categories/1762309613782-img_5770-9ivq5gxn9ns.webp',
+  bracelets: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/categories-pictures/categories/1770078437642-5c460a20-40cb-4a90-af65-53c62ac3461e-c7mt1mp7iq.webp',
+  earrings: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/categories-pictures/categories/1762309553406-img_5758-uf881gb6yz.webp',
+}
+
+const PRODUCT_IMAGES = {
+  bondBracelet: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/products/1762173357451-img_5313-removebg-preview-id88xgcc277.webp',
+  necklace: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/products/1762173385426-img_0781-removebg-preview-te7dwf5nf8.webp',
+  bracelet: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/products/1770076090240-3b987adf-cc7a-418b-901f-f7db85ca50cb-4jcpfx6wjqv.webp',
+  earrings: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/products/1762173371481-img_5312-removebg-preview-slhccat4b5.webp',
+}
+
 export default function ValentinesEditPage() {
   return (
     <div className="min-h-screen bg-maison-ivory">
@@ -21,8 +36,48 @@ export default function ValentinesEditPage() {
         </div>
       </section>
 
-      {/* Toi et Moi Section */}
+      {/* Shop by Category */}
       <section className="py-16 px-4 md:px-8 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="font-serif text-3xl md:text-4xl font-light text-maison-black mb-4">
+              Shop the Valentine&apos;s Collection
+            </h2>
+            <p className="text-maison-graphite font-light max-w-xl mx-auto leading-relaxed">
+              Find the perfect piece for your valentine
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
+            {[
+              { name: 'Rings', slug: 'rings', image: CATEGORY_IMAGES.rings },
+              { name: 'Necklaces', slug: 'necklaces', image: CATEGORY_IMAGES.necklaces },
+              { name: 'Bracelets', slug: 'bracelets', image: CATEGORY_IMAGES.bracelets },
+              { name: 'Earrings', slug: 'earrings', image: CATEGORY_IMAGES.earrings },
+            ].map((category) => (
+              <Link 
+                key={category.slug}
+                href={`/customize/category/${category.slug}`}
+                className="group"
+              >
+                <div className="aspect-square bg-gradient-to-br from-rose-50 to-maison-cream rounded-lg mb-4 overflow-hidden relative">
+                  <Image 
+                    src={category.image}
+                    alt={category.name}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <h3 className="font-serif text-lg text-maison-charcoal text-center group-hover:text-rose-500 transition-colors">{category.name}</h3>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Toi et Moi Section */}
+      <section className="py-16 px-4 md:px-8 bg-rose-50/50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="font-serif text-3xl md:text-4xl font-light text-maison-black mb-4">
@@ -34,16 +89,25 @@ export default function ValentinesEditPage() {
             </p>
           </div>
           
-          {/* Product Grid Placeholder */}
+          {/* Product Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-            {['Toi et Moi Ring', 'Toi et Moi Necklace', 'Toi et Moi Bracelet'].map((item, i) => (
-              <div key={i} className="group">
-                <div className="aspect-square bg-gradient-to-br from-rose-100 to-maison-cream rounded-lg mb-4 flex items-center justify-center">
-                  <Sparkles className="w-16 h-16 text-rose-300 group-hover:text-rose-400 transition-colors" />
+            {[
+              { name: 'Toi et Moi Ring', slug: 'rings', image: CATEGORY_IMAGES.rings },
+              { name: 'Toi et Moi Necklace', slug: 'necklaces', image: PRODUCT_IMAGES.necklace },
+              { name: 'Toi et Moi Bracelet', slug: 'bracelets', image: PRODUCT_IMAGES.bracelet },
+            ].map((item, i) => (
+              <Link key={i} href={`/customize/category/${item.slug}`} className="group">
+                <div className="aspect-square bg-white rounded-lg mb-4 overflow-hidden relative shadow-sm">
+                  <Image 
+                    src={item.image}
+                    alt={item.name}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
                 </div>
-                <h3 className="font-serif text-lg text-maison-charcoal text-center">{item}</h3>
+                <h3 className="font-serif text-lg text-maison-charcoal text-center group-hover:text-rose-500 transition-colors">{item.name}</h3>
                 <p className="text-sm text-maison-graphite text-center mt-1">Made for two</p>
-              </div>
+              </Link>
             ))}
           </div>
           
@@ -59,7 +123,7 @@ export default function ValentinesEditPage() {
       </section>
 
       {/* Matching Bracelets Section */}
-      <section className="py-16 px-4 md:px-8 bg-rose-50/50">
+      <section className="py-16 px-4 md:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="font-serif text-3xl md:text-4xl font-light text-maison-black mb-4">
@@ -71,26 +135,26 @@ export default function ValentinesEditPage() {
             </p>
           </div>
           
-          {/* Bracelet Pairs Grid */}
+          {/* Bracelet Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
             {[
-              { color: 'Red Cord', accent: 'bg-red-400' },
-              { color: 'Navy Cord', accent: 'bg-blue-900' },
-              { color: 'Black Cord', accent: 'bg-zinc-800' },
-              { color: 'Burgundy Cord', accent: 'bg-rose-900' },
-            ].map((cord, i) => (
-              <div key={i} className="text-center">
-                <div className="aspect-square bg-white rounded-lg shadow-sm flex items-center justify-center mb-3 relative overflow-hidden">
-                  <div className={`absolute top-0 left-0 w-full h-1 ${cord.accent}`} />
-                  <div className="flex flex-col items-center">
-                    <div className={`w-20 h-1 ${cord.accent} rounded-full mb-2`} />
-                    <div className="w-4 h-4 bg-amber-400 rounded-full" />
-                    <div className={`w-20 h-1 ${cord.accent} rounded-full mt-2`} />
-                  </div>
+              { name: 'Bond Bracelet', image: PRODUCT_IMAGES.bondBracelet, price: 'From $80' },
+              { name: 'Classic Bracelet', image: PRODUCT_IMAGES.bracelet, price: 'From $160' },
+              { name: 'Bond Bracelet', image: PRODUCT_IMAGES.bondBracelet, price: 'From $80' },
+              { name: 'Classic Bracelet', image: PRODUCT_IMAGES.bracelet, price: 'From $160' },
+            ].map((item, i) => (
+              <Link key={i} href="/customize/category/bracelets" className="group text-center">
+                <div className="aspect-square bg-gradient-to-br from-rose-50 to-white rounded-lg overflow-hidden relative shadow-sm mb-3">
+                  <Image 
+                    src={item.image}
+                    alt={item.name}
+                    fill
+                    className="object-contain p-4 group-hover:scale-105 transition-transform duration-300"
+                  />
                 </div>
-                <p className="text-sm text-maison-charcoal">{cord.color}</p>
-                <p className="text-xs text-maison-graphite">with gold & ruby</p>
-              </div>
+                <p className="text-sm text-maison-charcoal font-medium">{item.name}</p>
+                <p className="text-xs text-maison-graphite">{item.price}</p>
+              </Link>
             ))}
           </div>
           
@@ -106,7 +170,7 @@ export default function ValentinesEditPage() {
       </section>
 
       {/* Gifting Section */}
-      <section className="py-16 px-4 md:px-8 bg-white">
+      <section className="py-16 px-4 md:px-8 bg-rose-50/30">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <Gift className="w-10 h-10 text-rose-400 mx-auto mb-4" />
@@ -118,95 +182,94 @@ export default function ValentinesEditPage() {
           {/* Gift Tiers */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Under $150 */}
-            <div className="bg-maison-cream/50 rounded-xl p-6">
-              <h3 className="font-serif text-xl text-maison-black mb-2 text-center">Gifts under $150</h3>
-              <p className="text-sm text-maison-graphite text-center mb-6">Meaningful, entry-level gifts</p>
-              <ul className="space-y-3 text-sm text-maison-charcoal">
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-400">♥</span>
-                  Single cord bracelets with small gold charms
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-400">♥</span>
-                  Cord bracelets with a single ruby or small diamond
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-400">♥</span>
-                  Minimal gold cord bracelets
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-400">♥</span>
-                  Simple gold charm bracelets
-                </li>
-              </ul>
-              <div className="mt-6 text-center">
-                <Link href="/customize" className="text-sm text-maison-black underline underline-offset-4 hover:text-rose-600 transition-colors">
-                  Shop Under $150 →
-                </Link>
+            <Link href="/customize/category/bracelets" className="group">
+              <div className="bg-white rounded-xl p-6 h-full hover:shadow-lg transition-shadow">
+                <div className="aspect-video bg-gradient-to-br from-rose-50 to-maison-cream rounded-lg mb-4 overflow-hidden relative">
+                  <Image 
+                    src={PRODUCT_IMAGES.bondBracelet}
+                    alt="Gifts under $150"
+                    fill
+                    className="object-contain p-4"
+                  />
+                </div>
+                <h3 className="font-serif text-xl text-maison-black mb-2 text-center group-hover:text-rose-500 transition-colors">Gifts under $150</h3>
+                <p className="text-sm text-maison-graphite text-center mb-4">Meaningful, entry-level gifts</p>
+                <ul className="space-y-2 text-sm text-maison-charcoal">
+                  <li className="flex items-start gap-2">
+                    <span className="text-rose-400">♥</span>
+                    Bond bracelets with gold charms
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-rose-400">♥</span>
+                    Cord bracelets with small diamonds
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-rose-400">♥</span>
+                    Minimal silver pieces
+                  </li>
+                </ul>
               </div>
-            </div>
+            </Link>
 
             {/* Under $300 */}
-            <div className="bg-rose-50 rounded-xl p-6 border border-rose-200">
-              <h3 className="font-serif text-xl text-maison-black mb-2 text-center">Gifts under $300</h3>
-              <p className="text-sm text-maison-graphite text-center mb-6">Premium & giftable</p>
-              <ul className="space-y-3 text-sm text-maison-charcoal">
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-400">♥</span>
-                  Cord bracelets with larger stones
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-400">♥</span>
-                  Small gold pendants with rubies or diamonds
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-400">♥</span>
-                  Delicate Toi et Moi bracelets
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-400">♥</span>
-                  Minimal gold necklaces with a single stone
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-400">♥</span>
-                  Customizable charm bracelets
-                </li>
-              </ul>
-              <div className="mt-6 text-center">
-                <Link href="/customize" className="text-sm text-maison-black underline underline-offset-4 hover:text-rose-600 transition-colors">
-                  Shop Under $300 →
-                </Link>
+            <Link href="/customize" className="group">
+              <div className="bg-white rounded-xl p-6 border-2 border-rose-200 h-full hover:shadow-lg transition-shadow">
+                <div className="aspect-video bg-gradient-to-br from-rose-50 to-maison-cream rounded-lg mb-4 overflow-hidden relative">
+                  <Image 
+                    src={PRODUCT_IMAGES.necklace}
+                    alt="Gifts under $300"
+                    fill
+                    className="object-contain p-4"
+                  />
+                </div>
+                <h3 className="font-serif text-xl text-maison-black mb-2 text-center group-hover:text-rose-500 transition-colors">Gifts under $300</h3>
+                <p className="text-sm text-maison-graphite text-center mb-4">Premium & giftable</p>
+                <ul className="space-y-2 text-sm text-maison-charcoal">
+                  <li className="flex items-start gap-2">
+                    <span className="text-rose-400">♥</span>
+                    Gold necklaces with diamonds
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-rose-400">♥</span>
+                    Classic bracelets with rubies
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-rose-400">♥</span>
+                    Elegant earrings
+                  </li>
+                </ul>
               </div>
-            </div>
+            </Link>
 
             {/* Statement Pieces */}
-            <div className="bg-gradient-to-br from-maison-black to-zinc-800 rounded-xl p-6 text-white">
-              <h3 className="font-serif text-xl mb-2 text-center">Statement Pieces</h3>
-              <p className="text-sm text-zinc-300 text-center mb-6">Romantic centerpieces</p>
-              <ul className="space-y-3 text-sm text-zinc-100">
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-300">♥</span>
-                  Toi et Moi rings with two stones
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-300">♥</span>
-                  Toi et Moi necklaces
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-300">♥</span>
-                  Bold ruby or diamond bracelets
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-rose-300">♥</span>
-                  High-impact customized pieces in gold
-                </li>
-              </ul>
-              <div className="mt-6 text-center">
-                <Link href="/customize" className="text-sm text-white underline underline-offset-4 hover:text-rose-300 transition-colors">
-                  Shop Statement Pieces →
-                </Link>
+            <Link href="/customize/category/rings" className="group">
+              <div className="bg-gradient-to-br from-maison-black to-zinc-800 rounded-xl p-6 text-white h-full hover:shadow-lg transition-shadow">
+                <div className="aspect-video bg-white/10 rounded-lg mb-4 overflow-hidden relative">
+                  <Image 
+                    src={CATEGORY_IMAGES.rings}
+                    alt="Statement Pieces"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <h3 className="font-serif text-xl mb-2 text-center">Statement Pieces</h3>
+                <p className="text-sm text-zinc-300 text-center mb-4">Romantic centerpieces</p>
+                <ul className="space-y-2 text-sm text-zinc-100">
+                  <li className="flex items-start gap-2">
+                    <span className="text-rose-300">♥</span>
+                    Toi et Moi rings
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-rose-300">♥</span>
+                    Bold diamond pieces
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-rose-300">♥</span>
+                    Custom gold creations
+                  </li>
+                </ul>
               </div>
-            </div>
+            </Link>
           </div>
         </div>
       </section>
