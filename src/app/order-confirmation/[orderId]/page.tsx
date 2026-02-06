@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Download } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
+import { getMarketClient } from '@/lib/market-client';
+import { getCurrency, formatPrice as formatCurrencyPrice } from '@/lib/currency';
 
 interface Order {
   id: string;
@@ -88,11 +90,13 @@ export default function OrderConfirmationPage() {
     }
   }, [orderId, fetchOrder, retryCount]);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
+  // Get market and currency for formatting
+  const market = getMarketClient();
+  const currency = getCurrency(market);
+  
+  // Use centralized currency formatter with conversion
+  const formatPrice = (priceUSD: number) => {
+    return formatCurrencyPrice(priceUSD, currency, true);
   };
 
   const formatDate = (dateString: string) => {

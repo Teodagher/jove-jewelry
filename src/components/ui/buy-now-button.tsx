@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from './button';
-import type { Currency } from '@/lib/currency';
+import { formatPrice as formatCurrencyPrice, type Currency } from '@/lib/currency';
 
 interface BuyNowButtonProps {
   onAddToCart?: () => void;
@@ -29,9 +29,9 @@ export function BuyNowButton({
   metalType = 'gold',
   pricingType = 'diamond_type'
 }: BuyNowButtonProps) {
-  const formatPrice = (price: number) => {
-    const symbol = currency === 'AUD' ? 'A$' : '$';
-    return `${symbol}${price.toFixed(2)} ${currency}`;
+  // Use the centralized currency formatter with conversion
+  const formatPrice = (priceUSD: number) => {
+    return formatCurrencyPrice(priceUSD, currency, true);
   };
 
   // Get button color and text based on pricing type

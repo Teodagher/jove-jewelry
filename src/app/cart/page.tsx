@@ -5,6 +5,8 @@ import { useCart } from '@/contexts/CartContext';
 import { Trash2, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { getMarketClient } from '@/lib/market-client';
+import { getCurrency, formatPrice as formatCurrencyPrice } from '@/lib/currency';
 
 import HandcraftedBanner from '@/components/HandcraftedBanner';
 
@@ -12,6 +14,10 @@ export default function CartPage() {
   const { items, itemCount, subtotal, removeFromCart, updateQuantity, loading } = useCart();
   const [removingItems, setRemovingItems] = useState<string[]>([]);
   const router = useRouter();
+  
+  // Get market and currency for formatting
+  const market = getMarketClient();
+  const currency = getCurrency(market);
 
   const handleRemoveItem = async (cartItemId: string) => {
     setRemovingItems(prev => [...prev, cartItemId]);
@@ -33,11 +39,9 @@ export default function CartPage() {
     }
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
+  // Use centralized currency formatter with conversion
+  const formatPrice = (priceUSD: number) => {
+    return formatCurrencyPrice(priceUSD, currency, true);
   };
 
   const formatJewelryType = (type: string) => {
