@@ -7,13 +7,24 @@ import { CustomizationService } from '@/services/customizationService';
 import { JewelryItem, CustomizationState } from '@/types/customization';
 import { getMarketClient } from '@/lib/market-client';
 import type { Market } from '@/lib/market-client';
+import { supabase } from '@/lib/supabase/client';
+
+interface PresetDesign {
+  id: string;
+  jewelry_item_id: string;
+  name: string;
+  slug: string;
+  customization_data: Record<string, string>;
+}
 
 export default function DynamicCustomizePage() {
   const params = useParams();
   const slug = params.slug as string;
   const searchParams = useSearchParams();
+  const presetSlug = searchParams.get('preset');
 
   const [jewelryItem, setJewelryItem] = useState<JewelryItem | null>(null);
+  const [initialPreset, setInitialPreset] = useState<Record<string, string> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,6 +62,25 @@ export default function DynamicCustomizePage() {
             settings: config.settings.map(s => ({ id: s.id, title: s.title, optionsCount: s.options.length }))
           });
           setJewelryItem(config);
+          
+          // If a preset slug is provided, fetch and apply the preset
+          if (presetSlug) {
+            console.log('🎨 Loading preset:', presetSlug);
+            const { data: preset, error: presetError } = await supabase
+              .from('preset_designs')
+              .select('customization_data')
+              .eq('slug', presetSlug)
+              .eq('jewelry_item_id', config.id)
+              .eq('is_active', true)
+              .single();
+            
+            if (!presetError && preset) {
+              console.log('✅ Preset loaded:', preset.customization_data);
+              setInitialPreset(preset.customization_data);
+            } else {
+              console.log('⚠️ Preset not found or inactive:', presetSlug);
+            }
+          }
         } else {
           console.error('❌ Product not found or not available in market:', market);
           setError('Product not found or not available in your region');
@@ -64,7 +94,7 @@ export default function DynamicCustomizePage() {
     };
 
     fetchJewelryConfig();
-  }, [slug, searchParams]);
+  }, [slug, searchParams, presetSlug]);
 
   const handleCustomizationChange = (state: CustomizationState, totalPrice: number) => {
     console.log(`${jewelryItem?.name} customization state:`, state);
@@ -113,6 +143,7 @@ export default function DynamicCustomizePage() {
     <CustomizationComponent 
       jewelryItem={jewelryItem}
       onCustomizationChange={handleCustomizationChange}
+      initialPreset={initialPreset || undefined}
     />
   );
 }

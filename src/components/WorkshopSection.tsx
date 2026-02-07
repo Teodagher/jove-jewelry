@@ -64,9 +64,6 @@ export default function WorkshopSection() {
             className="space-y-8"
           >
             <div>
-              <p className="text-maison-gold text-xs md:text-sm tracking-[0.3em] uppercase mb-4 font-medium">
-                {c.subtitle}
-              </p>
               <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-light text-maison-black mb-4 tracking-wide">
                 {c.heading}
               </h2>

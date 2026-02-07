@@ -34,11 +34,31 @@ const preloadImage = (src: string) => {
 interface CustomizationComponentProps {
   jewelryItem: JewelryItem;
   onCustomizationChange?: (state: CustomizationState, totalPrice: number) => void;
+  initialPreset?: Record<string, string>;
 }
+
+interface PresetDesign {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  customization_data: Record<string, string>;
+  badge_text: string | null;
+  badge_color: string | null;
+}
+
+const PRESET_BADGE_STYLES: Record<string, string> = {
+  gold: 'bg-[#b8977e] text-white',
+  green: 'bg-emerald-500 text-white',
+  blue: 'bg-blue-500 text-white',
+  red: 'bg-rose-500 text-white',
+  purple: 'bg-purple-500 text-white',
+};
 
 export default function CustomizationComponent({ 
   jewelryItem, 
-  onCustomizationChange 
+  onCustomizationChange,
+  initialPreset
 }: CustomizationComponentProps) {
   const [customizationState, setCustomizationState] = useState<CustomizationState>({});
   const [addingToCart, setAddingToCart] = useState(false);
@@ -49,6 +69,8 @@ export default function CustomizationComponent({
   const [rulesStateHash, setRulesStateHash] = useState<string>(''); // Track which state the rules were computed for
   const [rulesLoading, setRulesLoading] = useState(true);
   const [userSelections, setUserSelections] = useState<Set<string>>(new Set()); // Track user-made selections
+  const [presets, setPresets] = useState<PresetDesign[]>([]);
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const { addCustomJewelryToCart } = useCart();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -185,12 +207,55 @@ export default function CustomizationComponent({
     initRulesEngine();
   }, [jewelryItem.id]);
 
-  // Initialize with default selections for immediate preview
+  // Fetch presets for this jewelry item
+  useEffect(() => {
+    const fetchPresets = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('preset_designs')
+          .select('id, name, slug, description, customization_data, badge_text, badge_color')
+          .eq('jewelry_item_id', jewelryItem.id)
+          .eq('is_active', true)
+          .order('display_order', { ascending: true });
+        
+        if (!error && data) {
+          setPresets(data);
+        }
+      } catch (err) {
+        console.error('Error fetching presets:', err);
+      }
+    };
+    
+    fetchPresets();
+  }, [jewelryItem.id]);
+
+  // Apply a preset's customization
+  const applyPreset = (preset: PresetDesign) => {
+    console.log('🎨 Applying preset:', preset.name, preset.customization_data);
+    setSelectedPresetId(preset.id);
+    setCustomizationState(preset.customization_data);
+    // Mark these as user selections so rules don't override them
+    setUserSelections(new Set(Object.keys(preset.customization_data)));
+  };
+
+  // Initialize with default selections or preset for immediate preview
   useEffect(() => {
     // Only initialize if we haven't set any values yet (prevents overriding user selections)
     if (Object.keys(customizationState).length > 0) return;
     
     const updates: { [key: string]: string } = {};
+    
+    // If an initial preset is provided, use those values
+    if (initialPreset && Object.keys(initialPreset).length > 0) {
+      console.log('🎨 Applying initial preset:', initialPreset);
+      Object.entries(initialPreset).forEach(([key, value]) => {
+        updates[key] = value;
+      });
+      // Mark preset selections as user selections to prevent auto-rules from overriding
+      setUserSelections(new Set(Object.keys(initialPreset)));
+      setCustomizationState(updates);
+      return; // Skip default initialization
+    }
     
     // Auto-select diamond for first stone
     const firstStoneSetting = jewelryItem.settings.find(setting => setting.id === 'first_stone');
@@ -629,6 +694,12 @@ export default function CustomizationComponent({
     setUserSelections(prev => new Set([...prev, settingId]));
     console.log(`👤 User manually selected: ${settingId} = ${optionId}`);
     
+    // Deselect preset when user makes any change (they're now customizing their own)
+    if (selectedPresetId) {
+      console.log('🎨 Deselecting preset - user is customizing their own');
+      setSelectedPresetId(null);
+    }
+    
     const newState = {
       ...customizationState,
       [settingId]: optionId
@@ -873,14 +944,22 @@ export default function CustomizationComponent({
 
   return (
     <div className="min-h-screen jove-bg-primary">
-      {/* Header */}
-      <div className="text-center py-8 sm:py-12 px-4 sm:px-6">
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-normal mb-1 sm:mb-2 tracking-wide text-black">
-          CREATE YOUR OWN
+      {/* Header - Luxury Redesign */}
+      <div className="text-center py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-gradient-to-b from-[#faf9f7] to-white">
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <div className="h-px w-12 bg-gradient-to-r from-transparent to-[#b8977e]/60"></div>
+          <span className="text-[#b8977e] text-xs tracking-[0.3em] uppercase font-medium">Bespoke Creation</span>
+          <div className="h-px w-12 bg-gradient-to-l from-transparent to-[#b8977e]/60"></div>
+        </div>
+        <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-light mb-2 tracking-wide text-[#1a1a1a]">
+          Design Your
         </h1>
-        <h2 className="text-xl sm:text-2xl md:text-3xl font-normal tracking-wide text-black uppercase">
-          TOI ET MOI {jewelryItem.name}
+        <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-light tracking-wide text-[#1a1a1a]">
+          <span className="italic text-[#b8977e]">Toi et Moi</span> {jewelryItem.name}
         </h2>
+        <p className="mt-4 text-[#6b6b6b] font-light text-sm sm:text-base max-w-xl mx-auto">
+          Every detail, chosen by you. Every piece, crafted for you.
+        </p>
         
         {/* Pricing Variant Selector */}
         <div className="mt-6">
@@ -972,6 +1051,40 @@ export default function CustomizationComponent({
           <div className="mb-8">
                    <ProductDescription productType={jewelryItem.type} customizationState={customizationState} />
           </div>
+
+          {/* Quick Start Presets - Mobile */}
+          {presets.length > 0 && (
+            <div className="mb-10">
+              <div className="text-center mb-4">
+                <h3 className="text-sm font-medium text-[#6b6b6b] uppercase tracking-wider">Quick Start</h3>
+                <p className="text-xs text-[#8b8b8b] mt-1">Choose a signature style or customize from scratch</p>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+                {presets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    onClick={() => applyPreset(preset)}
+                    className={`flex-shrink-0 px-4 py-2.5 rounded-full border transition-all duration-200 ${
+                      selectedPresetId === preset.id
+                        ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
+                        : 'bg-white text-[#1a1a1a] border-[#e8e4df] hover:border-[#b8977e]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {preset.badge_text && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                          PRESET_BADGE_STYLES[preset.badge_color || 'gold'] || PRESET_BADGE_STYLES.gold
+                        }`}>
+                          {preset.badge_text}
+                        </span>
+                      )}
+                      <span className="text-sm font-medium whitespace-nowrap">{preset.name}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Customization Settings - Mobile */}
           <div className="space-y-12 sm:space-y-16">
@@ -1072,6 +1185,40 @@ export default function CustomizationComponent({
           <div className="grid grid-cols-2 gap-16 min-h-[80vh]">
             {/* Left Column - Customization Settings */}
             <div className="flex flex-col">
+              {/* Quick Start Presets - Desktop */}
+              {presets.length > 0 && (
+                <div className="mb-12">
+                  <div className="text-center mb-5">
+                    <h3 className="text-sm font-medium text-[#6b6b6b] uppercase tracking-wider">Quick Start</h3>
+                    <p className="text-xs text-[#8b8b8b] mt-1">Choose a signature style or customize from scratch</p>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {presets.map((preset) => (
+                      <button
+                        key={preset.id}
+                        onClick={() => applyPreset(preset)}
+                        className={`px-5 py-2.5 rounded-full border transition-all duration-200 ${
+                          selectedPresetId === preset.id
+                            ? 'bg-[#1a1a1a] text-white border-[#1a1a1a] shadow-lg'
+                            : 'bg-white text-[#1a1a1a] border-[#e8e4df] hover:border-[#b8977e] hover:shadow-md'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          {preset.badge_text && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                              PRESET_BADGE_STYLES[preset.badge_color || 'gold'] || PRESET_BADGE_STYLES.gold
+                            }`}>
+                              {preset.badge_text}
+                            </span>
+                          )}
+                          <span className="text-sm font-medium">{preset.name}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-16 flex-1">
                 <AnimatePresence mode="wait">
                   {shouldShowLoadingScreen ? (
@@ -1299,14 +1446,28 @@ function CustomizationSetting({
     return null;
   }
 
-  // Default rendering for other settings
+  // Default rendering for other settings - Luxury redesign (compact for mobile)
   return (
-    <div className="px-2 sm:px-0">
-      <h3 className="text-base sm:text-lg font-normal text-center mb-6 sm:mb-8 text-black uppercase tracking-wider">
-        {setting.title}
-      </h3>
+    <div className="px-2 sm:px-6 lg:px-0">
+      {/* Section Header with elegant styling */}
+      <div className="text-center mb-5 sm:mb-8">
+        <div className="flex items-center justify-center gap-3 mb-2">
+          <div className="h-px w-6 bg-gradient-to-r from-transparent to-[#b8977e]/40"></div>
+          <span className="text-[#b8977e] text-[10px] sm:text-xs tracking-[0.15em] uppercase font-medium">Step</span>
+          <div className="h-px w-6 bg-gradient-to-l from-transparent to-[#b8977e]/40"></div>
+        </div>
+        <h3 className="font-serif text-lg sm:text-xl font-light text-[#1a1a1a] tracking-wide">
+          {setting.title}
+        </h3>
+        {setting.description && (
+          <p className="mt-1 text-xs sm:text-sm text-[#6b6b6b] font-light max-w-md mx-auto">
+            {setting.description}
+          </p>
+        )}
+      </div>
       
-      <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
+      {/* Options Grid - Compact Cards for Mobile */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4 max-w-4xl mx-auto">
         {filteredOptions.map((option) => (
           <OptionButton
             key={option.id}
@@ -1320,7 +1481,7 @@ function CustomizationSetting({
   );
 }
 
-// Individual Option Button Component
+// Individual Option Button Component - Compact Card Style for Mobile
 interface OptionButtonProps {
   option: CustomizationOption;
   isSelected: boolean;
@@ -1331,42 +1492,69 @@ function OptionButton({ option, isSelected, onSelect }: OptionButtonProps) {
   return (
     <button
       onClick={onSelect}
-      className="flex flex-col items-center transition-all duration-200 hover:scale-105 min-w-0"
+      className={`group relative flex flex-col items-center p-2 sm:p-3 rounded-lg transition-all duration-300 ${
+        isSelected 
+          ? 'bg-[#1a1a1a] shadow-lg scale-[1.02]' 
+          : 'bg-white hover:bg-[#faf9f7] shadow-sm hover:shadow-md border border-[#e8e4df] hover:border-[#b8977e]/30'
+      }`}
     >
-      {/* Visual representation */}
-      <div className="mb-2 sm:mb-3">
+      {/* Selection indicator - smaller on mobile */}
+      {isSelected && (
+        <div className="absolute top-1 right-1 sm:top-2 sm:right-2 w-4 h-4 sm:w-5 sm:h-5 bg-[#b8977e] rounded-full flex items-center justify-center">
+          <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+      )}
+      
+      {/* Visual representation - smaller on mobile */}
+      <div className="mb-1.5 sm:mb-3">
         {option.image ? (
-          <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden transition-all duration-200 ${
-            isSelected ? 'ring-2 ring-black ring-offset-2' : ''
+          <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden transition-all duration-300 ${
+            isSelected 
+              ? 'ring-2 ring-[#b8977e] ring-offset-2 ring-offset-[#1a1a1a]' 
+              : 'ring-1 ring-[#e8e4df] group-hover:ring-[#b8977e]/50'
           }`}>
             <img
               src={option.image}
               alt={option.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               loading="lazy"
-              style={{ width: '100%', height: '100%' }}
             />
           </div>
         ) : option.color ? (
           <div
-            className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full transition-all duration-200 ${
-              isSelected ? 'ring-2 ring-black ring-offset-2' : ''
+            className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full transition-all duration-300 shadow-inner ${
+              isSelected 
+                ? 'ring-2 ring-[#b8977e] ring-offset-2 ring-offset-[#1a1a1a] scale-110' 
+                : 'ring-1 ring-[#e8e4df] group-hover:ring-[#b8977e]/50 group-hover:scale-105'
             }`}
             style={{ background: option.color }}
           />
         ) : (
-          <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gray-200 transition-all duration-200 ${
-            isSelected ? 'ring-2 ring-black ring-offset-2' : ''
+          <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-[#f5f3f0] to-[#e8e4df] transition-all duration-300 ${
+            isSelected 
+              ? 'ring-2 ring-[#b8977e] ring-offset-2 ring-offset-[#1a1a1a]' 
+              : 'ring-1 ring-[#e8e4df] group-hover:ring-[#b8977e]/50'
           }`} />
         )}
       </div>
       
-      {/* Option name */}
-      <span className={`text-xs sm:text-xs font-normal text-center leading-tight transition-colors duration-200 max-w-[80px] sm:max-w-none ${
-        isSelected ? 'text-black font-medium' : 'text-gray-600'
+      {/* Option name - smaller text on mobile */}
+      <span className={`text-[10px] sm:text-xs font-light text-center leading-tight transition-colors duration-300 line-clamp-2 ${
+        isSelected ? 'text-white' : 'text-[#1a1a1a] group-hover:text-[#b8977e]'
       }`}>
         {option.name}
       </span>
+      
+      {/* Subtle price indicator - hide on mobile to save space */}
+      {option.price !== undefined && option.price > 0 && (
+        <span className={`hidden sm:block mt-1 text-[10px] transition-colors duration-300 ${
+          isSelected ? 'text-[#b8977e]' : 'text-[#8b8b8b]'
+        }`}>
+          +${option.price.toLocaleString()}
+        </span>
+      )}
     </button>
   );
 }
