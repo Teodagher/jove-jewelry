@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Save, RotateCcw, Layout, GripVertical, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Save, RotateCcw, Layout, GripVertical, Eye, EyeOff, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+
+type Theme = 'original' | 'valentines';
 
 interface SectionConfig {
   id: string;
@@ -41,68 +43,168 @@ interface LayoutSettings {
   sections: SectionConfig[];
 }
 
-const defaultLayout: LayoutSettings = {
-  heroHeight: 'large',
-  heroOverlayOpacity: 30,
-  heroTextAlignment: 'center',
-  productsPerRow: 3,
-  productCardSize: 'medium',
-  productImageAspect: 'square',
-  showProductPrices: true,
-  navStyle: 'standard',
-  navSticky: true,
-  sectionSpacing: 'normal',
-  containerWidth: 'normal',
-  footerStyle: 'standard',
-  showSocialLinks: true,
-  showNewsletter: true,
-  sections: [
-    { id: 'hero', name: 'Hero Carousel', enabled: true, order: 0 },
-    { id: 'featured', name: 'Featured Products', enabled: true, order: 1 },
-    { id: 'categories', name: 'Shop by Category', enabled: true, order: 2 },
-    { id: 'about', name: 'About Section', enabled: true, order: 3 },
-    { id: 'testimonials', name: 'Testimonials', enabled: false, order: 4 },
-    { id: 'newsletter', name: 'Newsletter Signup', enabled: true, order: 5 },
-  ],
+const defaultLayout: Record<Theme, LayoutSettings> = {
+  original: {
+    heroHeight: 'large',
+    heroOverlayOpacity: 30,
+    heroTextAlignment: 'center',
+    productsPerRow: 3,
+    productCardSize: 'medium',
+    productImageAspect: 'square',
+    showProductPrices: true,
+    navStyle: 'standard',
+    navSticky: true,
+    sectionSpacing: 'normal',
+    containerWidth: 'normal',
+    footerStyle: 'standard',
+    showSocialLinks: true,
+    showNewsletter: true,
+    sections: [
+      { id: 'hero', name: 'Hero Carousel', enabled: true, order: 0 },
+      { id: 'featured', name: 'Featured Products', enabled: true, order: 1 },
+      { id: 'categories', name: 'Shop by Category', enabled: true, order: 2 },
+      { id: 'about', name: 'About Section', enabled: true, order: 3 },
+      { id: 'testimonials', name: 'Testimonials', enabled: false, order: 4 },
+      { id: 'newsletter', name: 'Newsletter Signup', enabled: true, order: 5 },
+    ],
+  },
+  valentines: {
+    heroHeight: 'full',
+    heroOverlayOpacity: 40,
+    heroTextAlignment: 'center',
+    productsPerRow: 3,
+    productCardSize: 'medium',
+    productImageAspect: 'portrait',
+    showProductPrices: true,
+    navStyle: 'centered',
+    navSticky: true,
+    sectionSpacing: 'spacious',
+    containerWidth: 'normal',
+    footerStyle: 'expanded',
+    showSocialLinks: true,
+    showNewsletter: true,
+    sections: [
+      { id: 'hero', name: 'Hero Carousel', enabled: true, order: 0 },
+      { id: 'featured', name: 'Featured Products', enabled: true, order: 1 },
+      { id: 'categories', name: 'Shop by Category', enabled: true, order: 2 },
+      { id: 'about', name: 'About Section', enabled: true, order: 3 },
+      { id: 'testimonials', name: 'Testimonials', enabled: true, order: 4 },
+      { id: 'newsletter', name: 'Newsletter Signup', enabled: true, order: 5 },
+    ],
+  },
+};
+
+const themeLabels: Record<Theme, string> = {
+  original: 'Original Theme',
+  valentines: 'Valentine\'s Theme',
+};
+
+const themeIcons: Record<Theme, string> = {
+  original: '🎨',
+  valentines: '💝',
 };
 
 export default function LayoutPage() {
-  const [layout, setLayout] = useState<LayoutSettings>(defaultLayout);
-  const [originalLayout, setOriginalLayout] = useState<LayoutSettings>(defaultLayout);
+  const [theme, setTheme] = useState<Theme>('original');
+  const [layout, setLayout] = useState<LayoutSettings>(defaultLayout.original);
+  const [originalLayout, setOriginalLayout] = useState<LayoutSettings>(defaultLayout.original);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [draggedSection, setDraggedSection] = useState<string | null>(null);
+  const [themeLoading, setThemeLoading] = useState(false);
 
   const supabase = createClient();
 
+  // Fetch current theme on mount
   useEffect(() => {
-    loadLayout();
+    fetchCurrentTheme();
   }, []);
+
+  // Load layout when theme changes
+  useEffect(() => {
+    if (!loading) {
+      loadLayout();
+    }
+  }, [theme]);
 
   useEffect(() => {
     const changed = JSON.stringify(layout) !== JSON.stringify(originalLayout);
     setHasChanges(changed);
   }, [layout, originalLayout]);
 
-  const loadLayout = async () => {
+  const fetchCurrentTheme = async () => {
     try {
+      const response = await fetch('/api/admin/site-style');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.style && ['original', 'valentines'].includes(data.style)) {
+          setTheme(data.style as Theme);
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching theme:', e);
+    } finally {
+      // Load layout after theme is set
+      await loadLayout();
+    }
+  };
+
+  const switchTheme = async (newTheme: Theme) => {
+    if (newTheme === theme) return;
+    
+    setThemeLoading(true);
+    try {
+      const response = await fetch('/api/admin/site-style', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ style: newTheme }),
+      });
+
+      if (response.ok) {
+        setTheme(newTheme);
+        setSaveMessage(`Switched to ${themeLabels[newTheme]}`);
+        setTimeout(() => setSaveMessage(null), 3000);
+      } else {
+        throw new Error('Failed to switch theme');
+      }
+    } catch (e) {
+      console.error('Error switching theme:', e);
+      setSaveMessage('Failed to switch theme');
+    } finally {
+      setThemeLoading(false);
+    }
+  };
+
+  const loadLayout = async () => {
+    setLoading(true);
+    try {
+      const settingsKey = `layout_settings_${theme}`;
       const { data, error } = await supabase
         .from('site_settings' as any)
         .select('value')
-        .eq('key', 'layout_settings')
+        .eq('key', settingsKey)
         .single();
 
       if (!error && data && (data as { value: unknown }).value) {
         const value = (data as { value: unknown }).value;
         const parsed = typeof value === 'string' ? JSON.parse(value) : value;
         // Merge with defaults to handle new fields
-        setLayout({ ...defaultLayout, ...parsed });
-        setOriginalLayout({ ...defaultLayout, ...parsed });
+        const merged = { ...defaultLayout[theme], ...parsed };
+        setLayout(merged);
+        setOriginalLayout(merged);
+      } else {
+        // Use theme defaults if no saved settings
+        const defaults = defaultLayout[theme];
+        setLayout(defaults);
+        setOriginalLayout(defaults);
       }
     } catch (e) {
-      console.log('No layout settings found, using defaults');
+      console.log(`No layout settings found for ${theme} theme, using defaults`);
+      const defaults = defaultLayout[theme];
+      setLayout(defaults);
+      setOriginalLayout(defaults);
     } finally {
       setLoading(false);
     }
@@ -113,12 +215,13 @@ export default function LayoutPage() {
     setSaveMessage(null);
     
     try {
+      const settingsKey = `layout_settings_${theme}`;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error } = await (supabase as any)
         .from('site_settings')
         .upsert(
           { 
-            key: 'layout_settings', 
+            key: settingsKey, 
             value: JSON.stringify(layout),
             updated_at: new Date().toISOString()
           },
@@ -128,7 +231,7 @@ export default function LayoutPage() {
       if (error) throw error;
       
       setOriginalLayout(layout);
-      setSaveMessage('Layout saved successfully!');
+      setSaveMessage(`Layout saved for ${themeLabels[theme]}!`);
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (e) {
       console.error('Error saving layout:', e);
@@ -139,7 +242,7 @@ export default function LayoutPage() {
   };
 
   const resetToDefaults = () => {
-    setLayout(defaultLayout);
+    setLayout(defaultLayout[theme]);
   };
 
   const updateLayout = <K extends keyof LayoutSettings>(key: K, value: LayoutSettings[K]) => {
@@ -233,8 +336,44 @@ export default function LayoutPage() {
         </div>
       </div>
 
+      {/* Theme Selector */}
+      <div className="bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-lg p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white rounded-lg shadow-sm">
+              <Sparkles className="w-5 h-5 text-pink-500" />
+            </div>
+            <div>
+              <h2 className="text-lg font-medium text-gray-900">Active Theme</h2>
+              <p className="text-sm text-gray-600">
+                You are currently editing layout for the <strong>{themeLabels[theme]}</strong>
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500 mr-2">Switch theme:</span>
+            {(['original', 'valentines'] as Theme[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => switchTheme(t)}
+                disabled={themeLoading}
+                className={`px-4 py-2 text-sm rounded-lg border transition-all flex items-center gap-2 ${
+                  theme === t
+                    ? 'bg-pink-600 text-white border-pink-600 shadow-md'
+                    : 'bg-white text-gray-700 border-gray-300 hover:border-pink-300 hover:bg-pink-50'
+                } ${themeLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <span>{themeIcons[t]}</span>
+                {t === 'original' ? 'Original' : 'Valentine\'s'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {saveMessage && (
-        <div className={`p-4 rounded-lg ${saveMessage.includes('success') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+        <div className={`p-4 rounded-lg ${saveMessage.includes('success') || saveMessage.includes('Switched') ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
           {saveMessage}
         </div>
       )}
@@ -505,7 +644,7 @@ export default function LayoutPage() {
           <div className="bg-white border border-gray-200 rounded-lg p-6 sticky top-24">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Section Order & Visibility</h2>
             <p className="text-sm text-gray-600 mb-4">
-              Drag to reorder sections. Click the eye icon to show/hide.
+              Editing for <strong>{themeLabels[theme]}</strong>. Drag to reorder sections. Click the eye icon to show/hide.
             </p>
             
             <div className="space-y-2">
@@ -548,7 +687,7 @@ export default function LayoutPage() {
 
             {/* Visual Preview */}
             <div className="mt-8">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">Preview</h3>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Preview ({themeLabels[theme]})</h3>
               <div className="bg-gray-100 rounded-lg p-4 space-y-2">
                 <div className="bg-white rounded p-2 text-xs text-gray-500 text-center border border-gray-200">
                   Navigation
