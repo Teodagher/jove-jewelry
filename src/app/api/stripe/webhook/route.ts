@@ -2,11 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-11-17.clover',
-});
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error('Missing STRIPE_SECRET_KEY');
+  return new Stripe(key, { apiVersion: '2025-11-17.clover' });
+}
 
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+function getWebhookSecret() {
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) throw new Error('Missing STRIPE_WEBHOOK_SECRET');
+  return secret;
+}
 
 // Disable body parsing, need raw body for webhook signature verification
 export const runtime = 'nodejs';
@@ -24,6 +30,9 @@ export async function POST(req: NextRequest) {
     }
 
     let event: Stripe.Event;
+
+    const stripe = getStripe();
+    const webhookSecret = getWebhookSecret();
 
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);

@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error('Missing Supabase env vars');
+  return createClient(url, key);
+}
 
 export type SiteStyle = 'original' | 'valentines'
 
@@ -14,6 +16,7 @@ const CONFIG_KEY = 'site_style'
 // GET current site style
 export async function GET() {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     // Try site_settings first
     const { data, error } = await supabaseAdmin
       .from('site_settings')
@@ -41,6 +44,7 @@ export async function GET() {
 // Helper to create the settings table via raw SQL
 async function createSettingsTable() {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     // Use Supabase's SQL endpoint if available
     const { error } = await supabaseAdmin.rpc('create_site_settings_table')
     if (error) console.log('Could not create table via RPC:', error.message)
@@ -52,6 +56,7 @@ async function createSettingsTable() {
 // POST to update site style
 export async function POST(request: Request) {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const { style } = await request.json() as { style: SiteStyle }
 
     if (!['original', 'valentines'].includes(style)) {
