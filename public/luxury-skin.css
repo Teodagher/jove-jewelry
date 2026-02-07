@@ -1,0 +1,350 @@
+/* ==========================================================
+   MAISON JOVÉ — LUXURY SKIN (DESIGN ONLY)
+   - No cart/admin/pricing changes.
+   - Safe to drop in as overrides.
+   ========================================================== */
+
+/* ---------- Tokens ---------- */
+:root{
+  --mj-bg: #ffffff;
+  --mj-fg: #0f0f0f;
+  --mj-muted: rgba(15,15,15,.62);
+  --mj-line: rgba(15,15,15,.10);
+  --mj-line-strong: rgba(15,15,15,.14);
+
+  --mj-radius-xl: 28px;
+  --mj-radius-lg: 20px;
+  --mj-radius-md: 14px;
+
+  --mj-shadow-soft: 0 18px 40px rgba(0,0,0,.08);
+  --mj-shadow-card: 0 10px 26px rgba(0,0,0,.07);
+
+  --mj-tracking: .18em;
+  --mj-tracking-tight: .08em;
+
+  --mj-cta-bg: #0f0f0f;
+  --mj-cta-fg: #ffffff;
+
+  --mj-focus: rgba(15,15,15,.22);
+}
+
+/* Prefer system fonts to avoid loading changes. If you already load a brand font, it will still win. */
+body{
+  background: var(--mj-bg);
+  color: var(--mj-fg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection{ background: rgba(15,15,15,.08); }
+
+/* ---------- Global spacing rhythm ---------- */
+main, .page, .content, #__next{
+  /* no forced changes; keep safe */
+}
+
+h1,h2,h3{
+  letter-spacing: -0.01em;
+}
+
+/* ---------- Links ---------- */
+a{
+  text-decoration-thickness: .08em;
+  text-underline-offset: .18em;
+}
+a:hover{ opacity: .86; }
+
+/* ---------- Buttons (generic) ---------- */
+button, .button, [role="button"], input[type="submit"], .mj-btn{
+  border-radius: var(--mj-radius-lg) !important;
+}
+
+.mj-btn-primary,
+button.mj-primary,
+.button.mj-primary,
+input[type="submit"].mj-primary{
+  background: var(--mj-cta-bg) !important;
+  color: var(--mj-cta-fg) !important;
+  border: 1px solid rgba(15,15,15,.30) !important;
+  box-shadow: var(--mj-shadow-card) !important;
+  transition: transform .14s ease, opacity .14s ease, box-shadow .14s ease;
+}
+.mj-btn-primary:hover{ transform: translateY(-1px); }
+
+.mj-btn-ghost,
+button.mj-ghost,
+.button.mj-ghost{
+  background: transparent !important;
+  color: var(--mj-fg) !important;
+  border: 1px solid var(--mj-line-strong) !important;
+  transition: background .14s ease, transform .14s ease;
+}
+.mj-btn-ghost:hover{ background: rgba(15,15,15,.04) !important; }
+
+/* ---------- Inputs ---------- */
+input, select, textarea{
+  border-radius: var(--mj-radius-md) !important;
+  border: 1px solid var(--mj-line-strong) !important;
+  padding: 12px 14px !important;
+  outline: none !important;
+}
+input:focus, select:focus, textarea:focus{
+  box-shadow: 0 0 0 6px var(--mj-focus) !important;
+  border-color: rgba(15,15,15,.35) !important;
+}
+
+/* ---------- Cards ---------- */
+.mj-card{
+  border: 1px solid var(--mj-line) !important;
+  border-radius: var(--mj-radius-xl) !important;
+  box-shadow: none;
+  background: #fff;
+}
+.mj-card:hover{
+  box-shadow: var(--mj-shadow-card);
+}
+
+/* ---------- Premium section headers ---------- */
+.mj-kicker{
+  font-size: 11px !important;
+  letter-spacing: var(--mj-tracking) !important;
+  text-transform: uppercase !important;
+  color: var(--mj-muted) !important;
+}
+.mj-title{
+  font-weight: 500 !important;
+  line-height: 1.06 !important;
+}
+.mj-subtitle{
+  color: rgba(15,15,15,.70) !important;
+  line-height: 1.6 !important;
+}
+
+/* ==========================================================
+   HEADER / NAV (DESIGN-ONLY)
+   - Targets common header structures safely.
+   ========================================================== */
+header, .header, .site-header, .Navbar, .nav{
+  backdrop-filter: blur(10px);
+}
+header{
+  border-bottom: 1px solid var(--mj-line) !important;
+}
+header a, .header a{
+  letter-spacing: .02em;
+}
+
+/* If your brand logo text exists */
+.mj-brand, .brand, .logo, .site-logo{
+  letter-spacing: .22em !important;
+  text-transform: uppercase;
+}
+
+/* ==========================================================
+   COLLECTION / PRODUCT GRID (DESIGN-ONLY)
+   - Improves spacing and card feel.
+   ========================================================== */
+.product-grid, .collection-grid, .grid-products, .products-grid{
+  gap: 18px !important;
+}
+.product-card, .product-item, .grid-product__content, .ProductCard{
+  border-radius: var(--mj-radius-xl) !important;
+  border: 1px solid var(--mj-line) !important;
+  overflow: hidden;
+  transition: box-shadow .18s ease, transform .18s ease;
+  background: #fff;
+}
+.product-card:hover, .product-item:hover, .grid-product__content:hover, .ProductCard:hover{
+  box-shadow: var(--mj-shadow-card);
+  transform: translateY(-1px);
+}
+.product-card img, .product-item img{
+  border-radius: 0 !important;
+}
+
+/* ==========================================================
+   PRODUCT PAGE (DESIGN-ONLY)
+   - Gallery, details, trust row and CTA styling.
+   ========================================================== */
+.product, .product-page, .Product, .ProductPage{
+  /* safe scope */
+}
+
+.mj-trustbar{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  font-size: 12px;
+  color: rgba(15,15,15,.72);
+}
+.mj-trustbar .mj-dot{
+  width: 6px; height: 6px; border-radius: 99px; background: rgba(15,15,15,.55);
+  display: inline-block; margin-right: 8px;
+}
+
+/* ==========================================================
+   CUSTOMISE PAGE (DESIGN + UI WRAPPERS)
+   - This is where the premium configurator feel comes from.
+   - The JS (below) will add these wrappers on customize pages.
+   ========================================================== */
+.mj-customize{
+  --mj-pad: 18px;
+}
+
+.mj-hero{
+  border-bottom: 1px solid var(--mj-line);
+}
+.mj-hero-inner{
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 38px 18px;
+}
+.mj-hero h1{
+  margin: 8px 0 0 0;
+  font-size: clamp(28px, 4vw, 52px);
+  font-weight: 500;
+  line-height: 1.03;
+}
+.mj-hero p{
+  margin: 14px 0 0 0;
+  color: rgba(15,15,15,.70);
+  max-width: 58ch;
+  line-height: 1.6;
+}
+
+.mj-layout{
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 18px 70px;
+  display: grid;
+  grid-template-columns: 1.55fr .85fr;
+  gap: 18px;
+}
+@media (max-width: 980px){
+  .mj-layout{ grid-template-columns: 1fr; }
+}
+
+.mj-panel{
+  border: 1px solid var(--mj-line);
+  border-radius: var(--mj-radius-xl);
+  background: #fff;
+  padding: 18px;
+}
+.mj-panel + .mj-panel{ margin-top: 14px; }
+
+.mj-stepper{
+  display: flex;
+  gap: 10px;
+}
+.mj-step{
+  flex: 1;
+  border-radius: var(--mj-radius-lg);
+  border: 1px solid var(--mj-line);
+  padding: 12px 14px;
+  font-size: 13px;
+  color: rgba(15,15,15,.70);
+}
+.mj-step strong{
+  display: block;
+  margin-top: 4px;
+  font-weight: 500;
+  color: var(--mj-fg);
+}
+.mj-step.is-active{
+  background: var(--mj-fg);
+  color: rgba(255,255,255,.85);
+  border-color: rgba(15,15,15,.35);
+}
+.mj-step.is-active strong{ color: #fff; }
+
+.mj-presets{
+  margin-top: 18px;
+}
+.mj-preset-grid{
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 980px){
+  .mj-preset-grid{ grid-template-columns: 1fr; }
+}
+.mj-preset-tile{
+  border: 1px solid var(--mj-line);
+  border-radius: var(--mj-radius-xl);
+  overflow: hidden;
+  background: #fff;
+  transition: transform .14s ease, box-shadow .14s ease;
+}
+.mj-preset-tile:hover{
+  transform: translateY(-1px);
+  box-shadow: var(--mj-shadow-card);
+}
+.mj-preset-media{
+  aspect-ratio: 16 / 10;
+  background: rgba(15,15,15,.03);
+}
+.mj-preset-body{
+  padding: 14px 14px 16px;
+}
+.mj-preset-name{ font-weight: 500; }
+.mj-preset-desc{ margin-top: 6px; color: rgba(15,15,15,.65); line-height: 1.55; font-size: 13px; }
+
+.mj-sticky{
+  position: sticky;
+  top: 92px;
+  height: fit-content;
+  border: 1px solid var(--mj-line);
+  border-radius: var(--mj-radius-xl);
+  padding: 18px;
+  background: #fff;
+  box-shadow: var(--mj-shadow-soft);
+}
+@media (max-width: 980px){
+  .mj-sticky{ position: static; box-shadow: none; }
+}
+
+.mj-summary-title{
+  font-weight: 500;
+  font-size: 18px;
+  margin-top: 6px;
+}
+.mj-summary-rows{
+  margin-top: 14px;
+  font-size: 13px;
+  color: rgba(15,15,15,.72);
+  display: grid;
+  gap: 8px;
+}
+.mj-row{
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+.mj-row span:last-child{ color: var(--mj-fg); font-weight: 500; }
+.mj-price{
+  margin-top: 14px;
+  border-top: 1px solid var(--mj-line);
+  padding-top: 14px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.mj-price small{ color: rgba(15,15,15,.60); }
+.mj-price strong{ font-size: 22px; font-weight: 500; }
+
+.mj-toast{
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  background: rgba(15,15,15,.92);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease;
+}
+.mj-toast.is-show{ opacity: 1; }

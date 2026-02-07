@@ -87,6 +87,9 @@ export default function RootLayout({
         <link rel="preconnect" href="https://ndqxwvascqwhqaoqkpng.supabase.co" />
         <link rel="dns-prefetch" href="https://ndqxwvascqwhqaoqkpng.supabase.co" />
         
+        {/* Luxury Skin - Design layer */}
+        <link rel="stylesheet" href="/luxury-skin.css" />
+        
         <Script
           crossOrigin="anonymous"
           src="//unpkg.com/same-runtime/dist/index.global.js"
@@ -128,6 +131,8 @@ export default function RootLayout({
             </CartProvider>
           </AuthProvider>
         </ToastProvider>
+        {/* Luxury Skin JS - Customize page enhancer */}
+        <Script src="/luxury-skin.js" strategy="lazyOnload" />
       </body>
     </html>
   );
