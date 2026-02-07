@@ -22,6 +22,8 @@ interface ImageGalleryProps {
   enableZoom?: boolean;
   /** Priority loading for LCP */
   priority?: boolean;
+  /** Use Cartier-style layout on desktop (large image + side thumbnails) */
+  desktopLayout?: 'carousel' | 'cartier';
 }
 
 export default function ImageGallery({
@@ -32,7 +34,8 @@ export default function ImageGallery({
   height = 400,
   className = '',
   enableZoom = true,
-  priority = false
+  priority = false,
+  desktopLayout = 'cartier'
 }: ImageGalleryProps) {
   const [images, setImages] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -107,7 +110,7 @@ export default function ImageGallery({
     setImageLoading(true);
   };
 
-  // Touch handlers for swipe
+  // Touch handlers for swipe (mobile only)
   const onTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
@@ -172,21 +175,110 @@ export default function ImageGallery({
     );
   }
 
-  return (
-    <div className={`relative ${className}`}>
+  // ===============================
+  // DESKTOP CARTIER-STYLE LAYOUT
+  // ===============================
+  const renderDesktopCartierLayout = () => (
+    <div className="hidden lg:flex gap-4">
+      {/* Vertical Thumbnail Strip (Left Side) */}
+      {hasMultipleImages && (
+        <div className="flex flex-col gap-3 w-20">
+          {images.map((imageUrl, index) => (
+            <button
+              key={index}
+              onClick={() => goToIndex(index)}
+              className={`relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all duration-200 ${
+                index === currentIndex
+                  ? 'border-black ring-1 ring-black'
+                  : 'border-gray-200 hover:border-gray-400'
+              }`}
+            >
+              <Image
+                src={imageUrl}
+                alt={`Thumbnail ${index + 1}`}
+                fill
+                className="object-cover"
+                sizes="80px"
+              />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Large Main Image */}
+      <div
+        ref={containerRef}
+        className={`relative bg-gray-50 rounded-lg overflow-hidden flex-1 ${
+          enableZoom ? 'cursor-zoom-in' : 'cursor-default'
+        }`}
+        style={{ width: 550, height: 550, maxWidth: '100%' }}
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
+        {/* Loading State */}
+        {(loading || imageLoading) && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+            <div className="animate-pulse w-20 h-20 bg-gray-200 rounded-full" />
+          </div>
+        )}
+
+        {/* Current Image */}
+        {currentImageUrl && (
+          <div className="absolute inset-0 p-8">
+            <Image
+              key={currentImageUrl}
+              src={currentImageUrl}
+              alt={`${alt}${hasMultipleImages ? ` - Image ${currentIndex + 1}` : ''}`}
+              fill
+              className={`object-contain transition-opacity duration-300 ${
+                imageLoading ? 'opacity-30' : 'opacity-100'
+              }`}
+              onLoad={() => setImageLoading(false)}
+              onError={() => setImageLoading(false)}
+              priority={priority && currentIndex === 0}
+              quality={90}
+              sizes="550px"
+            />
+          </div>
+        )}
+
+        {/* Zoom Preview (Desktop) */}
+        {enableZoom && isHovering && !imageLoading && currentImageUrl && (
+          <div className="absolute bottom-4 right-4 w-48 h-48 bg-white border-2 border-gray-300 rounded-lg shadow-xl overflow-hidden z-50 pointer-events-none">
+            <div
+              className="w-full h-full"
+              style={{
+                backgroundImage: `url(${currentImageUrl})`,
+                backgroundSize: '500%',
+                backgroundPosition: `${mousePosition.x}% ${mousePosition.y}%`,
+                backgroundRepeat: 'no-repeat',
+              }}
+            />
+            <div className="absolute top-2 left-2 bg-black/75 text-white text-xs px-2 py-1 rounded">
+              5x Zoom
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // ===============================
+  // MOBILE CAROUSEL LAYOUT
+  // ===============================
+  const renderMobileLayout = () => (
+    <div className="lg:hidden">
       {/* Main Image Container */}
       <div
         ref={containerRef}
         className={`relative bg-gray-50 rounded-lg overflow-hidden ${
-          hasMultipleImages ? 'cursor-pointer' : enableZoom ? 'cursor-zoom-in' : 'cursor-default'
+          hasMultipleImages ? 'cursor-pointer' : 'cursor-default'
         }`}
         style={{ width, height }}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
-        onMouseMove={handleMouseMove}
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
       >
         {/* Loading State */}
         {(loading || imageLoading) && (
@@ -197,7 +289,7 @@ export default function ImageGallery({
 
         {/* Current Image */}
         {currentImageUrl && (
-          <div className="absolute inset-0 p-4 sm:p-6 md:p-8">
+          <div className="absolute inset-0 p-4 sm:p-6">
             <Image
               key={currentImageUrl}
               src={currentImageUrl}
@@ -210,12 +302,12 @@ export default function ImageGallery({
               onError={() => setImageLoading(false)}
               priority={priority && currentIndex === 0}
               quality={85}
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           </div>
         )}
 
-        {/* Navigation Arrows (Desktop) */}
+        {/* Navigation Arrows (Mobile) */}
         {hasMultipleImages && (
           <>
             <button
@@ -223,7 +315,7 @@ export default function ImageGallery({
                 e.stopPropagation();
                 goToPrevious();
               }}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 p-2 bg-white/80 hover:bg-white rounded-full shadow-lg transition-all opacity-0 group-hover:opacity-100 md:opacity-100"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 p-2 bg-white/80 hover:bg-white rounded-full shadow-lg transition-all"
               aria-label="Previous image"
             >
               <ChevronLeft className="w-5 h-5 text-gray-800" />
@@ -233,7 +325,7 @@ export default function ImageGallery({
                 e.stopPropagation();
                 goToNext();
               }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 p-2 bg-white/80 hover:bg-white rounded-full shadow-lg transition-all opacity-0 group-hover:opacity-100 md:opacity-100"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 p-2 bg-white/80 hover:bg-white rounded-full shadow-lg transition-all"
               aria-label="Next image"
             >
               <ChevronRight className="w-5 h-5 text-gray-800" />
@@ -248,15 +340,15 @@ export default function ImageGallery({
           </div>
         )}
 
-        {/* Swipe Hint (Mobile, first time) */}
+        {/* Swipe Hint */}
         {hasMultipleImages && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 text-xs text-gray-500 bg-white/80 px-2 py-1 rounded-full md:hidden">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 text-xs text-gray-500 bg-white/80 px-2 py-1 rounded-full">
             Swipe to see more
           </div>
         )}
       </div>
 
-      {/* Dot Indicators */}
+      {/* Dot Indicators (Mobile) */}
       {hasMultipleImages && (
         <div className="flex justify-center items-center space-x-2 mt-4">
           {images.map((_, index) => (
@@ -273,49 +365,13 @@ export default function ImageGallery({
           ))}
         </div>
       )}
+    </div>
+  );
 
-      {/* Thumbnail Strip (for larger galleries) */}
-      {images.length > 3 && (
-        <div className="hidden md:flex justify-center items-center space-x-2 mt-4 overflow-x-auto pb-2">
-          {images.map((imageUrl, index) => (
-            <button
-              key={index}
-              onClick={() => goToIndex(index)}
-              className={`relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${
-                index === currentIndex
-                  ? 'border-black'
-                  : 'border-transparent hover:border-gray-300'
-              }`}
-            >
-              <Image
-                src={imageUrl}
-                alt={`Thumbnail ${index + 1}`}
-                fill
-                className="object-cover"
-                sizes="48px"
-              />
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Zoom Preview (Desktop) */}
-      {enableZoom && isHovering && !imageLoading && currentImageUrl && !hasMultipleImages && (
-        <div className="absolute bottom-4 right-4 w-40 h-40 bg-white border-2 border-gray-300 rounded-lg shadow-lg overflow-hidden z-50 pointer-events-none hidden md:block">
-          <div
-            className="w-full h-full"
-            style={{
-              backgroundImage: `url(${currentImageUrl})`,
-              backgroundSize: '450%',
-              backgroundPosition: `${mousePosition.x}% ${mousePosition.y}%`,
-              backgroundRepeat: 'no-repeat',
-            }}
-          />
-          <div className="absolute top-2 left-2 bg-black/75 text-white text-xs px-2 py-1 rounded">
-            4.5x Zoom
-          </div>
-        </div>
-      )}
+  return (
+    <div className={`relative ${className}`}>
+      {desktopLayout === 'cartier' ? renderDesktopCartierLayout() : null}
+      {renderMobileLayout()}
     </div>
   );
 }

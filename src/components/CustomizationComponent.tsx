@@ -1312,18 +1312,19 @@ export default function CustomizationComponent({
 
             {/* Right Column - Live Preview */}
             <div className="sticky top-24 h-fit">
-              <div className="flex flex-col items-center">
-                {/* Preview Image */}
-                <div className="relative mb-8 mx-auto">
+              <div className="flex flex-col">
+                {/* Preview Image - Cartier Style */}
+                <div className="relative mb-8">
                   <ImageGallery
                     primaryImageUrl={previewImageUrl}
                     variantKey={currentVariantKey || undefined}
                     alt={`${jewelryItem.name} preview`}
-                    width={384}
-                    height={384}
-                    className="w-96 h-96"
+                    width={550}
+                    height={550}
+                    className=""
                     enableZoom={true}
                     priority={true}
+                    desktopLayout="cartier"
                   />
                 </div>
                 
