@@ -86,7 +86,7 @@ export default function ValentinesEditPage() {
             </h2>
             <p className="text-maison-graphite font-light max-w-xl mx-auto leading-relaxed">
               Two stones. Two souls. One story. Our Toi et Moi creations symbolize 
-              two individuals coming together in one timeless piece.
+              two individuals coming together in one piece.
             </p>
           </div>
           
