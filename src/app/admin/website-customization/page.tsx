@@ -5,10 +5,28 @@ import Link from 'next/link';
 import {
   Images,
   ArrowRight,
-  FileText
+  FileText,
+  Palette,
+  Layout
 } from 'lucide-react';
 
 const customizationSections = [
+  {
+    name: 'Colors',
+    description: 'Customize the color scheme of your website',
+    href: '/admin/website-customization/colors',
+    icon: Palette,
+    color: 'bg-purple-500',
+    features: ['Brand colors', 'Color presets', 'Live preview']
+  },
+  {
+    name: 'Layout',
+    description: 'Edit page structure, sections, and sizing',
+    href: '/admin/website-customization/layout',
+    icon: Layout,
+    color: 'bg-orange-500',
+    features: ['Section order', 'Image sizes', 'Spacing & grid']
+  },
   {
     name: 'Pictures',
     description: 'Manage hero carousel images and website photography',
@@ -40,8 +58,8 @@ export default function WebsiteCustomizationPage() {
         </p>
       </div>
 
-      {/* Pictures Card */}
-      <div className="max-w-2xl">
+      {/* Customization Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl">
         {customizationSections.map((section) => {
           const Icon = section.icon;
           return (
