@@ -78,22 +78,22 @@ export default function Footer() {
             </h3>
             <ul className="space-y-3">
               <li>
-                <Link href="/#education" className="text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light">
+                <Link href="/education" className="text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light">
                   Gold & Metals Guide
                 </Link>
               </li>
               <li>
-                <Link href="/#education" className="text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light">
+                <Link href="/education" className="text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light">
                   Gemstone Education
                 </Link>
               </li>
               <li>
-                <Link href="/#education" className="text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light">
+                <Link href="/education" className="text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light">
                   Craftsmanship
                 </Link>
               </li>
               <li>
-                <Link href="/#education" className="text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light">
+                <Link href="/education" className="text-sm text-maison-ivory/70 hover:text-maison-gold transition-colors duration-300 font-light">
                   Customisation Process
                 </Link>
               </li>
