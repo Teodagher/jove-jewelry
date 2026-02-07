@@ -164,7 +164,8 @@ export default function PresetsPage() {
         diamond_size: 'small_015ct'
       };
 
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('preset_designs')
         .insert({
           jewelry_item_id: newPreset.jewelry_item_id,
@@ -209,7 +210,8 @@ export default function PresetsPage() {
     try {
       setSaving(true);
       
-      const { error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
         .from('preset_designs')
         .update({
           name: preset.name,

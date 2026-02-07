@@ -74,9 +74,11 @@ export default function DynamicCustomizePage() {
               .eq('is_active', true)
               .single();
             
-            if (!presetError && preset) {
-              console.log('✅ Preset loaded:', preset.customization_data);
-              setInitialPreset(preset.customization_data);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const presetData = preset as any;
+            if (!presetError && presetData) {
+              console.log('✅ Preset loaded:', presetData.customization_data);
+              setInitialPreset(presetData.customization_data);
             } else {
               console.log('⚠️ Preset not found or inactive:', presetSlug);
             }

@@ -79,12 +79,16 @@ export default function CustomizePage() {
         .order('display_order', { ascending: true })
         .limit(6); // Show up to 6 presets
 
-      if (!presetsError && presetsData && presetsData.length > 0) {
-        setPresets(presetsData);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const typedPresetsData = presetsData as any[];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const typedItems = items as any[];
+      if (!presetsError && typedPresetsData && typedPresetsData.length > 0) {
+        setPresets(typedPresetsData);
         
         // Generate preview images for each preset
-        const imagePromises = presetsData.map(async (preset) => {
-          const item = items?.find(i => i.id === preset.jewelry_item_id);
+        const imagePromises = typedPresetsData.map(async (preset) => {
+          const item = typedItems?.find((i: { id: string }) => i.id === preset.jewelry_item_id);
           if (item && preset.customization_data) {
             const imageUrl = await CustomizationService.generateVariantImageUrl(
               item.type,
