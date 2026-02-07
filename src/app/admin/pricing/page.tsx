@@ -8,6 +8,8 @@ import { supabase } from '@/lib/supabase/client';
 interface JewelryItem {
   id: string;
   name: string;
+  base_price: number | null;
+  base_price_lab_grown: number | null;
   base_price_gold: number | null;
   base_price_silver: number | null;
   base_price_gold_au: number | null;
@@ -50,13 +52,15 @@ const jewelryTypes = [
 ];
 
 export default function PricingPage() {
+  const [naturalPercentage, setNaturalPercentage] = useState<string>('0');
+  const [labGrownPercentage, setLabGrownPercentage] = useState<string>('0');
   const [goldPercentage, setGoldPercentage] = useState<string>('0');
   const [silverPercentage, setSilverPercentage] = useState<string>('0');
   const [isUpdating, setIsUpdating] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [products, setProducts] = useState<JewelryItem[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [pendingUpdate, setPendingUpdate] = useState<'gold' | 'silver' | null>(null);
+  const [pendingUpdate, setPendingUpdate] = useState<'natural' | 'lab_grown' | 'gold' | 'silver' | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -65,7 +69,7 @@ export default function PricingPage() {
   const fetchProducts = async () => {
     const { data, error } = await supabase
       .from('jewelry_items')
-      .select('id, name, base_price_gold, base_price_silver, base_price_gold_au, base_price_silver_au')
+      .select('id, name, base_price, base_price_lab_grown, base_price_gold, base_price_silver, base_price_gold_au, base_price_silver_au')
       .eq('is_active', true);
     
     if (!error && data) {
@@ -73,14 +77,23 @@ export default function PricingPage() {
     }
   };
 
-  const calculateNewPrices = (type: 'gold' | 'silver') => {
-    const percentage = type === 'gold' ? parseFloat(goldPercentage) : parseFloat(silverPercentage);
+  const calculateNewPrices = (type: 'natural' | 'lab_grown' | 'gold' | 'silver') => {
+    const percentage = type === 'natural' ? parseFloat(naturalPercentage) :
+                      type === 'lab_grown' ? parseFloat(labGrownPercentage) :
+                      type === 'gold' ? parseFloat(goldPercentage) : parseFloat(silverPercentage);
     const multiplier = 1 + (percentage / 100);
     
     return products
-      .filter(p => type === 'gold' ? (p.base_price_gold || p.base_price_gold_au) : (p.base_price_silver || p.base_price_silver_au))
+      .filter(p => {
+        if (type === 'natural') return p.base_price;
+        if (type === 'lab_grown') return p.base_price_lab_grown;
+        if (type === 'gold') return (p.base_price_gold || p.base_price_gold_au);
+        return (p.base_price_silver || p.base_price_silver_au);
+      })
       .map(p => {
-        const currentUSD = type === 'gold' ? p.base_price_gold : p.base_price_silver;
+        const currentUSD = type === 'natural' ? p.base_price :
+                          type === 'lab_grown' ? p.base_price_lab_grown :
+                          type === 'gold' ? p.base_price_gold : p.base_price_silver;
         const currentAU = type === 'gold' ? p.base_price_gold_au : p.base_price_silver_au;
         return {
           name: p.name,
@@ -92,8 +105,10 @@ export default function PricingPage() {
       });
   };
 
-  const handleUpdatePrices = async (type: 'gold' | 'silver') => {
-    const percentage = type === 'gold' ? parseFloat(goldPercentage) : parseFloat(silverPercentage);
+  const handleUpdatePrices = async (type: 'natural' | 'lab_grown' | 'gold' | 'silver') => {
+    const percentage = type === 'natural' ? parseFloat(naturalPercentage) :
+                      type === 'lab_grown' ? parseFloat(labGrownPercentage) :
+                      type === 'gold' ? parseFloat(goldPercentage) : parseFloat(silverPercentage);
     
     if (percentage === 0) {
       setMessage({ type: 'error', text: 'Please enter a non-zero percentage' });
@@ -112,7 +127,9 @@ export default function PricingPage() {
     setMessage(null);
 
     const type = pendingUpdate;
-    const percentage = type === 'gold' ? parseFloat(goldPercentage) : parseFloat(silverPercentage);
+    const percentage = type === 'natural' ? parseFloat(naturalPercentage) :
+                      type === 'lab_grown' ? parseFloat(labGrownPercentage) :
+                      type === 'gold' ? parseFloat(goldPercentage) : parseFloat(silverPercentage);
     const multiplier = 1 + (percentage / 100);
 
     try {
@@ -121,7 +138,15 @@ export default function PricingPage() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updateData: any = {};
         
-        if (type === 'gold') {
+        if (type === 'natural') {
+          if (product.base_price) {
+            updateData.base_price = Math.round(product.base_price * multiplier);
+          }
+        } else if (type === 'lab_grown') {
+          if (product.base_price_lab_grown) {
+            updateData.base_price_lab_grown = Math.round(product.base_price_lab_grown * multiplier);
+          }
+        } else if (type === 'gold') {
           if (product.base_price_gold) {
             updateData.base_price_gold = Math.round(product.base_price_gold * multiplier);
           }
@@ -151,13 +176,18 @@ export default function PricingPage() {
       await Promise.all(updates);
 
       const direction = percentage > 0 ? 'increased' : 'decreased';
+      const typeLabel = type === 'natural' ? 'Natural Diamond' : 
+                       type === 'lab_grown' ? 'Lab Grown Diamond' :
+                       type === 'gold' ? 'Gold' : 'Silver';
       setMessage({ 
         type: 'success', 
-        text: `Successfully ${direction} all ${type === 'gold' ? 'Gold' : 'Silver'} prices by ${Math.abs(percentage)}%` 
+        text: `Successfully ${direction} all ${typeLabel} prices by ${Math.abs(percentage)}%` 
       });
 
       // Reset the percentage and refresh products
-      if (type === 'gold') setGoldPercentage('0');
+      if (type === 'natural') setNaturalPercentage('0');
+      else if (type === 'lab_grown') setLabGrownPercentage('0');
+      else if (type === 'gold') setGoldPercentage('0');
       else setSilverPercentage('0');
       
       await fetchProducts();
@@ -170,6 +200,8 @@ export default function PricingPage() {
     }
   };
 
+  const naturalPreview = calculateNewPrices('natural');
+  const labGrownPreview = calculateNewPrices('lab_grown');
   const goldPreview = calculateNewPrices('gold');
   const silverPreview = calculateNewPrices('silver');
 
@@ -203,6 +235,106 @@ export default function PricingPage() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Natural Diamond Pricing */}
+          <div className="bg-white rounded-lg p-5 border border-blue-300 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-full flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-white" />
+              </div>
+              <h3 className="font-semibold text-gray-900">Natural Diamonds</h3>
+            </div>
+            
+            <div className="flex items-center gap-3 mb-4">
+              <input
+                type="number"
+                value={naturalPercentage}
+                onChange={(e) => setNaturalPercentage(e.target.value)}
+                className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-center font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0"
+                step="0.5"
+              />
+              <span className="text-gray-600 font-medium">%</span>
+              <button
+                onClick={() => handleUpdatePrices('natural')}
+                disabled={isUpdating || parseFloat(naturalPercentage) === 0}
+                className="ml-auto px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg font-medium hover:from-blue-600 hover:to-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+              >
+                {parseFloat(naturalPercentage) >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                Apply
+              </button>
+            </div>
+
+            {parseFloat(naturalPercentage) !== 0 && naturalPreview.length > 0 && (
+              <div className="mt-4 bg-blue-50 rounded-lg p-3">
+                <p className="text-xs text-blue-800 font-medium mb-2">Preview:</p>
+                <div className="space-y-1 text-xs max-h-32 overflow-y-auto">
+                  {naturalPreview.slice(0, 5).map((item, i) => (
+                    <div key={i} className="flex justify-between text-gray-700">
+                      <span className="truncate mr-2">{item.name}</span>
+                      <span>
+                        {item.currentUSD && <span className="line-through text-gray-400">${item.currentUSD}</span>}
+                        {item.newUSD && <span className="text-blue-700 ml-1">${item.newUSD}</span>}
+                      </span>
+                    </div>
+                  ))}
+                  {naturalPreview.length > 5 && (
+                    <p className="text-blue-600 italic">...and {naturalPreview.length - 5} more</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Lab Grown Diamond Pricing */}
+          <div className="bg-white rounded-lg p-5 border border-teal-300 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-gradient-to-br from-teal-400 to-emerald-500 rounded-full flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-white" />
+              </div>
+              <h3 className="font-semibold text-gray-900">Lab Grown Diamonds</h3>
+            </div>
+            
+            <div className="flex items-center gap-3 mb-4">
+              <input
+                type="number"
+                value={labGrownPercentage}
+                onChange={(e) => setLabGrownPercentage(e.target.value)}
+                className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-center font-medium focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                placeholder="0"
+                step="0.5"
+              />
+              <span className="text-gray-600 font-medium">%</span>
+              <button
+                onClick={() => handleUpdatePrices('lab_grown')}
+                disabled={isUpdating || parseFloat(labGrownPercentage) === 0}
+                className="ml-auto px-4 py-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg font-medium hover:from-teal-600 hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+              >
+                {parseFloat(labGrownPercentage) >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                Apply
+              </button>
+            </div>
+
+            {parseFloat(labGrownPercentage) !== 0 && labGrownPreview.length > 0 && (
+              <div className="mt-4 bg-teal-50 rounded-lg p-3">
+                <p className="text-xs text-teal-800 font-medium mb-2">Preview:</p>
+                <div className="space-y-1 text-xs max-h-32 overflow-y-auto">
+                  {labGrownPreview.slice(0, 5).map((item, i) => (
+                    <div key={i} className="flex justify-between text-gray-700">
+                      <span className="truncate mr-2">{item.name}</span>
+                      <span>
+                        {item.currentUSD && <span className="line-through text-gray-400">${item.currentUSD}</span>}
+                        {item.newUSD && <span className="text-teal-700 ml-1">${item.newUSD}</span>}
+                      </span>
+                    </div>
+                  ))}
+                  {labGrownPreview.length > 5 && (
+                    <p className="text-teal-600 italic">...and {labGrownPreview.length - 5} more</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Gold Pricing */}
           <div className="bg-white rounded-lg p-5 border border-amber-300 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
@@ -311,9 +443,23 @@ export default function PricingPage() {
           <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-xl">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Price Update</h3>
             <p className="text-gray-600 mb-4">
-              You are about to {parseFloat(pendingUpdate === 'gold' ? goldPercentage : silverPercentage) > 0 ? 'increase' : 'decrease'} all{' '}
-              <span className="font-semibold">{pendingUpdate === 'gold' ? 'Gold' : 'Silver'}</span> product prices by{' '}
-              <span className="font-semibold">{Math.abs(parseFloat(pendingUpdate === 'gold' ? goldPercentage : silverPercentage))}%</span>.
+              You are about to {parseFloat(
+                pendingUpdate === 'natural' ? naturalPercentage :
+                pendingUpdate === 'lab_grown' ? labGrownPercentage :
+                pendingUpdate === 'gold' ? goldPercentage : silverPercentage
+              ) > 0 ? 'increase' : 'decrease'} all{' '}
+              <span className="font-semibold">
+                {pendingUpdate === 'natural' ? 'Natural Diamond' :
+                 pendingUpdate === 'lab_grown' ? 'Lab Grown Diamond' :
+                 pendingUpdate === 'gold' ? 'Gold' : 'Silver'}
+              </span> product prices by{' '}
+              <span className="font-semibold">
+                {Math.abs(parseFloat(
+                  pendingUpdate === 'natural' ? naturalPercentage :
+                  pendingUpdate === 'lab_grown' ? labGrownPercentage :
+                  pendingUpdate === 'gold' ? goldPercentage : silverPercentage
+                ))}%
+              </span>.
             </p>
             <p className="text-sm text-amber-600 mb-6 flex items-center gap-2">
               <AlertCircle className="w-4 h-4" />
