@@ -180,31 +180,6 @@ export default function ImageGallery({
   // ===============================
   const renderDesktopCartierLayout = () => (
     <div className="hidden lg:flex gap-4">
-      {/* Vertical Thumbnail Strip (Left Side) */}
-      {hasMultipleImages && (
-        <div className="flex flex-col gap-3 w-20">
-          {images.map((imageUrl, index) => (
-            <button
-              key={index}
-              onClick={() => goToIndex(index)}
-              className={`relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all duration-200 ${
-                index === currentIndex
-                  ? 'border-black ring-1 ring-black'
-                  : 'border-gray-200 hover:border-gray-400'
-              }`}
-            >
-              <Image
-                src={imageUrl}
-                alt={`Thumbnail ${index + 1}`}
-                fill
-                className="object-cover"
-                sizes="80px"
-              />
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Large Main Image */}
       <div
         ref={containerRef}
@@ -245,7 +220,7 @@ export default function ImageGallery({
 
         {/* Zoom Preview (Desktop) */}
         {enableZoom && isHovering && !imageLoading && currentImageUrl && (
-          <div className="absolute bottom-4 right-4 w-48 h-48 bg-white border-2 border-gray-300 rounded-lg shadow-xl overflow-hidden z-50 pointer-events-none">
+          <div className="absolute bottom-4 left-4 w-48 h-48 bg-white border-2 border-gray-300 rounded-lg shadow-xl overflow-hidden z-50 pointer-events-none">
             <div
               className="w-full h-full"
               style={{
@@ -261,110 +236,110 @@ export default function ImageGallery({
           </div>
         )}
       </div>
+
+      {/* Vertical Thumbnail Strip (Right Side) */}
+      {hasMultipleImages && (
+        <div className="flex flex-col gap-3 w-20">
+          {images.map((imageUrl, index) => (
+            <button
+              key={index}
+              onClick={() => goToIndex(index)}
+              className={`relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all duration-200 ${
+                index === currentIndex
+                  ? 'border-black ring-1 ring-black'
+                  : 'border-gray-200 hover:border-gray-400'
+              }`}
+            >
+              <Image
+                src={imageUrl}
+                alt={`Thumbnail ${index + 1}`}
+                fill
+                className="object-cover"
+                sizes="80px"
+              />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 
   // ===============================
-  // MOBILE CAROUSEL LAYOUT
+  // MOBILE LAYOUT (Edge-to-edge with thumbnails on right)
   // ===============================
   const renderMobileLayout = () => (
     <div className="lg:hidden">
-      {/* Main Image Container */}
-      <div
-        ref={containerRef}
-        className={`relative bg-gray-50 rounded-lg overflow-hidden ${
-          hasMultipleImages ? 'cursor-pointer' : 'cursor-default'
-        }`}
-        style={{ width, height }}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
-        {/* Loading State */}
-        {(loading || imageLoading) && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
-            <div className="animate-pulse w-16 h-16 bg-gray-200 rounded-full" />
-          </div>
-        )}
+      <div className="flex gap-2">
+        {/* Main Image Container - Full width edge-to-edge */}
+        <div
+          className={`relative bg-gray-50 overflow-hidden flex-1 ${
+            hasMultipleImages ? 'cursor-pointer' : 'cursor-default'
+          }`}
+          style={{ aspectRatio: '1/1', minHeight: 280 }}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
+          {/* Loading State */}
+          {(loading || imageLoading) && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+              <div className="animate-pulse w-16 h-16 bg-gray-200 rounded-full" />
+            </div>
+          )}
 
-        {/* Current Image */}
-        {currentImageUrl && (
-          <div className="absolute inset-0 p-4 sm:p-6">
-            <Image
-              key={currentImageUrl}
-              src={currentImageUrl}
-              alt={`${alt}${hasMultipleImages ? ` - Image ${currentIndex + 1}` : ''}`}
-              fill
-              className={`object-contain transition-opacity duration-300 ${
-                imageLoading ? 'opacity-30' : 'opacity-100'
-              }`}
-              onLoad={() => setImageLoading(false)}
-              onError={() => setImageLoading(false)}
-              priority={priority && currentIndex === 0}
-              quality={85}
-              sizes="(max-width: 768px) 100vw, 50vw"
-            />
-          </div>
-        )}
+          {/* Current Image */}
+          {currentImageUrl && (
+            <div className="absolute inset-0 p-2">
+              <Image
+                key={currentImageUrl}
+                src={currentImageUrl}
+                alt={`${alt}${hasMultipleImages ? ` - Image ${currentIndex + 1}` : ''}`}
+                fill
+                className={`object-contain transition-opacity duration-300 ${
+                  imageLoading ? 'opacity-30' : 'opacity-100'
+                }`}
+                onLoad={() => setImageLoading(false)}
+                onError={() => setImageLoading(false)}
+                priority={priority && currentIndex === 0}
+                quality={85}
+                sizes="(max-width: 768px) 85vw, 50vw"
+              />
+            </div>
+          )}
 
-        {/* Navigation Arrows (Mobile) */}
+          {/* Image Counter Badge */}
+          {hasMultipleImages && (
+            <div className="absolute top-2 left-2 z-20 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
+              {currentIndex + 1} / {images.length}
+            </div>
+          )}
+        </div>
+
+        {/* Vertical Thumbnail Strip (Right Side) - Mobile */}
         {hasMultipleImages && (
-          <>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                goToPrevious();
-              }}
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 p-2 bg-white/80 hover:bg-white rounded-full shadow-lg transition-all"
-              aria-label="Previous image"
-            >
-              <ChevronLeft className="w-5 h-5 text-gray-800" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                goToNext();
-              }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 p-2 bg-white/80 hover:bg-white rounded-full shadow-lg transition-all"
-              aria-label="Next image"
-            >
-              <ChevronRight className="w-5 h-5 text-gray-800" />
-            </button>
-          </>
-        )}
-
-        {/* Image Counter Badge */}
-        {hasMultipleImages && (
-          <div className="absolute top-3 right-3 z-20 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
-            {currentIndex + 1} / {images.length}
-          </div>
-        )}
-
-        {/* Swipe Hint */}
-        {hasMultipleImages && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 text-xs text-gray-500 bg-white/80 px-2 py-1 rounded-full">
-            Swipe to see more
+          <div className="flex flex-col gap-2 w-16 flex-shrink-0 overflow-y-auto max-h-[320px]">
+            {images.map((imageUrl, index) => (
+              <button
+                key={index}
+                onClick={() => goToIndex(index)}
+                className={`relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 border-2 transition-all duration-200 ${
+                  index === currentIndex
+                    ? 'border-black ring-1 ring-black'
+                    : 'border-gray-200'
+                }`}
+              >
+                <Image
+                  src={imageUrl}
+                  alt={`Thumbnail ${index + 1}`}
+                  fill
+                  className="object-cover"
+                  sizes="64px"
+                />
+              </button>
+            ))}
           </div>
         )}
       </div>
-
-      {/* Dot Indicators (Mobile) */}
-      {hasMultipleImages && (
-        <div className="flex justify-center items-center space-x-2 mt-4">
-          {images.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => goToIndex(index)}
-              className={`w-2 h-2 rounded-full transition-all ${
-                index === currentIndex
-                  ? 'bg-black w-4'
-                  : 'bg-gray-300 hover:bg-gray-400'
-              }`}
-              aria-label={`Go to image ${index + 1}`}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 
