@@ -308,7 +308,7 @@ export default function CustomizePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {presets.map((preset, index) => {
                 const item = getItemForPreset(preset);
-                const previewUrl = presetImages[preset.id] || preset.preview_image_url;
+                const previewUrl = preset.preview_image_url || presetImages[preset.id];
                 
                 return (
                   <motion.div
