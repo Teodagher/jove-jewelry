@@ -88,6 +88,24 @@ export class VariantImagesService {
   }
 
   /**
+   * Get global shared media that should appear on ALL products
+   */
+  static async getGlobalSharedMedia(): Promise<SharedMedia[]> {
+    const { data, error } = await db
+      .from('shared_media')
+      .select('*')
+      .contains('tags', ['global'])
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching global shared media:', error);
+      return [];
+    }
+
+    return data || [];
+  }
+
+  /**
    * Get images for variant by filename (convenience method)
    * Falls back to single existing image if no gallery images found
    */
@@ -100,17 +118,28 @@ export class VariantImagesService {
     
     const { directImages, sharedImages } = await this.getVariantImages(variantKey);
     
+    // Get global shared media (appears on ALL products)
+    const globalMedia = await this.getGlobalSharedMedia();
+    
     // Combine and sort all images
-    const allImages: { url: string; order: number; isPrimary: boolean }[] = [
+    const allImages: { url: string; order: number; isPrimary: boolean; isGlobal: boolean }[] = [
       ...directImages.map(img => ({
         url: img.image_url,
         order: img.display_order,
-        isPrimary: img.is_primary
+        isPrimary: img.is_primary,
+        isGlobal: false
       })),
       ...sharedImages.map(img => ({
         url: img.image_url,
         order: img.display_order + 1000, // Offset shared images
-        isPrimary: false
+        isPrimary: false,
+        isGlobal: false
+      })),
+      ...globalMedia.map((img, index) => ({
+        url: img.image_url,
+        order: index + 2000, // Global images at the end
+        isPrimary: false,
+        isGlobal: true
       }))
     ];
 

@@ -84,6 +84,8 @@ export default function MediaLibraryPage() {
     loadLinkedVariants();
   }, [selectedMedia]);
 
+  const [uploadToAllProducts, setUploadToAllProducts] = useState(true);
+
   // Upload handler
   const handleUpload = async (files: FileList) => {
     setUploading(true);
@@ -133,7 +135,7 @@ export default function MediaLibraryPage() {
           img.src = URL.createObjectURL(compressedBlob);
         });
 
-        // Add to database
+        // Add to database with "global" tag if checked
         const newMedia = await VariantImagesService.addSharedMedia(
           file.name.replace(/\.[^/.]+$/, ''), // Use original filename as name
           urlData.publicUrl,
@@ -141,7 +143,7 @@ export default function MediaLibraryPage() {
             fileSizeBytes: compressedBlob.size,
             width: img.naturalWidth,
             height: img.naturalHeight,
-            tags: []
+            tags: uploadToAllProducts ? ['global'] : []
           }
         );
 
@@ -313,6 +315,20 @@ export default function MediaLibraryPage() {
                 <Plus className="w-4 h-4 mr-2" />
                 Select Files
               </Button>
+              
+              {/* Upload Options */}
+              <label className="flex items-center justify-center gap-2 mt-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={uploadToAllProducts}
+                  onChange={(e) => setUploadToAllProducts(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300"
+                />
+                <span className="text-sm text-gray-600">
+                  Show on ALL products (as last image)
+                </span>
+              </label>
+              
               <p className="text-xs text-gray-500 mt-2">
                 Supports JPEG, PNG, WebP. Auto-compressed to WebP.
               </p>
