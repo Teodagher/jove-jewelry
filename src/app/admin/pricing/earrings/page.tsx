@@ -9,6 +9,11 @@ interface PricingData {
   type: string;
   base_price: number;
   base_price_lab_grown?: number;
+  base_price_gold?: number | null;
+  base_price_silver?: number | null;
+  base_price_gold_au?: number | null;
+  base_price_silver_au?: number | null;
+  pricing_type?: 'diamond_type' | 'metal_type';
   customization_options: Array<{
     id: string;
     setting_id: string;
@@ -17,9 +22,14 @@ interface PricingData {
     option_name: string;
     price: number;
     price_lab_grown?: number;
+    price_gold?: number | null;
+    price_silver?: number | null;
     display_order: number;
   }>;
 }
+
+type PricingMode = 'diamond_type' | 'metal_type';
+type MetalVariant = 'natural' | 'gold' | 'silver';
 
 export default function EarringsPricingPage() {
   const [pricingData, setPricingData] = useState<PricingData | null>(null);
@@ -27,6 +37,8 @@ export default function EarringsPricingPage() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [selectedDiamondType, setSelectedDiamondType] = useState<'natural' | 'lab_grown'>('natural');
+  const [pricingMode, setPricingMode] = useState<PricingMode>('diamond_type');
+  const [selectedMetal, setSelectedMetal] = useState<MetalVariant>('natural');
 
   useEffect(() => {
     fetchPricingData();
@@ -37,6 +49,10 @@ export default function EarringsPricingPage() {
       setLoading(true);
       const data = await CustomizationService.getAllPricingData('earrings');
       setPricingData(data);
+      // Set pricing mode based on data
+      if (data && (data as PricingData).pricing_type) {
+        setPricingMode((data as PricingData).pricing_type as PricingMode);
+      }
     } catch (error) {
       console.error('Error fetching pricing data:', error);
       setMessage({ type: 'error', text: 'Failed to load pricing data' });
@@ -81,6 +97,42 @@ export default function EarringsPricingPage() {
     }
   };
 
+  const updateBasePriceGold = async (newPrice: number) => {
+    try {
+      setSaving(true);
+      const success = await CustomizationService.updateBasePriceGold('earrings', newPrice);
+      
+      if (success) {
+        setMessage({ type: 'success', text: 'Gold base price updated successfully' });
+        fetchPricingData();
+      } else {
+        setMessage({ type: 'error', text: 'Failed to update gold base price' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error updating gold base price' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateBasePriceSilver = async (newPrice: number) => {
+    try {
+      setSaving(true);
+      const success = await CustomizationService.updateBasePriceSilver('earrings', newPrice);
+      
+      if (success) {
+        setMessage({ type: 'success', text: 'Silver base price updated successfully' });
+        fetchPricingData();
+      } else {
+        setMessage({ type: 'error', text: 'Failed to update silver base price' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error updating silver base price' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const updateOptionPrice = async (settingId: string, optionId: string, newPrice: number) => {
     try {
       setSaving(true);
@@ -117,6 +169,104 @@ export default function EarringsPricingPage() {
     }
   };
 
+  const updateOptionPriceGold = async (settingId: string, optionId: string, newPrice: number) => {
+    try {
+      setSaving(true);
+      const success = await CustomizationService.updateOptionPriceGold('earrings', settingId, optionId, newPrice);
+      
+      if (success) {
+        setMessage({ type: 'success', text: 'Gold option price updated successfully' });
+        fetchPricingData();
+      } else {
+        setMessage({ type: 'error', text: 'Failed to update gold option price' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error updating gold option price' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateOptionPriceSilver = async (settingId: string, optionId: string, newPrice: number) => {
+    try {
+      setSaving(true);
+      const success = await CustomizationService.updateOptionPriceSilver('earrings', settingId, optionId, newPrice);
+      
+      if (success) {
+        setMessage({ type: 'success', text: 'Silver option price updated successfully' });
+        fetchPricingData();
+      } else {
+        setMessage({ type: 'error', text: 'Failed to update silver option price' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Error updating silver option price' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getCurrentBasePrice = () => {
+    if (!pricingData) return 0;
+    if (pricingMode === 'metal_type') {
+      if (selectedMetal === 'gold') return pricingData.base_price_gold || 0;
+      if (selectedMetal === 'silver') return pricingData.base_price_silver || 0;
+    }
+    return selectedDiamondType === 'natural' ? pricingData.base_price : (pricingData.base_price_lab_grown || 0);
+  };
+
+  const getCurrentOptionPrice = (option: PricingData['customization_options'][0]) => {
+    if (pricingMode === 'metal_type') {
+      if (selectedMetal === 'gold') return option.price_gold ?? option.price;
+      if (selectedMetal === 'silver') return option.price_silver ?? option.price;
+    }
+    return selectedDiamondType === 'natural' ? option.price : (option.price_lab_grown ?? option.price);
+  };
+
+  const handleBasePriceUpdate = async (newPrice: number) => {
+    if (pricingMode === 'metal_type') {
+      if (selectedMetal === 'gold') {
+        await updateBasePriceGold(newPrice);
+      } else if (selectedMetal === 'silver') {
+        await updateBasePriceSilver(newPrice);
+      } else {
+        await updateBasePrice(newPrice);
+      }
+    } else {
+      if (selectedDiamondType === 'natural') {
+        await updateBasePrice(newPrice);
+      } else {
+        await updateBasePriceLabGrown(newPrice);
+      }
+    }
+  };
+
+  const handleOptionPriceUpdate = async (settingId: string, optionId: string, newPrice: number) => {
+    if (pricingMode === 'metal_type') {
+      if (selectedMetal === 'gold') {
+        await updateOptionPriceGold(settingId, optionId, newPrice);
+      } else if (selectedMetal === 'silver') {
+        await updateOptionPriceSilver(settingId, optionId, newPrice);
+      } else {
+        await updateOptionPrice(settingId, optionId, newPrice);
+      }
+    } else {
+      if (selectedDiamondType === 'natural') {
+        await updateOptionPrice(settingId, optionId, newPrice);
+      } else {
+        await updateOptionPriceLabGrown(settingId, optionId, newPrice);
+      }
+    }
+  };
+
+  const getPricingLabel = () => {
+    if (pricingMode === 'metal_type') {
+      if (selectedMetal === 'gold') return 'Gold';
+      if (selectedMetal === 'silver') return 'Silver';
+      return 'Natural Diamonds';
+    }
+    return selectedDiamondType === 'natural' ? 'Natural Diamonds' : 'Lab Grown Diamonds';
+  };
+
   const groupedOptions = pricingData?.customization_options.reduce((acc, option) => {
     if (!acc[option.setting_id]) {
       acc[option.setting_id] = {
@@ -126,7 +276,7 @@ export default function EarringsPricingPage() {
     }
     acc[option.setting_id].options.push(option);
     return acc;
-  }, {} as Record<string, { title: string; options: Array<{ id: string; setting_id: string; setting_title: string; option_id: string; option_name: string; price: number; price_lab_grown?: number; display_order: number; }> }>) || {};
+  }, {} as Record<string, { title: string; options: Array<{ id: string; setting_id: string; setting_title: string; option_id: string; option_name: string; price: number; price_lab_grown?: number; price_gold?: number | null; price_silver?: number | null; display_order: number; }> }>) || {};
 
   if (loading) {
     return (
@@ -148,31 +298,99 @@ export default function EarringsPricingPage() {
           Manage base prices and customization options for earrings
         </p>
         
-        {/* Diamond Type Toggle */}
-        <div className="mt-4 flex items-center space-x-4">
-          <span className="text-sm font-medium text-gray-700">Pricing Type:</span>
-          <div className="flex rounded-lg border border-gray-300 p-1 bg-gray-50">
-            <button
-              onClick={() => setSelectedDiamondType('natural')}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                selectedDiamondType === 'natural'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Natural Diamonds
-            </button>
-            <button
-              onClick={() => setSelectedDiamondType('lab_grown')}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                selectedDiamondType === 'lab_grown'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Lab Grown Diamonds
-            </button>
+        {/* Pricing Mode Toggle */}
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex items-center space-x-4">
+            <span className="text-sm font-medium text-gray-700">Pricing Mode:</span>
+            <div className="flex rounded-lg border border-gray-300 p-1 bg-gray-50">
+              <button
+                onClick={() => { setPricingMode('diamond_type'); setSelectedMetal('natural'); }}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  pricingMode === 'diamond_type'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Diamond Type
+              </button>
+              <button
+                onClick={() => { setPricingMode('metal_type'); setSelectedDiamondType('natural'); }}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                  pricingMode === 'metal_type'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Metal Type
+              </button>
+            </div>
           </div>
+
+          {pricingMode === 'diamond_type' ? (
+            <div className="flex items-center space-x-4">
+              <span className="text-sm font-medium text-gray-700">Diamond Type:</span>
+              <div className="flex rounded-lg border border-gray-300 p-1 bg-gray-50">
+                <button
+                  onClick={() => setSelectedDiamondType('natural')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    selectedDiamondType === 'natural'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Natural
+                </button>
+                <button
+                  onClick={() => setSelectedDiamondType('lab_grown')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    selectedDiamondType === 'lab_grown'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Lab Grown
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-4">
+              <span className="text-sm font-medium text-gray-700">Metal:</span>
+              <div className="flex rounded-lg border border-gray-300 p-1 bg-gray-50">
+                <button
+                  onClick={() => setSelectedMetal('natural')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    selectedMetal === 'natural'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Natural
+                </button>
+                <button
+                  onClick={() => setSelectedMetal('gold')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-1 ${
+                    selectedMetal === 'gold'
+                      ? 'bg-amber-100 text-amber-900 shadow-sm border border-amber-300'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <div className="w-3 h-3 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-full" />
+                  Gold
+                </button>
+                <button
+                  onClick={() => setSelectedMetal('silver')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center gap-1 ${
+                    selectedMetal === 'silver'
+                      ? 'bg-gray-200 text-gray-900 shadow-sm border border-gray-400'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <div className="w-3 h-3 bg-gradient-to-br from-gray-300 to-gray-500 rounded-full" />
+                  Silver
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       
@@ -190,31 +408,37 @@ export default function EarringsPricingPage() {
             {/* Base Price */}
             <div className="border-b pb-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                Base Price - {selectedDiamondType === 'natural' ? 'Natural Diamonds' : 'Lab Grown Diamonds'}
+                Base Price - {getPricingLabel()}
               </h2>
               <div className="flex items-center space-x-4">
                 <label className="text-gray-700 font-medium">
-                  {selectedDiamondType === 'natural' ? 'Natural' : 'Lab Grown'} Base Price ($):
+                  {getPricingLabel()} Base Price ($):
                 </label>
                 <input
                   type="number"
                   step="0.01"
-                  key={selectedDiamondType} // Force re-render when type changes
-                  defaultValue={selectedDiamondType === 'natural' ? pricingData.base_price : (pricingData.base_price_lab_grown || 0)}
+                  key={`${pricingMode}-${selectedDiamondType}-${selectedMetal}`}
+                  defaultValue={getCurrentBasePrice()}
                   className="border border-gray-300 rounded px-3 py-2 w-32"
                   onBlur={(e) => {
                     const newPrice = parseFloat(e.target.value);
-                    const currentPrice = selectedDiamondType === 'natural' ? pricingData.base_price : (pricingData.base_price_lab_grown || 0);
+                    const currentPrice = getCurrentBasePrice();
                     if (newPrice !== currentPrice && newPrice > 0) {
-                      if (selectedDiamondType === 'natural') {
-                        updateBasePrice(newPrice);
-                      } else {
-                        updateBasePriceLabGrown(newPrice);
-                      }
+                      handleBasePriceUpdate(newPrice);
                     }
                   }}
                 />
-                {selectedDiamondType === 'lab_grown' && !pricingData.base_price_lab_grown && (
+                {pricingMode === 'metal_type' && selectedMetal === 'gold' && !pricingData.base_price_gold && (
+                  <span className="text-sm text-amber-600">
+                    (Gold pricing not set - will use natural pricing as fallback)
+                  </span>
+                )}
+                {pricingMode === 'metal_type' && selectedMetal === 'silver' && !pricingData.base_price_silver && (
+                  <span className="text-sm text-gray-500">
+                    (Silver pricing not set - will use natural pricing as fallback)
+                  </span>
+                )}
+                {pricingMode === 'diamond_type' && selectedDiamondType === 'lab_grown' && !pricingData.base_price_lab_grown && (
                   <span className="text-sm text-amber-600">
                     (Lab grown pricing not set - will use natural pricing as fallback)
                   </span>
@@ -226,7 +450,7 @@ export default function EarringsPricingPage() {
             {Object.entries(groupedOptions).map(([settingId, setting]) => (
               <div key={settingId} className="border-b pb-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                  {setting.title} - {selectedDiamondType === 'natural' ? 'Natural Diamonds' : 'Lab Grown Diamonds'}
+                  {setting.title} - {getPricingLabel()}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {setting.options
@@ -242,28 +466,28 @@ export default function EarringsPricingPage() {
                           <input
                             type="number"
                             step="0.01"
-                            key={`${option.id}-${selectedDiamondType}`} // Force re-render when type changes
-                            defaultValue={
-                              selectedDiamondType === 'natural' 
-                                ? option.price 
-                                : (option.price_lab_grown ?? option.price)
-                            }
+                            key={`${option.id}-${pricingMode}-${selectedDiamondType}-${selectedMetal}`}
+                            defaultValue={getCurrentOptionPrice(option)}
                             className="border border-gray-300 rounded px-3 py-2 w-24 text-right"
                             onBlur={(e) => {
                               const newPrice = parseFloat(e.target.value);
-                              const currentPrice = selectedDiamondType === 'natural' 
-                                ? option.price 
-                                : (option.price_lab_grown ?? option.price);
+                              const currentPrice = getCurrentOptionPrice(option);
                               if (newPrice !== currentPrice) {
-                                if (selectedDiamondType === 'natural') {
-                                  updateOptionPrice(settingId, option.option_id, newPrice);
-                                } else {
-                                  updateOptionPriceLabGrown(settingId, option.option_id, newPrice);
-                                }
+                                handleOptionPriceUpdate(settingId, option.option_id, newPrice);
                               }
                             }}
                           />
-                          {selectedDiamondType === 'lab_grown' && option.price_lab_grown === undefined && (
+                          {pricingMode === 'metal_type' && selectedMetal === 'gold' && option.price_gold === undefined && (
+                            <span className="text-xs text-amber-600 ml-2">
+                              (Using natural price)
+                            </span>
+                          )}
+                          {pricingMode === 'metal_type' && selectedMetal === 'silver' && option.price_silver === undefined && (
+                            <span className="text-xs text-gray-500 ml-2">
+                              (Using natural price)
+                            </span>
+                          )}
+                          {pricingMode === 'diamond_type' && selectedDiamondType === 'lab_grown' && option.price_lab_grown === undefined && (
                             <span className="text-xs text-amber-600 ml-2">
                               (Using natural price)
                             </span>
