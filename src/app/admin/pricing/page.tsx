@@ -14,6 +14,10 @@ interface JewelryItem {
   base_price_silver: number | null;
   base_price_gold_au: number | null;
   base_price_silver_au: number | null;
+  black_onyx_base_price: number | null;
+  black_onyx_base_price_lab_grown: number | null;
+  black_onyx_base_price_gold: number | null;
+  black_onyx_base_price_silver: number | null;
 }
 
 const jewelryTypes = [
@@ -56,11 +60,12 @@ export default function PricingPage() {
   const [labGrownPercentage, setLabGrownPercentage] = useState<string>('0');
   const [goldPercentage, setGoldPercentage] = useState<string>('0');
   const [silverPercentage, setSilverPercentage] = useState<string>('0');
+  const [blackOnyxPercentage, setBlackOnyxPercentage] = useState<string>('0');
   const [isUpdating, setIsUpdating] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [products, setProducts] = useState<JewelryItem[]>([]);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [pendingUpdate, setPendingUpdate] = useState<'natural' | 'lab_grown' | 'gold' | 'silver' | null>(null);
+  const [pendingUpdate, setPendingUpdate] = useState<'natural' | 'lab_grown' | 'gold' | 'silver' | 'black_onyx' | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -69,7 +74,7 @@ export default function PricingPage() {
   const fetchProducts = async () => {
     const { data, error } = await supabase
       .from('jewelry_items')
-      .select('id, name, base_price, base_price_lab_grown, base_price_gold, base_price_silver, base_price_gold_au, base_price_silver_au')
+      .select('id, name, base_price, base_price_lab_grown, base_price_gold, base_price_silver, base_price_gold_au, base_price_silver_au, black_onyx_base_price, black_onyx_base_price_lab_grown, black_onyx_base_price_gold, black_onyx_base_price_silver')
       .eq('is_active', true);
     
     if (!error && data) {
@@ -77,10 +82,11 @@ export default function PricingPage() {
     }
   };
 
-  const calculateNewPrices = (type: 'natural' | 'lab_grown' | 'gold' | 'silver') => {
+  const calculateNewPrices = (type: 'natural' | 'lab_grown' | 'gold' | 'silver' | 'black_onyx') => {
     const percentage = type === 'natural' ? parseFloat(naturalPercentage) :
                       type === 'lab_grown' ? parseFloat(labGrownPercentage) :
-                      type === 'gold' ? parseFloat(goldPercentage) : parseFloat(silverPercentage);
+                      type === 'gold' ? parseFloat(goldPercentage) :
+                      type === 'silver' ? parseFloat(silverPercentage) : parseFloat(blackOnyxPercentage);
     const multiplier = 1 + (percentage / 100);
     
     return products
@@ -88,12 +94,14 @@ export default function PricingPage() {
         if (type === 'natural') return p.base_price;
         if (type === 'lab_grown') return p.base_price_lab_grown;
         if (type === 'gold') return (p.base_price_gold || p.base_price_gold_au);
-        return (p.base_price_silver || p.base_price_silver_au);
+        if (type === 'silver') return (p.base_price_silver || p.base_price_silver_au);
+        return (p.black_onyx_base_price || p.black_onyx_base_price_lab_grown || p.black_onyx_base_price_gold || p.black_onyx_base_price_silver);
       })
       .map(p => {
         const currentUSD = type === 'natural' ? p.base_price :
                           type === 'lab_grown' ? p.base_price_lab_grown :
-                          type === 'gold' ? p.base_price_gold : p.base_price_silver;
+                          type === 'gold' ? p.base_price_gold :
+                          type === 'silver' ? p.base_price_silver : p.black_onyx_base_price;
         const currentAU = type === 'gold' ? p.base_price_gold_au : p.base_price_silver_au;
         return {
           name: p.name,
@@ -105,10 +113,11 @@ export default function PricingPage() {
       });
   };
 
-  const handleUpdatePrices = async (type: 'natural' | 'lab_grown' | 'gold' | 'silver') => {
+  const handleUpdatePrices = async (type: 'natural' | 'lab_grown' | 'gold' | 'silver' | 'black_onyx') => {
     const percentage = type === 'natural' ? parseFloat(naturalPercentage) :
                       type === 'lab_grown' ? parseFloat(labGrownPercentage) :
-                      type === 'gold' ? parseFloat(goldPercentage) : parseFloat(silverPercentage);
+                      type === 'gold' ? parseFloat(goldPercentage) :
+                      type === 'silver' ? parseFloat(silverPercentage) : parseFloat(blackOnyxPercentage);
     
     if (percentage === 0) {
       setMessage({ type: 'error', text: 'Please enter a non-zero percentage' });
@@ -129,7 +138,8 @@ export default function PricingPage() {
     const type = pendingUpdate;
     const percentage = type === 'natural' ? parseFloat(naturalPercentage) :
                       type === 'lab_grown' ? parseFloat(labGrownPercentage) :
-                      type === 'gold' ? parseFloat(goldPercentage) : parseFloat(silverPercentage);
+                      type === 'gold' ? parseFloat(goldPercentage) :
+                      type === 'silver' ? parseFloat(silverPercentage) : parseFloat(blackOnyxPercentage);
     const multiplier = 1 + (percentage / 100);
 
     try {
@@ -153,12 +163,25 @@ export default function PricingPage() {
           if (product.base_price_gold_au) {
             updateData.base_price_gold_au = Math.round(product.base_price_gold_au * multiplier);
           }
-        } else {
+        } else if (type === 'silver') {
           if (product.base_price_silver) {
             updateData.base_price_silver = Math.round(product.base_price_silver * multiplier);
           }
           if (product.base_price_silver_au) {
             updateData.base_price_silver_au = Math.round(product.base_price_silver_au * multiplier);
+          }
+        } else if (type === 'black_onyx') {
+          if (product.black_onyx_base_price) {
+            updateData.black_onyx_base_price = Math.round(product.black_onyx_base_price * multiplier);
+          }
+          if (product.black_onyx_base_price_lab_grown) {
+            updateData.black_onyx_base_price_lab_grown = Math.round(product.black_onyx_base_price_lab_grown * multiplier);
+          }
+          if (product.black_onyx_base_price_gold) {
+            updateData.black_onyx_base_price_gold = Math.round(product.black_onyx_base_price_gold * multiplier);
+          }
+          if (product.black_onyx_base_price_silver) {
+            updateData.black_onyx_base_price_silver = Math.round(product.black_onyx_base_price_silver * multiplier);
           }
         }
 
@@ -178,7 +201,8 @@ export default function PricingPage() {
       const direction = percentage > 0 ? 'increased' : 'decreased';
       const typeLabel = type === 'natural' ? 'Natural Diamond' : 
                        type === 'lab_grown' ? 'Lab Grown Diamond' :
-                       type === 'gold' ? 'Gold' : 'Silver';
+                       type === 'gold' ? 'Gold' :
+                       type === 'silver' ? 'Silver' : 'Black Onyx';
       setMessage({ 
         type: 'success', 
         text: `Successfully ${direction} all ${typeLabel} prices by ${Math.abs(percentage)}%` 
@@ -188,7 +212,8 @@ export default function PricingPage() {
       if (type === 'natural') setNaturalPercentage('0');
       else if (type === 'lab_grown') setLabGrownPercentage('0');
       else if (type === 'gold') setGoldPercentage('0');
-      else setSilverPercentage('0');
+      else if (type === 'silver') setSilverPercentage('0');
+      else setBlackOnyxPercentage('0');
       
       await fetchProducts();
     } catch (error) {
@@ -204,6 +229,7 @@ export default function PricingPage() {
   const labGrownPreview = calculateNewPrices('lab_grown');
   const goldPreview = calculateNewPrices('gold');
   const silverPreview = calculateNewPrices('silver');
+  const blackOnyxPreview = calculateNewPrices('black_onyx');
 
   return (
     <div className="space-y-8">
@@ -434,6 +460,56 @@ export default function PricingPage() {
               </div>
             )}
           </div>
+
+          {/* Black Onyx Pricing */}
+          <div className="bg-white rounded-lg p-5 border border-stone-700 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-gradient-to-br from-stone-800 to-black rounded-full flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-white" />
+              </div>
+              <h3 className="font-semibold text-gray-900">Black Onyx</h3>
+            </div>
+            
+            <div className="flex items-center gap-3 mb-4">
+              <input
+                type="number"
+                value={blackOnyxPercentage}
+                onChange={(e) => setBlackOnyxPercentage(e.target.value)}
+                className="w-24 px-3 py-2 border border-gray-300 rounded-lg text-center font-medium focus:ring-2 focus:ring-stone-600 focus:border-stone-600"
+                placeholder="0"
+                step="0.5"
+              />
+              <span className="text-gray-600 font-medium">%</span>
+              <button
+                onClick={() => handleUpdatePrices('black_onyx')}
+                disabled={isUpdating || parseFloat(blackOnyxPercentage) === 0}
+                className="ml-auto px-4 py-2 bg-gradient-to-r from-stone-700 to-stone-900 text-white rounded-lg font-medium hover:from-stone-800 hover:to-black disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+              >
+                {parseFloat(blackOnyxPercentage) >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                Apply
+              </button>
+            </div>
+
+            {parseFloat(blackOnyxPercentage) !== 0 && blackOnyxPreview.length > 0 && (
+              <div className="mt-4 bg-stone-100 rounded-lg p-3">
+                <p className="text-xs text-stone-800 font-medium mb-2">Preview:</p>
+                <div className="space-y-1 text-xs max-h-32 overflow-y-auto">
+                  {blackOnyxPreview.slice(0, 5).map((item, i) => (
+                    <div key={i} className="flex justify-between text-gray-700">
+                      <span className="truncate mr-2">{item.name}</span>
+                      <span>
+                        {item.currentUSD && <span className="line-through text-gray-400">${item.currentUSD}</span>}
+                        {item.newUSD && <span className="text-stone-800 ml-1">${item.newUSD}</span>}
+                      </span>
+                    </div>
+                  ))}
+                  {blackOnyxPreview.length > 5 && (
+                    <p className="text-stone-600 italic">...and {blackOnyxPreview.length - 5} more</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -446,18 +522,21 @@ export default function PricingPage() {
               You are about to {parseFloat(
                 pendingUpdate === 'natural' ? naturalPercentage :
                 pendingUpdate === 'lab_grown' ? labGrownPercentage :
-                pendingUpdate === 'gold' ? goldPercentage : silverPercentage
+                pendingUpdate === 'gold' ? goldPercentage :
+                pendingUpdate === 'silver' ? silverPercentage : blackOnyxPercentage
               ) > 0 ? 'increase' : 'decrease'} all{' '}
               <span className="font-semibold">
                 {pendingUpdate === 'natural' ? 'Natural Diamond' :
                  pendingUpdate === 'lab_grown' ? 'Lab Grown Diamond' :
-                 pendingUpdate === 'gold' ? 'Gold' : 'Silver'}
+                 pendingUpdate === 'gold' ? 'Gold' :
+                 pendingUpdate === 'silver' ? 'Silver' : 'Black Onyx'}
               </span> product prices by{' '}
               <span className="font-semibold">
                 {Math.abs(parseFloat(
                   pendingUpdate === 'natural' ? naturalPercentage :
                   pendingUpdate === 'lab_grown' ? labGrownPercentage :
-                  pendingUpdate === 'gold' ? goldPercentage : silverPercentage
+                  pendingUpdate === 'gold' ? goldPercentage :
+                  pendingUpdate === 'silver' ? silverPercentage : blackOnyxPercentage
                 ))}%
               </span>.
             </p>
