@@ -1,5 +1,8 @@
 'use client';
 
+// Prevent static prerendering - admin pages need runtime
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Plus, Edit, Eye, Settings, Package, ExternalLink, Trash2, Upload, ImageIcon, Save, X, Layers } from 'lucide-react';

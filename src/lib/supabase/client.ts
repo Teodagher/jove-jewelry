@@ -11,13 +11,25 @@ export function createClient(): BrowserClient {
     return client;
   }
 
-  client = createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!url || !key) {
+    throw new Error('Missing Supabase environment variables');
+  }
+
+  client = createBrowserClient<Database>(url, key);
 
   return client;
 }
 
-// Export a singleton instance for easy importing
-export const supabase = createClient();
+// Lazy singleton - only create when accessed
+let _supabase: BrowserClient | undefined;
+export const supabase = new Proxy({} as BrowserClient, {
+  get(_, prop) {
+    if (!_supabase) {
+      _supabase = createClient();
+    }
+    return (_supabase as any)[prop];
+  }
+});
