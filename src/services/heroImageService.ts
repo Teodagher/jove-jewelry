@@ -1,6 +1,15 @@
 import { supabase } from '@/lib/supabase/client'
 
 export type Theme = 'original' | 'valentines';
+export type Visibility = 'desktop' | 'mobile' | 'both';
+
+export interface HeroImage {
+  name: string;
+  url: string;
+  size: number;
+  lastModified: string;
+  visibility: Visibility;
+}
 
 /**
  * Fetches the current active theme from site_settings
@@ -21,21 +30,70 @@ export async function fetchCurrentTheme(): Promise<Theme> {
 }
 
 /**
- * Fetches all images from the hero-pictures bucket for a specific theme
+ * Fetches visibility settings for hero images from site_settings via API
  */
-export async function fetchHeroImages(theme?: Theme): Promise<string[]> {
+export async function fetchHeroImagesVisibility(theme: Theme): Promise<Record<string, Visibility>> {
+  try {
+    const response = await fetch(`/api/admin/hero-images-visibility?theme=${theme}`);
+    
+    if (!response.ok) {
+      console.error('Error fetching hero images visibility:', response.statusText);
+      return {};
+    }
+
+    const data = await response.json();
+    return data.visibility || {};
+  } catch (error) {
+    console.error('Error in fetchHeroImagesVisibility:', error);
+    return {};
+  }
+}
+
+/**
+ * Saves visibility settings for hero images to site_settings via API
+ */
+export async function saveHeroImagesVisibility(theme: Theme, visibilityMap: Record<string, Visibility>): Promise<boolean> {
+  try {
+    const response = await fetch('/api/admin/hero-images-visibility', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme, visibility: visibilityMap })
+    });
+
+    if (!response.ok) {
+      console.error('Error saving hero images visibility:', response.statusText);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in saveHeroImagesVisibility:', error);
+    return false;
+  }
+}
+
+/**
+ * Fetches all images from the hero-pictures bucket for a specific theme
+ * Includes visibility settings
+ */
+export async function fetchHeroImages(theme?: Theme): Promise<HeroImage[]> {
   try {
     // Use provided theme or fetch current theme
     const activeTheme = theme || await fetchCurrentTheme();
     const folderPath = `hero-pictures/${activeTheme}`;
     
-    // First check if the bucket and folder exist
-    const { data, error } = await supabase.storage
-      .from('website-pictures')
-      .list(folderPath, {
-        limit: 100,
-        sortBy: { column: 'created_at', order: 'asc' }
-      })
+    // Fetch visibility settings in parallel
+    const [visibilityMap, listResult] = await Promise.all([
+      fetchHeroImagesVisibility(activeTheme),
+      supabase.storage
+        .from('website-pictures')
+        .list(folderPath, {
+          limit: 100,
+          sortBy: { column: 'created_at', order: 'asc' }
+        })
+    ]);
+
+    const { data, error } = listResult;
 
     if (error) {
       console.error('Error fetching hero images:', error)
@@ -81,7 +139,17 @@ export async function fetchHeroImages(theme?: Theme): Promise<string[]> {
         const { data: urlData } = supabase.storage
           .from('website-pictures')
           .getPublicUrl(`${folderPath}/${file.name}`)
-        return urlData.publicUrl
+        
+        // Get visibility for this image, default to 'both'
+        const visibility = visibilityMap[file.name] || 'both';
+        
+        return {
+          name: file.name,
+          url: urlData.publicUrl,
+          size: file.metadata?.size || 0,
+          lastModified: file.updated_at || file.created_at || '',
+          visibility
+        };
       }) || []
 
     console.log(`Loaded ${imageFiles.length} hero images for ${activeTheme} theme`)
@@ -93,10 +161,28 @@ export async function fetchHeroImages(theme?: Theme): Promise<string[]> {
 }
 
 /**
+ * Fetches only image URLs from the hero-pictures bucket for a specific theme
+ * Used for public-facing components that don't need metadata
+ */
+export async function fetchHeroImageUrls(theme?: Theme): Promise<string[]> {
+  try {
+    const images = await fetchHeroImages(theme);
+    return images.map(img => img.url);
+  } catch (error) {
+    console.error('Error in fetchHeroImageUrls:', error)
+    return []
+  }
+}
+
+/**
  * Fetches hero images with progressive loading strategy
  * Returns first image immediately, then remaining images
+ * Optionally filters by device type
  */
-export async function fetchHeroImagesProgressive(theme?: Theme): Promise<{
+export async function fetchHeroImagesProgressive(
+  theme?: Theme,
+  deviceType?: 'desktop' | 'mobile'
+): Promise<{
   firstImage: string | null
   allImages: Promise<string[]>
 }> {
@@ -105,13 +191,18 @@ export async function fetchHeroImagesProgressive(theme?: Theme): Promise<{
     const activeTheme = theme || await fetchCurrentTheme();
     const folderPath = `hero-pictures/${activeTheme}`;
     
-    // Get the image list first
-    const { data, error } = await supabase.storage
-      .from('website-pictures')
-      .list(folderPath, {
-        limit: 100,
-        sortBy: { column: 'created_at', order: 'asc' }
-      })
+    // Fetch visibility settings in parallel
+    const [visibilityMap, listResult] = await Promise.all([
+      fetchHeroImagesVisibility(activeTheme),
+      supabase.storage
+        .from('website-pictures')
+        .list(folderPath, {
+          limit: 100,
+          sortBy: { column: 'created_at', order: 'asc' }
+        })
+    ]);
+
+    const { data, error } = listResult;
 
     if (error || !data) {
       console.error('Error fetching hero images:', error)
@@ -119,7 +210,7 @@ export async function fetchHeroImagesProgressive(theme?: Theme): Promise<{
     }
 
     // Filter and sort image files
-    const sortedFiles = data
+    let sortedFiles = data
       .filter(file => {
         if (file.name.startsWith('.')) return false
         const extension = file.name.toLowerCase().split('.').pop()
@@ -130,6 +221,14 @@ export async function fetchHeroImagesProgressive(theme?: Theme): Promise<{
         const bPrefix = b.name.match(/^(\d{3})-/)?.[1] || '999'
         return aPrefix.localeCompare(bPrefix)
       })
+
+    // Filter by device type if specified
+    if (deviceType) {
+      sortedFiles = sortedFiles.filter(file => {
+        const visibility = visibilityMap[file.name] || 'both';
+        return visibility === 'both' || visibility === deviceType;
+      });
+    }
 
     if (sortedFiles.length === 0) {
       return { firstImage: null, allImages: Promise.resolve([]) }

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { VariantImagesService } from '@/services/variantImagesService';
+import { getImageCache } from '@/services/imageCacheService';
 
 interface ImageGalleryProps {
   /** Primary/main image URL (from existing single-image system) */
@@ -47,12 +48,19 @@ export default function ImageGallery({
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   
   const containerRef = useRef<HTMLDivElement>(null);
+  const cache = useRef(getImageCache()).current;
   const minSwipeDistance = 50;
+
+  // Check if image is cached
+  const isImageCached = useCallback((url: string): boolean => {
+    return cache.isLoaded(url);
+  }, [cache]);
 
   // Load gallery images
   useEffect(() => {
     const loadGalleryImages = async () => {
       setLoading(true);
+      setImageLoading(true);
       
       let galleryImages: string[] = [];
       
@@ -85,29 +93,51 @@ export default function ImageGallery({
 
       setImages(allImages);
       setCurrentIndex(0);
+      
+      // Check if current image is already cached
+      if (allImages.length > 0 && isImageCached(allImages[0])) {
+        setImageLoading(false);
+      }
+      
       setLoading(false);
     };
 
     loadGalleryImages();
-  }, [primaryImageUrl, variantKey]);
+  }, [primaryImageUrl, variantKey, isImageCached]);
+
+  // Preload adjacent images when current changes
+  useEffect(() => {
+    if (images.length <= 1) return;
+    
+    // Preload next and previous images
+    const nextIndex = (currentIndex + 1) % images.length;
+    const prevIndex = (currentIndex - 1 + images.length) % images.length;
+    
+    if (!isImageCached(images[nextIndex])) {
+      cache.preload(images[nextIndex]);
+    }
+    if (!isImageCached(images[prevIndex])) {
+      cache.preload(images[prevIndex]);
+    }
+  }, [currentIndex, images, isImageCached, cache]);
 
   // Handle navigation
   const goToNext = useCallback(() => {
     if (images.length <= 1) return;
     setCurrentIndex((prev) => (prev + 1) % images.length);
-    setImageLoading(true);
-  }, [images.length]);
+    setImageLoading(!isImageCached(images[(currentIndex + 1) % images.length]));
+  }, [images.length, currentIndex, isImageCached]);
 
   const goToPrevious = useCallback(() => {
     if (images.length <= 1) return;
     setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
-    setImageLoading(true);
-  }, [images.length]);
+    setImageLoading(!isImageCached(images[(currentIndex - 1 + images.length) % images.length]));
+  }, [images.length, currentIndex, isImageCached]);
 
   const goToIndex = (index: number) => {
     if (index === currentIndex || index < 0 || index >= images.length) return;
     setCurrentIndex(index);
-    setImageLoading(true);
+    setImageLoading(!isImageCached(images[index]));
   };
 
   // Touch handlers for swipe (mobile only)
@@ -161,6 +191,23 @@ export default function ImageGallery({
   const currentImageUrl = images[currentIndex];
   const hasMultipleImages = images.length > 1;
 
+  // Handle image load
+  const handleImageLoad = useCallback(() => {
+    setImageLoading(false);
+    // Add to cache
+    if (currentImageUrl) {
+      cache.setLoaded(currentImageUrl);
+    }
+  }, [currentImageUrl, cache]);
+
+  // Handle image error
+  const handleImageError = useCallback(() => {
+    setImageLoading(false);
+    if (currentImageUrl) {
+      cache.setError(currentImageUrl);
+    }
+  }, [currentImageUrl, cache]);
+
   // No image state
   if (!loading && images.length === 0) {
     return (
@@ -191,8 +238,8 @@ export default function ImageGallery({
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
-        {/* Loading State */}
-        {(loading || imageLoading) && (
+        {/* Loading State - only show if not cached */}
+        {(loading || imageLoading) && !isImageCached(currentImageUrl || '') && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
             <div className="animate-pulse w-20 h-20 bg-gray-200 rounded-full" />
           </div>
@@ -207,10 +254,10 @@ export default function ImageGallery({
               alt={`${alt}${hasMultipleImages ? ` - Image ${currentIndex + 1}` : ''}`}
               fill
               className={`object-contain transition-opacity duration-300 ${
-                imageLoading ? 'opacity-30' : 'opacity-100'
+                imageLoading && !isImageCached(currentImageUrl) ? 'opacity-30' : 'opacity-100'
               }`}
-              onLoad={() => setImageLoading(false)}
-              onError={() => setImageLoading(false)}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
               priority={priority && currentIndex === 0}
               quality={90}
               sizes="550px"
@@ -257,6 +304,10 @@ export default function ImageGallery({
                 className="object-cover"
                 sizes="80px"
               />
+              {/* Cached indicator */}
+              {isImageCached(imageUrl) && index !== currentIndex && (
+                <div className="absolute bottom-1 right-1 w-2 h-2 bg-green-500 rounded-full" />
+              )}
             </button>
           ))}
         </div>
@@ -280,8 +331,8 @@ export default function ImageGallery({
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
         >
-          {/* Loading State */}
-          {(loading || imageLoading) && (
+          {/* Loading State - only show if not cached */}
+          {(loading || imageLoading) && !isImageCached(currentImageUrl || '') && (
             <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
               <div className="animate-pulse w-16 h-16 bg-gray-200 rounded-full" />
             </div>
@@ -296,10 +347,10 @@ export default function ImageGallery({
                 alt={`${alt}${hasMultipleImages ? ` - Image ${currentIndex + 1}` : ''}`}
                 fill
                 className={`object-contain transition-opacity duration-300 ${
-                  imageLoading ? 'opacity-30' : 'opacity-100'
+                  imageLoading && !isImageCached(currentImageUrl) ? 'opacity-30' : 'opacity-100'
                 }`}
-                onLoad={() => setImageLoading(false)}
-                onError={() => setImageLoading(false)}
+                onLoad={handleImageLoad}
+                onError={handleImageError}
                 priority={priority && currentIndex === 0}
                 quality={85}
                 sizes="(max-width: 768px) 85vw, 50vw"
@@ -335,6 +386,10 @@ export default function ImageGallery({
                   className="object-cover"
                   sizes="64px"
                 />
+                {/* Cached indicator */}
+                {isImageCached(imageUrl) && index !== currentIndex && (
+                  <div className="absolute bottom-1 right-1 w-1.5 h-1.5 bg-green-500 rounded-full" />
+                )}
               </button>
             ))}
           </div>

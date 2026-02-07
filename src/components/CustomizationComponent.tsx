@@ -16,6 +16,7 @@ import ProductDescription from '@/components/ProductDescription';
 import PoweredByAstryCustomization from '@/components/PoweredByAstryCustomization';
 import DiamondLoader from '@/components/ui/DiamondLoader';
 import { useImagePreloader } from '@/hooks/useImagePreloader';
+import { useVariantPreloader } from '@/hooks/useVariantPreloader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getMarketClient } from '@/lib/market-client';
 import { getCurrency } from '@/lib/currency';
@@ -107,7 +108,7 @@ export default function CustomizationComponent({
     allLoaded: allImagesLoaded, 
     getImageState, 
     progress: imageLoadingProgress 
-  } = useImagePreloader(allOptionImageUrls, 1000);
+  } = useImagePreloader(allOptionImageUrls, { minimumLoadingTime: 1000 });
 
   // Initialize the rules engine for this product
   useEffect(() => {
@@ -556,6 +557,14 @@ export default function CustomizationComponent({
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(jewelryItem.baseImage);
   const [imageVariantSettings, setImageVariantSettings] = useState<Set<string>>(new Set());
   const [currentVariantKey, setCurrentVariantKey] = useState<string | null>(null);
+
+  // Initialize variant preloader for intelligent image preloading
+  useVariantPreloader({
+    jewelryType: jewelryItem.type,
+    currentConfig: customizationState as Record<string, string>,
+    imageVariantSettings,
+    allSettings: jewelryItem.settings.map(s => ({ id: s.id, options: s.options.map(o => ({ id: o.id })) }))
+  });
 
   // Load which settings affect image variants from database
   useEffect(() => {

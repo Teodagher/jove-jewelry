@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { getImageCache } from '@/services/imageCacheService';
 
 interface JewelryPreviewProps {
   imageUrl: string | null;
@@ -25,22 +26,34 @@ export default function JewelryPreview({
   const [imageLoading, setImageLoading] = useState(true);
   const [isHovering, setIsHovering] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [loadStartTime, setLoadStartTime] = useState<number>(0);
   const [imageError, setImageError] = useState(false);
-  const [loadTimeout, setLoadTimeout] = useState<NodeJS.Timeout | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const imageRef = React.useRef<HTMLImageElement>(null);
+  const cache = useRef(getImageCache()).current;
 
-  React.useEffect(() => {
+  // Check cache on mount and when imageUrl changes
+  useEffect(() => {
     if (!imageUrl) {
       setImageLoading(false);
       setImageError(false);
       return;
     }
     
+    // Check if already cached
+    if (cache.isLoaded(imageUrl)) {
+      setImageLoading(false);
+      setImageError(false);
+      return;
+    }
+    
+    if (cache.hasError(imageUrl)) {
+      setImageLoading(false);
+      setImageError(true);
+      return;
+    }
+    
     setImageLoading(true);
     setImageError(false);
-    setLoadStartTime(Date.now());
 
     // Set timeout for slow loading images
     const timeoutDuration = retryCount > 0 ? 2000 : 3000;
@@ -54,6 +67,7 @@ export default function JewelryPreview({
         const img = imageRef.current;
         if (img.complete && img.naturalWidth > 0) {
           setImageLoading(false);
+          cache.setLoaded(imageUrl);
         }
       }
     }, 200);
@@ -65,41 +79,36 @@ export default function JewelryPreview({
       }
     }, 1000);
 
-    setLoadTimeout(timeout);
-
     return () => {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-      if (quickCheck) {
-        clearTimeout(quickCheck);
-      }
-      if (networkCheck) {
-        clearTimeout(networkCheck);
-      }
+      clearTimeout(timeout);
+      clearTimeout(quickCheck);
+      clearTimeout(networkCheck);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [imageUrl, retryCount]); // imageLoading is intentionally excluded to prevent infinite re-render loop
+  }, [imageUrl, retryCount]);
 
-  const handleImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+  const handleImageLoad = useCallback(() => {
     if (!imageLoading) return;
-    
-    if (loadTimeout) {
-      clearTimeout(loadTimeout);
-    }
     
     setImageLoading(false);
     setImageError(false);
     setRetryCount(0);
-  }, [imageUrl, loadStartTime, loadTimeout, imageLoading]);
-
-  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    if (loadTimeout) {
-      clearTimeout(loadTimeout);
+    
+    // Update cache
+    if (imageUrl) {
+      cache.setLoaded(imageUrl);
     }
+  }, [imageUrl, imageLoading, cache]);
+
+  const handleImageError = useCallback(() => {
     setImageLoading(false);
     setImageError(true);
-  }, [imageUrl, loadStartTime, loadTimeout]);
+    
+    // Update cache
+    if (imageUrl) {
+      cache.setError(imageUrl);
+    }
+  }, [imageUrl, cache]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!enableZoom) return;
@@ -120,6 +129,9 @@ export default function JewelryPreview({
     setIsHovering(false);
   };
 
+  // Check if image is cached for instant display
+  const isCached = imageUrl ? cache.isLoaded(imageUrl) : false;
+
   return (
     <div className={`relative ${className}`}>
       {/* Main Preview Container */}
@@ -130,8 +142,8 @@ export default function JewelryPreview({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Loading skeleton - only show if no image URL or if image failed */}
-        {imageLoading && !imageError && !imageUrl && (
+        {/* Loading skeleton - only show if not cached */}
+        {imageLoading && !isCached && !imageError && imageUrl && (
           <div className="absolute inset-0 animate-pulse bg-gray-200 rounded-lg flex items-center justify-center">
             <div className="text-gray-500 text-sm">Loading image...</div>
           </div>
@@ -155,7 +167,6 @@ export default function JewelryPreview({
                 setImageError(false);
                 setImageLoading(true);
                 setRetryCount(0);
-                setLoadStartTime(Date.now());
               }}
               className="px-3 py-1 text-xs bg-gray-200 hover:bg-gray-300 rounded transition-colors"
             >
@@ -173,14 +184,10 @@ export default function JewelryPreview({
               alt={alt}
               fill
               className={`object-contain transition-opacity duration-300 ease-in-out ${
-                imageLoading ? 'opacity-30' : 'opacity-100'
+                imageLoading && !isCached ? 'opacity-30' : 'opacity-100'
               }`}
-              onLoad={() => {
-                handleImageLoad({} as any);
-              }}
-              onError={() => {
-                handleImageError({} as any);
-              }}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
               priority={priority}
               quality={85}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

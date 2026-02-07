@@ -13,12 +13,19 @@ import {
   Image as ImageIcon,
   Zap,
   GripVertical,
-  Sparkles
+  Sparkles,
+  Monitor,
+  Smartphone
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase/client';
 import { formatFileSize as formatSize } from '@/lib/imageCompression';
 import imageCompression from 'browser-image-compression';
+import { 
+  fetchHeroImagesVisibility, 
+  saveHeroImagesVisibility,
+  type Visibility 
+} from '@/services/heroImageService';
 
 type Theme = 'original' | 'valentines';
 
@@ -27,6 +34,7 @@ interface HeroImage {
   url: string;
   size: number;
   lastModified: string;
+  visibility: Visibility;
 }
 
 const themeLabels: Record<Theme, string> = {
@@ -56,6 +64,9 @@ export default function PicturesManagementPage() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [reordering, setReordering] = useState(false);
   const [themeLoading, setThemeLoading] = useState(false);
+  const [visibilityMap, setVisibilityMap] = useState<Record<string, Visibility>>({});
+  const [savingVisibility, setSavingVisibility] = useState<string | null>(null);
+  const [openVisibilityMenu, setOpenVisibilityMenu] = useState<string | null>(null);
   
   // Initialize Supabase client
 
@@ -68,6 +79,7 @@ export default function PicturesManagementPage() {
   useEffect(() => {
     if (theme) {
       loadHeroImages();
+      loadVisibilitySettings();
     }
   }, [theme]);
 
@@ -161,11 +173,15 @@ export default function PicturesManagementPage() {
                       .from('website-pictures')
                       .getPublicUrl(`${folderPath}/${file.name}`);
                     
+                    // Get visibility from map, default to 'both'
+                    const visibility = visibilityMap[file.name] || 'both';
+                    
                     return {
                       name: file.name,
                       url: urlData.publicUrl,
                       size: file.metadata?.size || 0,
-                      lastModified: file.updated_at || file.created_at || ''
+                      lastModified: file.updated_at || file.created_at || '',
+                      visibility
                     };
                   }) || [];
                 
@@ -196,11 +212,15 @@ export default function PicturesManagementPage() {
             .from('website-pictures')
             .getPublicUrl(`${folderPath}/${file.name}`);
           
+          // Get visibility from map, default to 'both'
+          const visibility = visibilityMap[file.name] || 'both';
+          
           return {
             name: file.name,
             url: urlData.publicUrl,
             size: file.metadata?.size || 0,
-            lastModified: file.updated_at || file.created_at || ''
+            lastModified: file.updated_at || file.created_at || '',
+            visibility
           };
         }) || [];
 
@@ -211,7 +231,48 @@ export default function PicturesManagementPage() {
     } finally {
       setLoading(false);
     }
-  }, [theme, supabase]);
+  }, [theme, supabase, visibilityMap]);
+
+  // Load visibility settings from site_settings
+  const loadVisibilitySettings = useCallback(async () => {
+    try {
+      const settings = await fetchHeroImagesVisibility(theme);
+      setVisibilityMap(settings);
+    } catch (err) {
+      console.error('Error loading visibility settings:', err);
+    }
+  }, [theme]);
+
+  // Handle visibility change for an image
+  const handleVisibilityChange = async (imageName: string, newVisibility: Visibility) => {
+    try {
+      setSavingVisibility(imageName);
+      
+      // Update local state
+      const updatedMap = { ...visibilityMap, [imageName]: newVisibility };
+      setVisibilityMap(updatedMap);
+      
+      // Update hero images state
+      setHeroImages(prev => prev.map(img => 
+        img.name === imageName ? { ...img, visibility: newVisibility } : img
+      ));
+      
+      // Save to database
+      const success = await saveHeroImagesVisibility(theme, updatedMap);
+      
+      if (success) {
+        setSuccess(`Visibility updated for ${imageName.replace(/^\d{3}-/, '')}`);
+        setTimeout(() => setSuccess(null), 2000);
+      } else {
+        setError('Failed to save visibility setting');
+      }
+    } catch (err) {
+      console.error('Error saving visibility:', err);
+      setError('Failed to save visibility setting');
+    } finally {
+      setSavingVisibility(null);
+    }
+  };
 
   // Process file upload (from input or drag/drop)
   const processImageFile = async (file: File) => {
@@ -724,7 +785,7 @@ export default function PicturesManagementPage() {
                       className="h-48 w-full object-cover object-center group-hover:opacity-75 transition-opacity"
                     />
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center">
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity space-x-2">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
                         <Button
                           size="sm"
                           variant="outline"
@@ -734,6 +795,87 @@ export default function PicturesManagementPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
+                        
+                        {/* Visibility Dropdown */}
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenVisibilityMenu(openVisibilityMenu === image.name ? null : image.name);
+                            }}
+                            disabled={reordering || savingVisibility === image.name}
+                            className={`p-2 rounded-md border text-sm font-medium transition-all flex items-center gap-1.5 bg-white hover:bg-gray-50 ${
+                              image.visibility === 'both' ? 'border-green-300 text-green-700' :
+                              image.visibility === 'desktop' ? 'border-blue-300 text-blue-700' :
+                              'border-purple-300 text-purple-700'
+                            } ${savingVisibility === image.name ? 'opacity-50 cursor-wait' : ''}`}
+                            title="Change visibility"
+                          >
+                            {savingVisibility === image.name ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : image.visibility === 'both' ? (
+                              <>
+                                <Monitor className="h-3.5 w-3.5" />
+                                <span className="text-xs">+</span>
+                                <Smartphone className="h-3.5 w-3.5" />
+                              </>
+                            ) : image.visibility === 'desktop' ? (
+                              <Monitor className="h-4 w-4" />
+                            ) : (
+                              <Smartphone className="h-4 w-4" />
+                            )}
+                          </button>
+                          
+                          {/* Visibility Menu */}
+                          {openVisibilityMenu === image.name && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[140px] z-50">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleVisibilityChange(image.name, 'both');
+                                  setOpenVisibilityMenu(null);
+                                }}
+                                className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 ${
+                                  image.visibility === 'both' ? 'bg-green-50 text-green-700' : 'text-gray-700'
+                                }`}
+                              >
+                                <div className="flex items-center gap-0.5">
+                                  <Monitor className="h-3.5 w-3.5" />
+                                  <span className="text-xs">+</span>
+                                  <Smartphone className="h-3.5 w-3.5" />
+                                </div>
+                                <span>Both</span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleVisibilityChange(image.name, 'desktop');
+                                  setOpenVisibilityMenu(null);
+                                }}
+                                className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 ${
+                                  image.visibility === 'desktop' ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                                }`}
+                              >
+                                <Monitor className="h-3.5 w-3.5" />
+                                <span>Desktop only</span>
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleVisibilityChange(image.name, 'mobile');
+                                  setOpenVisibilityMenu(null);
+                                }}
+                                className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-50 ${
+                                  image.visibility === 'mobile' ? 'bg-purple-50 text-purple-700' : 'text-gray-700'
+                                }`}
+                              >
+                                <Smartphone className="h-3.5 w-3.5" />
+                                <span>Mobile only</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        
                         <Button
                           size="sm"
                           variant="outline"
@@ -752,7 +894,15 @@ export default function PicturesManagementPage() {
                     </p>
                     <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
                       <span>{formatFileSize(image.size)}</span>
-                      <span>{new Date(image.lastModified).toLocaleDateString()}</span>
+                      <span className={`font-medium ${
+                        image.visibility === 'both' ? 'text-green-600' :
+                        image.visibility === 'desktop' ? 'text-blue-600' :
+                        'text-purple-600'
+                      }`}>
+                        {image.visibility === 'both' ? 'Desktop & Mobile' :
+                         image.visibility === 'desktop' ? 'Desktop only' :
+                         'Mobile only'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -775,6 +925,7 @@ export default function PicturesManagementPage() {
               <li><strong>Supported Formats:</strong> Upload JPEG, PNG, WebP, or AVIF files up to 50MB (before compression).</li>
               <li><strong>File Size Reduction:</strong> Typical compression savings are 20-50% smaller than original files with minimal quality loss.</li>
               <li><strong>Order:</strong> Images display in numbered order. Drag and drop to reorder the carousel sequence.</li>
+              <li><strong>Device Visibility:</strong> Control which devices each image appears on — Desktop only, Mobile only, or Both. Click the device icons below each image to change visibility.</li>
               <li><strong>Performance Benefits:</strong> WebP format provides superior compression with excellent quality for faster page loads.</li>
               <li><strong>Backup:</strong> Always keep original copies of your images as backups since compression is irreversible.</li>
               <li><strong>Quality:</strong> Optimized for high-resolution displays while maintaining professional visual quality for hero carousel.</li>
