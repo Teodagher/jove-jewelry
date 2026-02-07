@@ -65,15 +65,22 @@ export default function ImageGallery({
         }
       }
 
-      // If we have gallery images, use them; otherwise fall back to primary
-      if (galleryImages.length > 0) {
-        setImages(galleryImages);
-      } else if (primaryImageUrl) {
-        setImages([primaryImageUrl]);
-      } else {
-        setImages([]);
+      // Build final image array: primary image first, then gallery images
+      const allImages: string[] = [];
+      
+      // Add primary image first (if it exists)
+      if (primaryImageUrl) {
+        allImages.push(primaryImageUrl);
+      }
+      
+      // Add gallery images (deduplicate if primary is already in gallery)
+      for (const img of galleryImages) {
+        if (!allImages.includes(img)) {
+          allImages.push(img);
+        }
       }
 
+      setImages(allImages);
       setCurrentIndex(0);
       setLoading(false);
     };
