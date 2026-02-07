@@ -12,12 +12,15 @@ import {
   Loader2,
   Image as ImageIcon,
   Zap,
-  GripVertical
+  GripVertical,
+  Sparkles
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase/client';
 import { formatFileSize as formatSize } from '@/lib/imageCompression';
 import imageCompression from 'browser-image-compression';
+
+type Theme = 'original' | 'valentines';
 
 interface HeroImage {
   name: string;
@@ -26,7 +29,18 @@ interface HeroImage {
   lastModified: string;
 }
 
+const themeLabels: Record<Theme, string> = {
+  original: 'Original Theme',
+  valentines: 'Valentine\'s Theme',
+};
+
+const themeIcons: Record<Theme, string> = {
+  original: '🎨',
+  valentines: '💝',
+};
+
 export default function PicturesManagementPage() {
+  const [theme, setTheme] = useState<Theme>('original');
   const [heroImages, setHeroImages] = useState<HeroImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -41,8 +55,63 @@ export default function PicturesManagementPage() {
   const [dragActive, setDragActive] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [reordering, setReordering] = useState(false);
+  const [themeLoading, setThemeLoading] = useState(false);
   
   // Initialize Supabase client
+
+  // Fetch current theme on mount
+  useEffect(() => {
+    fetchCurrentTheme();
+  }, []);
+
+  // Load hero images when theme changes
+  useEffect(() => {
+    if (theme) {
+      loadHeroImages();
+    }
+  }, [theme]);
+
+  const fetchCurrentTheme = async () => {
+    try {
+      const response = await fetch('/api/admin/site-style');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.style && ['original', 'valentines'].includes(data.style)) {
+          setTheme(data.style as Theme);
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching theme:', e);
+    }
+  };
+
+  const switchTheme = async (newTheme: Theme) => {
+    if (newTheme === theme) return;
+    
+    setThemeLoading(true);
+    try {
+      const response = await fetch('/api/admin/site-style', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ style: newTheme }),
+      });
+
+      if (response.ok) {
+        setTheme(newTheme);
+        setSuccess(`Switched to ${themeLabels[newTheme]}`);
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        throw new Error('Failed to switch theme');
+      }
+    } catch (e) {
+      console.error('Error switching theme:', e);
+      setError('Failed to switch theme');
+    } finally {
+      setThemeLoading(false);
+    }
+  };
+
+  const getThemeFolder = () => `hero-pictures/${theme}`;
 
   // Load hero images from Supabase
   const loadHeroImages = useCallback(async () => {
@@ -50,9 +119,11 @@ export default function PicturesManagementPage() {
       setLoading(true);
       setError(null);
 
+      const folderPath = getThemeFolder();
+
       const { data, error } = await supabase.storage
         .from('website-pictures')
-        .list('hero-pictures', {
+        .list(folderPath, {
           limit: 100,
           sortBy: { column: 'created_at', order: 'asc' }
         });
@@ -62,18 +133,18 @@ export default function PicturesManagementPage() {
         
         // If folder doesn't exist, create it
         if (error.message?.includes('not found') || error.message?.includes('does not exist')) {
-          console.log('Creating hero-pictures folder...');
+          console.log(`Creating ${folderPath} folder...`);
           try {
             const { error: uploadError } = await supabase.storage
               .from('website-pictures')
-              .upload('hero-pictures/.keep', new Blob([''], { type: 'text/plain' }));
+              .upload(`${folderPath}/.keep`, new Blob([''], { type: 'text/plain' }));
             
             if (!uploadError) {
               console.log('Folder created, retrying...');
               // Retry loading after creating folder
               const { data: retryData, error: retryError } = await supabase.storage
                 .from('website-pictures')
-                .list('hero-pictures', {
+                .list(folderPath, {
                   limit: 100,
                   sortBy: { column: 'created_at', order: 'asc' }
                 });
@@ -88,7 +159,7 @@ export default function PicturesManagementPage() {
                   .map(file => {
                     const { data: urlData } = supabase.storage
                       .from('website-pictures')
-                      .getPublicUrl(`hero-pictures/${file.name}`);
+                      .getPublicUrl(`${folderPath}/${file.name}`);
                     
                     return {
                       name: file.name,
@@ -123,7 +194,7 @@ export default function PicturesManagementPage() {
         .map(file => {
           const { data: urlData } = supabase.storage
             .from('website-pictures')
-            .getPublicUrl(`hero-pictures/${file.name}`);
+            .getPublicUrl(`${folderPath}/${file.name}`);
           
           return {
             name: file.name,
@@ -140,7 +211,7 @@ export default function PicturesManagementPage() {
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, [theme, supabase]);
 
   // Process file upload (from input or drag/drop)
   const processImageFile = async (file: File) => {
@@ -209,10 +280,11 @@ export default function PicturesManagementPage() {
       
       const fileName = `${orderPrefix}-${baseFileName}`;
 
-      // Upload compressed image
+      // Upload compressed image to theme-specific folder
+      const folderPath = getThemeFolder();
       const { error: uploadError } = await supabase.storage
         .from('website-pictures')
-        .upload(`hero-pictures/${fileName}`, compressedBlob, {
+        .upload(`${folderPath}/${fileName}`, compressedBlob, {
           contentType: 'image/webp'
         });
 
@@ -303,9 +375,10 @@ export default function PicturesManagementPage() {
     try {
       setError(null);
 
+      const folderPath = getThemeFolder();
       const { error } = await supabase.storage
         .from('website-pictures')
-        .remove([`hero-pictures/${imageName}`]);
+        .remove([`${folderPath}/${imageName}`]);
 
       if (error) {
         console.error('Delete error:', error);
@@ -344,6 +417,7 @@ export default function PicturesManagementPage() {
       setHeroImages(reorderedImages);
 
       // Rename files in Supabase to reflect new order
+      const folderPath = getThemeFolder();
       const renamePromises = reorderedImages.map(async (image, newIndex) => {
         const oldName = image.name;
         const orderPrefix = String(newIndex + 1).padStart(3, '0'); // 001, 002, etc.
@@ -356,7 +430,7 @@ export default function PicturesManagementPage() {
           // Copy file to new name
           const { error: copyError } = await supabase.storage
             .from('website-pictures')
-            .copy(`hero-pictures/${oldName}`, `hero-pictures/${newName}`);
+            .copy(`${folderPath}/${oldName}`, `${folderPath}/${newName}`);
 
           if (copyError) {
             console.error('Error copying file:', copyError);
@@ -366,7 +440,7 @@ export default function PicturesManagementPage() {
           // Delete old file
           const { error: deleteError } = await supabase.storage
             .from('website-pictures')
-            .remove([`hero-pictures/${oldName}`]);
+            .remove([`${folderPath}/${oldName}`]);
 
           if (deleteError) {
             console.error('Error deleting old file:', deleteError);
@@ -418,10 +492,6 @@ export default function PicturesManagementPage() {
     }
   };
 
-  useEffect(() => {
-    loadHeroImages();
-  }, [loadHeroImages]);
-
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -434,6 +504,42 @@ export default function PicturesManagementPage() {
             <p className="mt-2 text-sm text-gray-600">
               Manage the images that appear in your homepage hero carousel.
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Theme Selector */}
+      <div className="bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-lg p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white rounded-lg shadow-sm">
+              <Sparkles className="w-5 h-5 text-pink-500" />
+            </div>
+            <div>
+              <h2 className="text-lg font-medium text-gray-900">Active Theme</h2>
+              <p className="text-sm text-gray-600">
+                You are currently editing pictures for the <strong>{themeLabels[theme]}</strong>
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500 mr-2">Switch theme:</span>
+            {(['original', 'valentines'] as Theme[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => switchTheme(t)}
+                disabled={themeLoading}
+                className={`px-4 py-2 text-sm rounded-lg border transition-all flex items-center gap-2 ${
+                  theme === t
+                    ? 'bg-pink-600 text-white border-pink-600 shadow-md'
+                    : 'bg-white text-gray-700 border-gray-300 hover:border-pink-300 hover:bg-pink-50'
+                } ${themeLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <span>{themeIcons[t]}</span>
+                {t === 'original' ? 'Original' : 'Valentine\'s'}
+              </button>
+            ))}
           </div>
         </div>
       </div>
@@ -560,9 +666,9 @@ export default function PicturesManagementPage() {
       {/* Images Grid */}
       <div className="jove-bg-card shadow-sm rounded-lg">
         <div className="px-6 py-5 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Current Hero Images</h2>
+          <h2 className="text-lg font-medium text-gray-900">Current Hero Images — {themeLabels[theme]}</h2>
           <p className="mt-1 text-sm text-gray-600">
-            {heroImages.length} image{heroImages.length !== 1 ? 's' : ''} in rotation
+            {heroImages.length} image{heroImages.length !== 1 ? 's' : ''} in rotation for {themeLabels[theme]}
             {heroImages.length > 1 && <span className="ml-2 text-blue-600">• Drag to reorder</span>}
           </p>
           {reordering && (

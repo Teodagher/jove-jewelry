@@ -1,14 +1,38 @@
 import { supabase } from '@/lib/supabase/client'
 
+export type Theme = 'original' | 'valentines';
+
 /**
- * Fetches all images from the hero-pictures bucket
+ * Fetches the current active theme from site_settings
  */
-export async function fetchHeroImages(): Promise<string[]> {
+export async function fetchCurrentTheme(): Promise<Theme> {
   try {
+    const response = await fetch('/api/admin/site-style');
+    if (response.ok) {
+      const data = await response.json();
+      if (data.style && ['original', 'valentines'].includes(data.style)) {
+        return data.style as Theme;
+      }
+    }
+  } catch (e) {
+    console.error('Error fetching theme:', e);
+  }
+  return 'original';
+}
+
+/**
+ * Fetches all images from the hero-pictures bucket for a specific theme
+ */
+export async function fetchHeroImages(theme?: Theme): Promise<string[]> {
+  try {
+    // Use provided theme or fetch current theme
+    const activeTheme = theme || await fetchCurrentTheme();
+    const folderPath = `hero-pictures/${activeTheme}`;
+    
     // First check if the bucket and folder exist
     const { data, error } = await supabase.storage
       .from('website-pictures')
-      .list('hero-pictures', {
+      .list(folderPath, {
         limit: 100,
         sortBy: { column: 'created_at', order: 'asc' }
       })
@@ -18,20 +42,20 @@ export async function fetchHeroImages(): Promise<string[]> {
       
       // If folder doesn't exist, try to create it
       if (error.message?.includes('not found') || error.message?.includes('does not exist')) {
-        console.log('Creating hero-pictures folder...')
+        console.log(`Creating ${folderPath} folder...`)
         try {
           // Upload a placeholder file to create the folder
           const { error: uploadError } = await supabase.storage
             .from('website-pictures')
-            .upload('hero-pictures/.keep', new Blob([''], { type: 'text/plain' }))
+            .upload(`${folderPath}/.keep`, new Blob([''], { type: 'text/plain' }))
           
           if (uploadError) {
             console.error('Error creating folder:', uploadError)
           } else {
-            console.log('Hero-pictures folder created successfully')
+            console.log(`${folderPath} folder created successfully`)
           }
         } catch (folderError) {
-          console.error('Error creating hero-pictures folder:', folderError)
+          console.error(`Error creating ${folderPath} folder:`, folderError)
         }
       }
       
@@ -56,11 +80,11 @@ export async function fetchHeroImages(): Promise<string[]> {
       .map(file => {
         const { data: urlData } = supabase.storage
           .from('website-pictures')
-          .getPublicUrl(`hero-pictures/${file.name}`)
+          .getPublicUrl(`${folderPath}/${file.name}`)
         return urlData.publicUrl
       }) || []
 
-    console.log(`Loaded ${imageFiles.length} hero images`)
+    console.log(`Loaded ${imageFiles.length} hero images for ${activeTheme} theme`)
     return imageFiles
   } catch (error) {
     console.error('Error in fetchHeroImages:', error)
@@ -72,15 +96,19 @@ export async function fetchHeroImages(): Promise<string[]> {
  * Fetches hero images with progressive loading strategy
  * Returns first image immediately, then remaining images
  */
-export async function fetchHeroImagesProgressive(): Promise<{
+export async function fetchHeroImagesProgressive(theme?: Theme): Promise<{
   firstImage: string | null
   allImages: Promise<string[]>
 }> {
   try {
+    // Use provided theme or fetch current theme
+    const activeTheme = theme || await fetchCurrentTheme();
+    const folderPath = `hero-pictures/${activeTheme}`;
+    
     // Get the image list first
     const { data, error } = await supabase.storage
       .from('website-pictures')
-      .list('hero-pictures', {
+      .list(folderPath, {
         limit: 100,
         sortBy: { column: 'created_at', order: 'asc' }
       })
@@ -111,7 +139,7 @@ export async function fetchHeroImagesProgressive(): Promise<{
     const firstFile = sortedFiles[0]
     const { data: firstUrlData } = supabase.storage
       .from('website-pictures')
-      .getPublicUrl(`hero-pictures/${firstFile.name}`)
+      .getPublicUrl(`${folderPath}/${firstFile.name}`)
     
     const firstImage = firstUrlData.publicUrl
 
@@ -120,12 +148,12 @@ export async function fetchHeroImagesProgressive(): Promise<{
       sortedFiles.map(file => {
         const { data: urlData } = supabase.storage
           .from('website-pictures')
-          .getPublicUrl(`hero-pictures/${file.name}`)
+          .getPublicUrl(`${folderPath}/${file.name}`)
         return urlData.publicUrl
       })
     )
 
-    console.log(`Loaded first hero image, ${sortedFiles.length} total images`)
+    console.log(`Loaded first hero image, ${sortedFiles.length} total images for ${activeTheme} theme`)
     return { firstImage, allImages }
   } catch (error) {
     console.error('Error in fetchHeroImagesProgressive:', error)
