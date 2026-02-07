@@ -17,6 +17,7 @@ const PRODUCT_IMAGES = {
   necklace: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/products/1762173385426-img_0781-removebg-preview-te7dwf5nf8.webp',
   bracelet: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/products/1770076090240-3b987adf-cc7a-418b-901f-f7db85ca50cb-4jcpfx6wjqv.webp',
   earrings: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/products/1762173371481-img_5312-removebg-preview-slhccat4b5.webp',
+  meridianBracelet: 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/item-pictures/products/1770076164625-6ea116c7-8303-4ee3-ae09-f046ed8fdecf-2ewj7wzwdox.webp',
 }
 
 export default function ValentinesEditPage() {
@@ -138,12 +139,12 @@ export default function ValentinesEditPage() {
           {/* Bracelet Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
             {[
-              { name: 'Bond Bracelet', image: PRODUCT_IMAGES.bondBracelet, price: 'From $80' },
-              { name: 'Classic Bracelet', image: PRODUCT_IMAGES.bracelet, price: 'From $160' },
-              { name: 'Bond Bracelet', image: PRODUCT_IMAGES.bondBracelet, price: 'From $80' },
-              { name: 'Classic Bracelet', image: PRODUCT_IMAGES.bracelet, price: 'From $160' },
+              { name: 'Classic Bracelet', image: PRODUCT_IMAGES.bracelet, price: 'From $160', slug: 'bracelets' },
+              { name: 'Bond Bracelet', image: PRODUCT_IMAGES.bondBracelet, price: 'From $80', slug: 'bond-bracelet' },
+              { name: 'Meridian Bracelet', image: PRODUCT_IMAGES.meridianBracelet, price: 'From $120', slug: 'the-meridian-mark-' },
+              { name: 'Ring', image: CATEGORY_IMAGES.rings, price: 'From $200', slug: 'rings' },
             ].map((item, i) => (
-              <Link key={i} href="/customize/category/bracelets" className="group text-center">
+              <Link key={i} href={`/customize/${item.slug}`} className="group text-center">
                 <div className="aspect-square bg-gradient-to-br from-rose-50 to-white rounded-lg overflow-hidden relative shadow-sm mb-3">
                   <Image 
                     src={item.image}
