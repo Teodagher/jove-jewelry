@@ -93,16 +93,41 @@ export default function AdminUserDetailPage() {
       setLoading(true);
       setError(null);
 
-      // Fetch user and orders via API route (uses service_role, bypasses RLS)
-      const res = await fetch(`/api/admin/users/${userId}`);
-      const data = await res.json();
+      // Fetch user (RLS now allows this for admin checks via JWT)
+      const { data: userData, error: userError } = await (supabase as any)
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to fetch user details');
+      if (userError) throw userError;
+      setUser(userData);
+
+      // Fetch orders by email
+      const email = userData.email?.toLowerCase();
+      if (email) {
+        const { data: ordersData, error: ordersError } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            order_items (
+              id,
+              jewelry_type,
+              customization_data,
+              customization_summary,
+              base_price,
+              total_price,
+              quantity,
+              subtotal,
+              preview_image_url
+            )
+          `)
+          .ilike('customer_email', email)
+          .order('created_at', { ascending: false });
+
+        if (ordersError) throw ordersError;
+        setOrders(ordersData || []);
       }
-
-      setUser(data.user);
-      setOrders(data.orders || []);
     } catch (err) {
       console.error('Error fetching user details:', err);
       setError('Failed to load user details.');
