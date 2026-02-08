@@ -344,21 +344,24 @@ async function buildOrderItemTableHtml(item: any): Promise<string> {
         }).join(' &middot; ')
         : ''
 
-    return `<table cellpadding="0" cellspacing="0" border="0" style="width:100%;border:1px solid #e8e4de;border-radius:8px;overflow:hidden;margin-bottom:12px;border-collapse:collapse;">
+    // Email client compatibility: Use table-based layout with explicit dimensions
+    // Outlook needs border="0", Gmail needs inline styles, Yahoo needs alt text
+    const imgHtml = imgUrl
+        ? `<img src="${imgUrl}" alt="${name}" width="90" height="90" border="0" style="display:block;width:90px;height:90px;border:0;" />`
+        : `<div style="width:90px;height:90px;background-color:#f5f3f0;text-align:center;line-height:90px;mso-line-height-rule:exactly;"><span style="font-size:24px;color:#ccc;">&#9670;</span></div>`
+
+    return `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border:1px solid #e8e4de;border-radius:8px;overflow:hidden;margin-bottom:12px;border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;">
 <tr>
-  <td style="width:90px;vertical-align:top;padding:0;">
-    ${imgUrl
-            ? `<img src="${imgUrl}" alt="${name}" width="90" height="90" style="width:90px;height:90px;object-fit:cover;display:block;" />`
-            : `<div style="width:90px;height:90px;background-color:#f5f3f0;text-align:center;line-height:90px;"><span style="font-size:24px;color:#ccc;">&#9670;</span></div>`
-        }
+  <td width="90" style="width:90px;vertical-align:top;padding:0;font-size:0;line-height:0;mso-line-height-rule:exactly;">
+    ${imgHtml}
   </td>
   <td style="vertical-align:top;padding:12px 16px;">
-    <table cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;">
+    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;">
     <tr>
-      <td style="font-size:13px;font-weight:600;color:#1a1a1a;font-family:Georgia,serif;">${name}${qty > 1 ? ` <span style="color:#888;font-weight:400;">x${qty}</span>` : ''}</td>
-      <td style="font-size:13px;font-weight:600;color:#1a1a1a;font-family:Georgia,serif;text-align:right;">$${Number(price).toFixed(2)}</td>
+      <td style="font-size:13px;font-weight:600;color:#1a1a1a;font-family:Georgia,'Times New Roman',serif;line-height:1.4;">${name}${qty > 1 ? ` <span style="color:#888;font-weight:400;">x${qty}</span>` : ''}</td>
+      <td style="font-size:13px;font-weight:600;color:#1a1a1a;font-family:Georgia,'Times New Roman',serif;text-align:right;line-height:1.4;">$${Number(price).toFixed(2)}</td>
     </tr>
-    ${summaryHtml ? `<tr><td colspan="2" style="font-size:11px;color:#999;line-height:1.5;padding-top:4px;">${summaryHtml}</td></tr>` : ''}
+    ${summaryHtml ? `<tr><td colspan="2" style="font-size:11px;color:#999;line-height:1.5;padding-top:4px;font-family:Arial,sans-serif;">${summaryHtml}</td></tr>` : ''}
     </table>
   </td>
 </tr>
