@@ -212,22 +212,95 @@ function buildHtmlEmail(bodyText: string): string {
         return bodyText
     }
     const htmlBody = bodyText.replace(/\n/g, '<br>')
-    return `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f7f5f3;font-family:Georgia,'Times New Roman',serif;">
+    
+    // Email client compatibility notes:
+    // - Outlook uses Word rendering engine and has limited CSS support
+    // - Gmail strips certain CSS properties
+    // - Yahoo Mail has limited support for custom styling
+    // - Apple Mail generally supports modern CSS
+    // 
+    // Best practices applied:
+    // - Table-based layout for structure
+    // - Inline styles (no external CSS)
+    // - Explicit dimensions on images
+    // - MSO conditionals for Outlook
+    // - border="0" on images to prevent blue borders in some clients
+    // - mso-line-height-rule:exactly for Outlook line-height consistency
+    
+    return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="x-apple-disable-message-reformatting" />
+<!--[if mso]>
+<noscript>
+<xml>
+<o:OfficeDocumentSettings>
+<o:PixelsPerInch>96</o:PixelsPerInch>
+</o:OfficeDocumentSettings>
+</xml>
+</noscript>
+<![endif]-->
+</head>
+<body style="margin:0;padding:0;background-color:#f7f5f3;font-family:Georgia,'Times New Roman',serif;-webkit-font-smoothing:antialiased;">
+<!--[if mso]>
+<table role="presentation" border="0" cellspacing="0" cellpadding="0" width="100%" style="width:100%;">
+<tr>
+<td valign="top" width="100%" style="background-color:#f7f5f3;padding:32px 16px;">
+<![endif]-->
 <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
-<div style="text-align:center;padding:32px 24px;background-color:#ffffff;border-radius:12px 12px 0 0;">
-<span style="font-size:28px;letter-spacing:0.2em;color:#1a1a1a;font-weight:300;">MAISON JOVÉ</span>
-<div style="width:40px;height:1px;background-color:#c9a96e;margin:16px auto 0;"></div>
+<!-- Header -->
+<!--[if mso]>
+<table role="presentation" border="0" cellspacing="0" cellpadding="0" width="600" style="width:600px;">
+<tr>
+<td valign="top" width="600" style="background-color:#ffffff;padding:32px 24px;text-align:center;">
+<![endif]-->
+<div style="text-align:center;padding:32px 24px;background-color:#ffffff;">
+<span style="font-size:28px;letter-spacing:0.2em;color:#1a1a1a;font-weight:300;mso-line-height-rule:exactly;">MAISON JOVÉ</span>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="40" style="width:40px;margin:16px auto 0;border-collapse:collapse;">
+<tr><td height="1" style="height:1px;line-height:1px;font-size:1px;background-color:#c9a96e;mso-line-height-rule:exactly;">&nbsp;</td></tr>
+</table>
 </div>
-<div style="background-color:#ffffff;padding:32px 28px;font-size:14px;line-height:1.7;color:#333333;">
+<!--[if mso]>
+</td>
+</tr>
+</table>
+<![endif]-->
+<!-- Body -->
+<!--[if mso]>
+<table role="presentation" border="0" cellspacing="0" cellpadding="0" width="600" style="width:600px;">
+<tr>
+<td valign="top" width="600" style="background-color:#ffffff;padding:32px 28px;">
+<![endif]-->
+<div style="background-color:#ffffff;padding:32px 28px;font-size:14px;line-height:1.7;color:#333333;mso-line-height-rule:exactly;">
 ${htmlBody}
 </div>
-<div style="text-align:center;padding:20px 24px;background-color:#faf8f5;border-radius:0 0 12px 12px;border-top:1px solid #e8e4de;">
-<p style="font-size:11px;color:#999;margin:0;letter-spacing:0.05em;">Maison Jové — Custom Jewelry</p>
+<!--[if mso]>
+</td>
+</tr>
+</table>
+<![endif]-->
+<!-- Footer -->
+<!--[if mso]>
+<table role="presentation" border="0" cellspacing="0" cellpadding="0" width="600" style="width:600px;border-top:1px solid #e8e4de;">
+<tr>
+<td valign="top" width="600" style="background-color:#faf8f5;padding:20px 24px;text-align:center;">
+<![endif]-->
+<div style="text-align:center;padding:20px 24px;background-color:#faf8f5;border-top:1px solid #e8e4de;">
+<p style="font-size:11px;color:#999;margin:0;letter-spacing:0.05em;mso-line-height-rule:exactly;">Maison Jové — Custom Jewelry</p>
 </div>
+<!--[if mso]>
+</td>
+</tr>
+</table>
+<![endif]-->
 </div>
+<!--[if mso]>
+</td>
+</tr>
+</table>
+<![endif]-->
 </body>
 </html>`
 }
@@ -283,6 +356,61 @@ async function verifyImageUrl(url: string): Promise<boolean> {
     }
 }
 
+/**
+ * Convert WebP image URL to PNG for better email client compatibility
+ * Outlook and some older email clients don't support WebP
+ */
+function convertToEmailSafeImageUrl(url: string | null): string | null {
+    if (!url) return null
+    
+    // Replace .webp with .png for email compatibility
+    // Supabase storage often has both formats available
+    if (url.toLowerCase().endsWith('.webp')) {
+        // Try PNG first (more compatible with email clients)
+        const pngUrl = url.slice(0, -5) + '.png'
+        return pngUrl
+    }
+    
+    return url
+}
+
+/**
+ * Get the best image URL for email - prefers PNG over WebP for compatibility
+ */
+async function getEmailSafeImageUrl(url: string | null): Promise<string | null> {
+    if (!url) return null
+    
+    // If it's already PNG or JPG, use as-is
+    const lowerUrl = url.toLowerCase()
+    if (lowerUrl.endsWith('.png') || lowerUrl.endsWith('.jpg') || lowerUrl.endsWith('.jpeg')) {
+        // Verify it exists
+        const exists = await verifyImageUrl(url)
+        return exists ? url : null
+    }
+    
+    // If WebP, try to find PNG version first
+    if (lowerUrl.endsWith('.webp')) {
+        const pngUrl = url.slice(0, -5) + '.png'
+        const pngExists = await verifyImageUrl(pngUrl)
+        if (pngExists) {
+            return pngUrl
+        }
+        
+        // Try JPG as fallback
+        const jpgUrl = url.slice(0, -5) + '.jpg'
+        const jpgExists = await verifyImageUrl(jpgUrl)
+        if (jpgExists) {
+            return jpgUrl
+        }
+        
+        // Fall back to original WebP if no alternatives exist
+        const webpExists = await verifyImageUrl(url)
+        return webpExists ? url : null
+    }
+    
+    return url
+}
+
 async function buildOrderItemTableHtml(item: any): Promise<string> {
     const name = item.product_name || formatJewelryType(item.jewelry_type || 'Jewelry')
     let imgUrl = item.preview_image_url
@@ -308,31 +436,35 @@ async function buildOrderItemTableHtml(item: any): Promise<string> {
                         if (variantKey) {
                             const galleryImage = await getVariantPrimaryImage(variantKey)
                             if (galleryImage) {
-                                imgUrl = galleryImage
+                                // Convert to email-safe format (PNG preferred)
+                                imgUrl = await getEmailSafeImageUrl(galleryImage)
                             } else {
-                                // Verify the generated URL exists before using it
-                                const exists = await verifyImageUrl(generatedUrl)
-                                if (exists) {
-                                    imgUrl = generatedUrl
+                                // Verify the generated URL exists and convert to email-safe format
+                                const emailSafeUrl = await getEmailSafeImageUrl(generatedUrl)
+                                if (emailSafeUrl) {
+                                    imgUrl = emailSafeUrl
                                 } else {
                                     // Fall back to base image if variant doesn't exist
                                     console.warn(`[Email] Variant image not found: ${generatedUrl}, using base image`)
-                                    imgUrl = product.base_image_url
+                                    imgUrl = await getEmailSafeImageUrl(product.base_image_url)
                                 }
                             }
                         } else {
-                            imgUrl = generatedUrl
+                            imgUrl = await getEmailSafeImageUrl(generatedUrl)
                         }
                     } else {
-                        imgUrl = product.base_image_url
+                        imgUrl = await getEmailSafeImageUrl(product.base_image_url)
                     }
                 } else {
-                    imgUrl = product.base_image_url
+                    imgUrl = await getEmailSafeImageUrl(product.base_image_url)
                 }
             }
         } catch (e) {
             console.warn('Could not generate dynamic image for automatic email:', e)
         }
+    } else if (imgUrl) {
+        // Convert existing preview image to email-safe format
+        imgUrl = await getEmailSafeImageUrl(imgUrl)
     }
 
     const summaryParts = summary.split('•').map((s: string) => s.trim()).filter(Boolean)
@@ -346,11 +478,20 @@ async function buildOrderItemTableHtml(item: any): Promise<string> {
 
     // Email client compatibility: Use table-based layout with explicit dimensions
     // Outlook needs border="0", Gmail needs inline styles, Yahoo needs alt text
+    // Using conditional comments for Outlook and explicit dimensions for all clients
     const imgHtml = imgUrl
-        ? `<img src="${imgUrl}" alt="${name}" width="90" height="90" border="0" style="display:block;width:90px;height:90px;border:0;" />`
-        : `<div style="width:90px;height:90px;background-color:#f5f3f0;text-align:center;line-height:90px;mso-line-height-rule:exactly;"><span style="font-size:24px;color:#ccc;">&#9670;</span></div>`
+        ? `<!--[if mso]><table cellpadding="0" cellspacing="0" border="0"><tr><td style="width:90px;height:90px;"><![endif]-->
+<img src="${imgUrl}" alt="${name.replace(/"/g, '&quot;')}" width="90" height="90" border="0" style="display:block;width:90px;height:90px;border:0;object-fit:cover;" />
+<!--[if mso]></td></tr></table><![endif]-->`
+        : `<!--[if mso]><table cellpadding="0" cellspacing="0" border="0"><tr><td style="width:90px;height:90px;background-color:#f5f3f0;text-align:center;vertical-align:middle;"><![endif]-->
+<div style="width:90px;height:90px;background-color:#f5f3f0;text-align:center;line-height:90px;mso-line-height-rule:exactly;">
+<span style="font-size:24px;color:#ccc;">&#9670;</span>
+</div>
+<!--[if mso]></td></tr></table><![endif]-->`
 
-    return `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border:1px solid #e8e4de;border-radius:8px;overflow:hidden;margin-bottom:12px;border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+    // Use table-based layout with proper Outlook conditionals
+    // border-radius doesn't work in Outlook, so we use a solid border
+    return `<table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border:1px solid #e8e4de;margin-bottom:12px;border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;">
 <tr>
   <td width="90" style="width:90px;vertical-align:top;padding:0;font-size:0;line-height:0;mso-line-height-rule:exactly;">
     ${imgHtml}
@@ -358,10 +499,10 @@ async function buildOrderItemTableHtml(item: any): Promise<string> {
   <td style="vertical-align:top;padding:12px 16px;">
     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;">
     <tr>
-      <td style="font-size:13px;font-weight:600;color:#1a1a1a;font-family:Georgia,'Times New Roman',serif;line-height:1.4;">${name}${qty > 1 ? ` <span style="color:#888;font-weight:400;">x${qty}</span>` : ''}</td>
-      <td style="font-size:13px;font-weight:600;color:#1a1a1a;font-family:Georgia,'Times New Roman',serif;text-align:right;line-height:1.4;">$${Number(price).toFixed(2)}</td>
+      <td style="font-size:13px;font-weight:600;color:#1a1a1a;font-family:Georgia,'Times New Roman',serif;line-height:1.4;mso-line-height-rule:exactly;">${name}${qty > 1 ? ` <span style="color:#888;font-weight:400;">x${qty}</span>` : ''}</td>
+      <td style="font-size:13px;font-weight:600;color:#1a1a1a;font-family:Georgia,'Times New Roman',serif;text-align:right;line-height:1.4;mso-line-height-rule:exactly;">$${Number(price).toFixed(2)}</td>
     </tr>
-    ${summaryHtml ? `<tr><td colspan="2" style="font-size:11px;color:#999;line-height:1.5;padding-top:4px;font-family:Arial,sans-serif;">${summaryHtml}</td></tr>` : ''}
+    ${summaryHtml ? `<tr><td colspan="2" style="font-size:11px;color:#999;line-height:1.5;padding-top:4px;font-family:Arial,sans-serif;mso-line-height-rule:exactly;">${summaryHtml}</td></tr>` : ''}
     </table>
   </td>
 </tr>
