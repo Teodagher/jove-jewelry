@@ -4,6 +4,7 @@
  */
 
 import type { jsPDF as jsPDFType } from 'jspdf'
+import sharp from 'sharp'
 
 export interface CertificateData {
   // Customer Details
@@ -237,14 +238,32 @@ function generateCertificateId(orderNumber: string, lineItemIndex: number, purch
   return `MJ-${year}-${orderNum}-${lineItemIndex + 1}`
 }
 
-// Fetch image and convert to base64
+// Fetch image and convert to base64 (converts WebP to PNG for jsPDF compatibility)
 async function fetchImageAsBase64(url: string): Promise<{ base64: string; format: 'PNG' | 'JPEG' } | null> {
   try {
-    const response = await fetch(url, {
+    // Try the original URL first
+    let response = await fetch(url, {
       headers: {
         'Accept': 'image/*',
       },
     })
+    
+    // If WebP fails, try to find PNG/JPEG version
+    if (!response.ok && url.toLowerCase().includes('.webp')) {
+      // Try PNG version
+      const pngUrl = url.replace(/\.webp$/i, '.PNG')
+      response = await fetch(pngUrl, {
+        headers: { 'Accept': 'image/*' },
+      })
+      
+      if (!response.ok) {
+        // Try lowercase png
+        const pngUrlLower = url.replace(/\.webp$/i, '.png')
+        response = await fetch(pngUrlLower, {
+          headers: { 'Accept': 'image/*' },
+        })
+      }
+    }
     
     if (!response.ok) {
       console.error(`Failed to fetch image: ${response.status} ${response.statusText}`)
@@ -252,15 +271,31 @@ async function fetchImageAsBase64(url: string): Promise<{ base64: string; format
     }
     
     const contentType = response.headers.get('content-type') || ''
-    const buffer = await response.arrayBuffer()
-    const base64 = Buffer.from(buffer).toString('base64')
+    let buffer: Buffer = Buffer.from(await response.arrayBuffer())
     
     // Determine format
     let format: 'PNG' | 'JPEG' = 'PNG'
-    if (contentType.includes('jpeg') || contentType.includes('jpg') || url.toLowerCase().includes('.jpg') || url.toLowerCase().includes('.jpeg')) {
+    const isWebP = contentType.includes('webp') || url.toLowerCase().includes('.webp')
+    const isJpeg = contentType.includes('jpeg') || contentType.includes('jpg') || 
+                   url.toLowerCase().includes('.jpg') || url.toLowerCase().includes('.jpeg')
+    
+    if (isJpeg) {
       format = 'JPEG'
     }
     
+    // Convert WebP to PNG using sharp (jsPDF doesn't support WebP)
+    if (isWebP) {
+      try {
+        const convertedBuffer = await sharp(buffer).png().toBuffer()
+        buffer = Buffer.from(convertedBuffer)
+        format = 'PNG'
+      } catch (convertError) {
+        console.error('Error converting WebP to PNG:', convertError)
+        return null
+      }
+    }
+    
+    const base64 = buffer.toString('base64')
     return { base64, format }
   } catch (error) {
     console.error('Error fetching image:', error)
