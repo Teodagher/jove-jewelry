@@ -105,30 +105,15 @@ export default function AdminOrdersPage() {
       setLoading(true);
       setError(null);
 
-      // Fetch orders with their items
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          order_items (
-            id,
-            jewelry_type,
-            customization_data,
-            customization_summary,
-            base_price,
-            total_price,
-            quantity,
-            subtotal,
-            preview_image_url
-          )
-        `)
-        .order('created_at', { ascending: false });
+      // Fetch orders via API route (uses service_role, bypasses RLS)
+      const res = await fetch('/api/admin/orders/list');
+      const data = await res.json();
 
-      if (ordersError) {
-        throw ordersError;
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to fetch orders');
       }
 
-      setOrders(ordersData || []);
+      setOrders(data.orders || []);
     } catch (err) {
       console.error('Error fetching orders:', err);
       setError('Failed to load orders. Please try again.');
