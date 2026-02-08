@@ -213,11 +213,13 @@ export async function POST(request: Request) {
       result.certificateId
     )
 
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Maison Jové <noreply@maisonjove.com>'
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: 'Maison Jové <noreply@maisonjove.com.au>',
+      from: fromEmail,
       to: [order.customer_email],
       subject: `Your Certificate of Purchase - ${productName}`,
       html: emailHtml,
+      replyTo: process.env.RESEND_REPLY_TO || undefined,
       attachments: [
         {
           filename: `${result.certificateId}.pdf`,
