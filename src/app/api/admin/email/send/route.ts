@@ -3,7 +3,14 @@ import { Resend } from 'resend'
 import { NextResponse } from 'next/server'
 import { CustomizationService } from '@/services/customizationService'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy initialize Resend to avoid build-time errors
+let resendInstance: Resend | null = null
+function getResend(): Resend {
+  if (!resendInstance) {
+    resendInstance = new Resend(process.env.RESEND_API_KEY)
+  }
+  return resendInstance
+}
 
 async function checkAdmin() {
   const supabase = await createClient()
@@ -255,7 +262,7 @@ export async function POST(request: Request) {
     // Send via Resend
     const fromEmail = process.env.RESEND_FROM_EMAIL || 'Maison Jové <noreply@maisonjove.com>'
 
-    const { data: resendData, error: resendError } = await resend.emails.send({
+    const { data: resendData, error: resendError } = await getResend().emails.send({
       from: fromEmail,
       to: [to_email],
       subject: resolvedSubject,

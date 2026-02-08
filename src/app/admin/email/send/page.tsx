@@ -14,6 +14,11 @@ import {
   XCircle,
   ArrowLeft,
   Eye,
+  Award,
+  Download,
+  RefreshCw,
+  Paperclip,
+  FileText,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -53,6 +58,24 @@ interface OrderOption {
   created_at: string
 }
 
+interface CertificateItem {
+  index: number
+  id: string
+  productName: string
+  summary: string
+  imageUrl: string | null
+  price: number
+  certificateId: string
+}
+
+interface GeneratedCertificate {
+  lineItemIndex: number
+  certificateId: string
+  pdfBase64: string
+  filename: string
+  productName: string
+}
+
 export default function SendEmailPage() {
   const [groups, setGroups] = useState<TemplateGroup[]>([])
   const [templates, setTemplates] = useState<EmailTemplate[]>([])
@@ -73,6 +96,12 @@ export default function SendEmailPage() {
   const [resolvedSubject, setResolvedSubject] = useState('')
   const [sending, setSending] = useState(false)
   const bodyRef = useRef<HTMLTextAreaElement>(null)
+
+  // Certificate state
+  const [certificateItems, setCertificateItems] = useState<CertificateItem[]>([])
+  const [generatedCertificates, setGeneratedCertificates] = useState<GeneratedCertificate[]>([])
+  const [generatingCertificate, setGeneratingCertificate] = useState<number | null>(null)
+  const [showCertificatePanel, setShowCertificatePanel] = useState(false)
 
   // Toast
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
@@ -144,6 +173,10 @@ export default function SendEmailPage() {
 
   const handleOrderChange = async (orderId: string) => {
     setSelectedOrderId(orderId)
+    setCertificateItems([])
+    setGeneratedCertificates([])
+    setShowCertificatePanel(false)
+    
     const order = orders.find((o) => o.id === orderId)
     if (order) {
       setToEmail(order.customer_email)
@@ -156,20 +189,88 @@ export default function SendEmailPage() {
         .select('*')
         .eq('order_id', orderId)
       if (items) setSelectedOrderItems(items)
+
+      // Fetch certificate items
+      try {
+        const certRes = await fetch(`/api/admin/certificate?orderId=${orderId}`)
+        if (certRes.ok) {
+          const certData = await certRes.json()
+          setCertificateItems(certData.items || [])
+        }
+      } catch (err) {
+        console.error('Failed to fetch certificate items:', err)
+      }
     } else {
       setSelectedOrderItems([])
     }
   }
 
+  // Generate certificate for a line item
+  const generateCertificate = async (lineItemIndex: number) => {
+    if (!selectedOrderId) return
+    
+    setGeneratingCertificate(lineItemIndex)
+    try {
+      const res = await fetch('/api/admin/certificate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: selectedOrderId,
+          lineItemIndex,
+        }),
+      })
+      
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to generate certificate')
+      }
+      
+      const data = await res.json()
+      
+      // Add to generated certificates
+      setGeneratedCertificates(prev => {
+        const filtered = prev.filter(c => c.lineItemIndex !== lineItemIndex)
+        return [...filtered, {
+          lineItemIndex,
+          certificateId: data.certificateId,
+          pdfBase64: data.pdfBase64,
+          filename: data.filename,
+          productName: data.productName,
+        }]
+      })
+      
+      showToast(`Certificate ${data.certificateId} generated`)
+    } catch (err: any) {
+      showToast(err.message, 'error')
+    } finally {
+      setGeneratingCertificate(null)
+    }
+  }
+
+  // Download certificate PDF
+  const downloadCertificate = (cert: GeneratedCertificate) => {
+    const link = document.createElement('a')
+    link.href = `data:application/pdf;base64,${cert.pdfBase64}`
+    link.download = cert.filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  // Generate all certificates for the order
+  const generateAllCertificates = async () => {
+    for (let i = 0; i < certificateItems.length; i++) {
+      await generateCertificate(i)
+    }
+  }
+
   const buildRealOrderItemsHtml = async (items: any[]): Promise<string> => {
     const renderedItems = await Promise.all(items.map(async (item) => {
-      // Intelligently generate the variant image URL based on customization data
       let displayImageUrl = item.preview_image_url
 
       if (!displayImageUrl && item.jewelry_type) {
         const product = jewelryItems.find(p => p.id === item.jewelry_type)
         if (product && item.customization_data) {
-          // Re-generate the URL using the same logic as the Customization page
           const generatedUrl = await CustomizationService.generateVariantImageUrl(
             product.type,
             item.customization_data
@@ -177,7 +278,6 @@ export default function SendEmailPage() {
           if (generatedUrl) {
             displayImageUrl = generatedUrl
           } else {
-            // Fallback to base image only if generation fails
             displayImageUrl = product.base_image_url
           }
         } else if (product) {
@@ -244,7 +344,6 @@ export default function SendEmailPage() {
     const vars = await buildVariables()
     let resolved = text
 
-    // Handle {{#if variable}}...{{/if}} conditionals
     resolved = resolved.replace(/\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (_, varName, content) => {
       const key = `{{${varName}}}`
       const value = vars[key]
@@ -263,11 +362,9 @@ export default function SendEmailPage() {
 
   useEffect(() => {
     const updatePreview = async () => {
-      // Resolve subject
       const resSubject = await resolveText(subject)
       setResolvedSubject(resSubject)
 
-      // Resolve body
       const resolved = await resolveText(body || selectedTemplate?.body || '')
       if (isFullHtml(resolved)) {
         setPreviewHtml(resolved)
@@ -327,7 +424,7 @@ export default function SendEmailPage() {
           bodyContent: body,
           template_id: selectedTemplateId || undefined,
           order_id: selectedOrderId || undefined,
-          variables: await buildVariables(), // Await buildVariables here
+          variables: await buildVariables(),
         }),
       })
       if (!res.ok) {
@@ -335,14 +432,14 @@ export default function SendEmailPage() {
         throw new Error(data.error || 'Failed to send')
       }
       showToast(`Email sent to ${toEmail}`)
-      // Reset form
       setToEmail('')
       setToName('')
       setSelectedTemplateId('')
       setSelectedOrderId('')
       setSubject('')
       setBody('')
-      // Refresh history
+      setCertificateItems([])
+      setGeneratedCertificates([])
       fetchData()
     } catch (err: any) {
       showToast(err.message, 'error')
@@ -410,7 +507,6 @@ export default function SendEmailPage() {
       minute: '2-digit',
     })
 
-  // Group templates by group for the dropdown
   const templatesByGroup = groups.map((g) => ({
     ...g,
     templates: templates.filter((t) => t.group_id === g.id),
@@ -574,6 +670,125 @@ export default function SendEmailPage() {
                   </p>
                 )}
               </div>
+
+              {/* Certificate Panel - Only shows when order is selected */}
+              {selectedOrderId && certificateItems.length > 0 && (
+                <div className="border border-amber-200 bg-amber-50/50 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setShowCertificatePanel(!showCertificatePanel)}
+                    className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-amber-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Award className="w-4 h-4 text-amber-600" />
+                      <span className="text-sm font-semibold text-amber-900">Certificate of Purchase</span>
+                      <span className="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded font-medium">
+                        {certificateItems.length} item{certificateItems.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-amber-600 transition-transform ${showCertificatePanel ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {showCertificatePanel && (
+                    <div className="px-4 pb-4 border-t border-amber-200">
+                      <p className="text-[11px] text-amber-700 mt-3 mb-3">
+                        Generate luxury PDF certificates for each item in this order.
+                      </p>
+                      
+                      {/* Generate All Button */}
+                      {certificateItems.length > 1 && generatedCertificates.length !== certificateItems.length && (
+                        <button
+                          onClick={generateAllCertificates}
+                          disabled={generatingCertificate !== null}
+                          className="w-full mb-3 flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-colors"
+                        >
+                          <Award className="w-3.5 h-3.5" />
+                          Generate All Certificates
+                        </button>
+                      )}
+                      
+                      {/* Individual Items */}
+                      <div className="space-y-2">
+                        {certificateItems.map((item) => {
+                          const generated = generatedCertificates.find(c => c.lineItemIndex === item.index)
+                          const isGenerating = generatingCertificate === item.index
+                          
+                          return (
+                            <div key={item.id} className="flex items-center gap-3 p-2 bg-white rounded-lg border border-amber-100">
+                              {/* Thumbnail */}
+                              <div className="w-10 h-10 bg-gray-100 rounded overflow-hidden flex-shrink-0">
+                                {item.imageUrl ? (
+                                  <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                    <FileText className="w-4 h-4" />
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Info */}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-zinc-900 truncate">{item.productName}</p>
+                                <p className="text-[10px] text-zinc-400 truncate">{item.certificateId}</p>
+                              </div>
+                              
+                              {/* Actions */}
+                              <div className="flex items-center gap-1">
+                                {generated ? (
+                                  <>
+                                    <button
+                                      onClick={() => downloadCertificate(generated)}
+                                      className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
+                                      title="Download PDF"
+                                    >
+                                      <Download className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => generateCertificate(item.index)}
+                                      disabled={isGenerating}
+                                      className="p-1.5 text-zinc-400 hover:text-zinc-600 hover:bg-gray-100 rounded transition-colors"
+                                      title="Regenerate"
+                                    >
+                                      <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
+                                    </button>
+                                    <span className="text-[10px] font-medium text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
+                                      Ready
+                                    </span>
+                                  </>
+                                ) : (
+                                  <button
+                                    onClick={() => generateCertificate(item.index)}
+                                    disabled={isGenerating}
+                                    className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium bg-amber-100 text-amber-700 rounded hover:bg-amber-200 disabled:opacity-50 transition-colors"
+                                  >
+                                    {isGenerating ? (
+                                      <>
+                                        <RefreshCw className="w-3 h-3 animate-spin" />
+                                        Generating...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Award className="w-3 h-3" />
+                                        Generate
+                                      </>
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      
+                      {generatedCertificates.length > 0 && (
+                        <p className="text-[10px] text-amber-600 mt-3 flex items-center gap-1">
+                          <Paperclip className="w-3 h-3" />
+                          Download certificates and attach to email manually.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Template Selection */}
               <div>

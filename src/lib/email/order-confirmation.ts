@@ -2,10 +2,24 @@ import { Resend } from 'resend'
 import { createClient } from '@supabase/supabase-js'
 import { CustomizationService } from '@/services/customizationService'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+// Lazy initialize to avoid build-time errors
+let resendInstance: Resend | null = null
+function getResend(): Resend {
+  if (!resendInstance) {
+    resendInstance = new Resend(process.env.RESEND_API_KEY)
+  }
+  return resendInstance
+}
+
+let supabaseInstance: ReturnType<typeof createClient> | null = null
+function getSupabase() {
+  if (!supabaseInstance) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+    supabaseInstance = createClient(supabaseUrl, supabaseServiceKey)
+  }
+  return supabaseInstance
+}
 
 /**
  * Automatically sends order confirmation emails to both client and admin.
@@ -16,11 +30,11 @@ export async function sendOrderConfirmationEmails(orderId: string) {
 
     try {
         // 1. Fetch Order and Items
-        const { data: order, error: orderError } = await supabase
+        const { data: order, error: orderError } = await getSupabase()
             .from('orders')
             .select('*')
             .eq('id', orderId)
-            .single()
+            .single() as { data: any; error: any }
 
         if (orderError || !order) {
             console.error('[EmailService] Order not found:', orderError)
@@ -28,9 +42,9 @@ export async function sendOrderConfirmationEmails(orderId: string) {
         }
 
         // Retry fetching items to handle race conditions with webhooks/triggers
-        let orderItems = []
+        let orderItems: any[] = []
         for (let i = 0; i < 3; i++) {
-            const { data } = await supabase
+            const { data } = await getSupabase()
                 .from('order_items')
                 .select('*')
                 .eq('order_id', orderId)
@@ -48,13 +62,13 @@ export async function sendOrderConfirmationEmails(orderId: string) {
         }
 
         // 2. Fetch Templates
-        const { data: templates } = await supabase
+        const { data: templates } = await getSupabase()
             .from('email_templates')
             .select('*')
-            .in('name', ['Order Confirmation - Client', 'Order Confirmation - Admin'])
+            .in('name', ['Order Confirmation - Client', 'Order Confirmation - Admin']) as { data: any[] | null }
 
-        const clientTemplate = templates?.find(t => t.name === 'Order Confirmation - Client')
-        const adminTemplate = templates?.find(t => t.name === 'Order Confirmation - Admin')
+        const clientTemplate = templates?.find((t: any) => t.name === 'Order Confirmation - Client')
+        const adminTemplate = templates?.find((t: any) => t.name === 'Order Confirmation - Admin')
 
         if (!clientTemplate || !adminTemplate) {
             console.error('[EmailService] Templates not found. Client:', !!clientTemplate, 'Admin:', !!adminTemplate)
@@ -88,7 +102,7 @@ export async function sendOrderConfirmationEmails(orderId: string) {
         // 5. Send Client Email
         if (clientTemplate && order.customer_email) {
             // Check for duplicate send (Idempotency)
-            const { data: existing } = await supabase
+            const { data: existing } = await getSupabase()
                 .from('email_send_history')
                 .select('id')
                 .eq('to_email', order.customer_email)
@@ -106,7 +120,7 @@ export async function sendOrderConfirmationEmails(orderId: string) {
                 const body = resolveVariables(clientTemplate.content, variables)
                 const html = buildHtmlEmail(body)
 
-                const { error: clientError } = await resend.emails.send({
+                const { error: clientError } = await getResend().emails.send({
                     from: fromEmail,
                     to: [order.customer_email],
                     replyTo: replyTo || undefined,
@@ -126,7 +140,7 @@ export async function sendOrderConfirmationEmails(orderId: string) {
         if (adminTemplate) {
             const adminEmail = process.env.RESEND_REPLY_TO || 'admin@maisonjove.com'
 
-            const { data: existingAdmin } = await supabase
+            const { data: existingAdmin } = await getSupabase()
                 .from('email_send_history')
                 .select('id')
                 .eq('to_email', adminEmail)
@@ -142,7 +156,7 @@ export async function sendOrderConfirmationEmails(orderId: string) {
                 const body = resolveVariables(adminTemplate.content, variables)
                 const html = buildHtmlEmail(body)
 
-                const { error: adminError } = await resend.emails.send({
+                const { error: adminError } = await getResend().emails.send({
                     from: fromEmail,
                     to: [adminEmail],
                     subject,
@@ -227,11 +241,11 @@ async function buildOrderItemTableHtml(item: any): Promise<string> {
 
     if (!imgUrl && item.jewelry_type) {
         try {
-            const { data: product } = await supabase
+            const { data: product } = await getSupabase()
                 .from('jewelry_items')
                 .select('type, base_image_url')
                 .eq('id', item.jewelry_type)
-                .single()
+                .single() as { data: any }
 
             if (product) {
                 if (item.customization_data && Object.keys(item.customization_data).length > 0) {
@@ -289,7 +303,7 @@ function formatJewelryType(type: string): string {
 
 async function logEmailHistory(orderId: string, templateId: string, toEmail: string, toName: string, subject: string, body: string, status: 'sent' | 'failed') {
     try {
-        await supabase.from('email_send_history').insert({
+        await (getSupabase().from('email_send_history') as any).insert({
             template_id: templateId,
             to_email: toEmail,
             to_name: toName,
