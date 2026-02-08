@@ -26,7 +26,8 @@ import {
   Images,
   Globe,
   FolderOpen,
-  Sparkles
+  Sparkles,
+  ShieldCheck
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -60,6 +61,7 @@ const navigation = [
   },
   { name: 'Media Library', href: '/admin/media-library', icon: Images },
   { name: 'Orders', href: '/admin/orders', icon: Package },
+  { name: 'User Accounts', href: '/admin/users', icon: ShieldCheck },
   { name: 'Live Chat', href: '/admin/chat', icon: MessageCircle },
   { name: 'Promo Codes', href: '/admin/promo-codes', icon: Tag },
   { name: 'Customers', href: '/admin/customers', icon: Users },
@@ -100,21 +102,40 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     loading
   });
 
-  // Handle auth state
+  // Handle auth state with admin role verification
   useEffect(() => {
+    const checkAdminRole = async (authUser: typeof user) => {
+      if (!authUser) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select('roles')
+        .eq('auth_user_id', authUser.id)
+        .single() as { data: { roles: string[] | null } | null };
+
+      if (userData?.roles?.includes('admin')) {
+        setUser(authUser);
+      } else {
+        logger.log('⚠️ AdminLayout: User is not admin, clearing user');
+        setUser(null);
+      }
+      setLoading(false);
+    };
 
     // Get initial user
     supabase.auth.getUser().then(({ data }) => {
       logger.log('🏗️ AdminLayout: Initial user check:', { hasUser: !!data.user, userId: data.user?.id });
-      setUser(data.user);
-      setLoading(false);
+      checkAdminRole(data.user);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       logger.log('🔔 AdminLayout: Auth state changed:', { hasUser: !!session?.user, userId: session?.user?.id });
-      setUser(session?.user ?? null);
-      setLoading(false);
+      checkAdminRole(session?.user ?? null);
     });
 
     return () => subscription.unsubscribe();
@@ -126,7 +147,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       router.replace('/admin');
     }
     if (!loading && !user && pathname !== '/admin/login') {
-      router.replace(`/auth/login?redirect=${pathname}`);
+      router.replace('/admin/login');
     }
   }, [user, loading, pathname, router]);
 

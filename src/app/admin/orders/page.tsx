@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import {
   Package,
@@ -23,7 +24,8 @@ import {
   ExternalLink,
   Plus,
   Tag,
-  Trash2
+  Trash2,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ManualOrderForm from '@/components/admin/ManualOrderForm';
@@ -98,6 +100,7 @@ export default function AdminOrdersPage() {
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ orderId: string; orderNumber: string } | null>(null);
   const [showSecondConfirm, setShowSecondConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [usersMap, setUsersMap] = useState<Record<string, { id: string; full_name: string | null }>>({});
 
 
   const fetchOrders = useCallback(async () => {
@@ -129,13 +132,30 @@ export default function AdminOrdersPage() {
       }
 
       setOrders(ordersData || []);
+
+      // Fetch users lookup (separate try/catch so orders still load if this fails)
+      try {
+        const { data: usersData, error: usersError } = await (supabase as any)
+          .from('users')
+          .select('id, email, full_name');
+
+        if (!usersError && usersData) {
+          const map: Record<string, { id: string; full_name: string | null }> = {};
+          usersData.forEach((u: { id: string; email: string; full_name: string | null }) => {
+            if (u.email) map[u.email.toLowerCase()] = { id: u.id, full_name: u.full_name };
+          });
+          setUsersMap(map);
+        }
+      } catch {
+        // Users lookup is non-critical; orders page still works without it
+      }
     } catch (err) {
       console.error('Error fetching orders:', err);
       setError('Failed to load orders. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
@@ -466,6 +486,16 @@ export default function AdminOrdersPage() {
                     <MapPin className="h-4 w-4" />
                     <span>{order.delivery_city}</span>
                   </div>
+                  {usersMap[order.customer_email?.toLowerCase()] && (
+                    <Link
+                      href={`/admin/users/${usersMap[order.customer_email.toLowerCase()].id}`}
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      View Account
+                    </Link>
+                  )}
                 </div>
               </div>
 
@@ -494,6 +524,17 @@ export default function AdminOrdersPage() {
                             {order.customer_phone}
                           </a>
                         </div>
+                        {usersMap[order.customer_email?.toLowerCase()] && (
+                          <div className="mt-2">
+                            <Link
+                              href={`/admin/users/${usersMap[order.customer_email.toLowerCase()].id}`}
+                              className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded"
+                            >
+                              <ShieldCheck className="h-3.5 w-3.5" />
+                              View Account
+                            </Link>
+                          </div>
+                        )}
                       </div>
                     </div>
 
