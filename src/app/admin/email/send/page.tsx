@@ -102,6 +102,7 @@ export default function SendEmailPage() {
   const [generatedCertificates, setGeneratedCertificates] = useState<GeneratedCertificate[]>([])
   const [generatingCertificate, setGeneratingCertificate] = useState<number | null>(null)
   const [showCertificatePanel, setShowCertificatePanel] = useState(false)
+  const [sendingCertificateEmail, setSendingCertificateEmail] = useState<number | null>(null)
 
   // Toast
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
@@ -261,6 +262,35 @@ export default function SendEmailPage() {
   const generateAllCertificates = async () => {
     for (let i = 0; i < certificateItems.length; i++) {
       await generateCertificate(i)
+    }
+  }
+
+  // Send certificate email with PDF attached
+  const sendCertificateEmail = async (lineItemIndex: number) => {
+    if (!selectedOrderId) return
+    
+    setSendingCertificateEmail(lineItemIndex)
+    try {
+      const res = await fetch('/api/admin/certificate/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: selectedOrderId,
+          lineItemIndex,
+        }),
+      })
+      
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to send certificate email')
+      }
+      
+      const data = await res.json()
+      showToast(`Certificate sent to ${data.sentTo}`)
+    } catch (err: any) {
+      showToast(err.message, 'error')
+    } finally {
+      setSendingCertificateEmail(null)
     }
   }
 
@@ -785,18 +815,36 @@ export default function SendEmailPage() {
                                     )}
                                   </button>
                                 )}
+                                
+                                {/* Send Certificate Email Button */}
+                                <button
+                                  onClick={() => sendCertificateEmail(item.index)}
+                                  disabled={sendingCertificateEmail === item.index}
+                                  className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50 transition-colors ml-1"
+                                  title="Send certificate email with PDF attached"
+                                >
+                                  {sendingCertificateEmail === item.index ? (
+                                    <>
+                                      <RefreshCw className="w-3 h-3 animate-spin" />
+                                      Sending...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Mail className="w-3 h-3" />
+                                      Send Email
+                                    </>
+                                  )}
+                                </button>
                               </div>
                             </div>
                           )
                         })}
                       </div>
                       
-                      {generatedCertificates.length > 0 && (
-                        <p className="text-[10px] text-amber-600 mt-3 flex items-center gap-1">
-                          <Paperclip className="w-3 h-3" />
-                          Download certificates and attach to email manually.
-                        </p>
-                      )}
+                      <p className="text-[10px] text-amber-600 mt-3 flex items-center gap-1">
+                        <Mail className="w-3 h-3" />
+                        Click &quot;Send Email&quot; to email certificate directly to customer with PDF attached.
+                      </p>
                         </>
                       )}
                     </div>

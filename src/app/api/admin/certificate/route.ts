@@ -74,11 +74,12 @@ export async function POST(request: Request) {
 
     const item = orderItems[lineItemIndex]
 
-    // Get product image URL
-    let productImageUrl = item.preview_image_url
+    // Get product image URL - prioritize main product image from database
+    let productImageUrl: string | undefined = undefined
+    let productData: { type?: string; name?: string; base_image_url?: string } | null = null
 
-    if (!productImageUrl && item.jewelry_type) {
-      // Try to get product info
+    if (item.jewelry_type) {
+      // Get product info from database
       const { data: product } = await (supabase
         .from('jewelry_items') as any)
         .select('type, name, base_image_url')
@@ -86,17 +87,15 @@ export async function POST(request: Request) {
         .single()
 
       if (product) {
-        if (item.customization_data && Object.keys(item.customization_data).length > 0) {
-          // Generate variant URL
-          const generatedUrl = await CustomizationService.generateVariantImageUrl(
-            product.type,
-            item.customization_data
-          )
-          productImageUrl = generatedUrl || product.base_image_url
-        } else {
-          productImageUrl = product.base_image_url
-        }
+        productData = product
+        // Always use the main product image from database
+        productImageUrl = product.base_image_url || undefined
       }
+    }
+
+    // Fallback to item's preview image if no main image found
+    if (!productImageUrl) {
+      productImageUrl = item.preview_image_url || undefined
     }
 
     // Build certificate data
@@ -106,7 +105,7 @@ export async function POST(request: Request) {
       customerPhone: order.customer_phone || undefined,
       orderNumber: order.order_number || order.id.slice(0, 8).toUpperCase(),
       purchaseDate: order.created_at,
-      productName: formatProductName(item.jewelry_type, item.product_name),
+      productName: formatProductName(item.jewelry_type, productData?.name || item.product_name),
       productImageUrl,
       lineItemIndex,
       specifications: parseCustomizationToSpecs(item.customization_data || {})
