@@ -158,8 +158,36 @@ export default function SendEmailPage() {
 
   const selectedTemplate = templates.find((t) => t.id === selectedTemplateId) || null
 
+  // Certificate template content
+  const CERTIFICATE_TEMPLATE_ID = '__certificate__'
+  const getCertificateEmailContent = (customerName: string, productName: string) => ({
+    subject: `Your Certificate of Purchase - ${productName || 'Maison Jové'}`,
+    body: `Dear ${customerName || '{{customer_name}}'},
+
+Thank you for your recent purchase from Maison Jové. We are honored to have crafted your exquisite piece and hope it brings you joy for years to come.
+
+Please find attached your official Certificate of Purchase for your ${productName || 'jewelry piece'}. This certificate serves as documentation of your unique piece and its specifications.
+
+Should you have any questions about your purchase or require any assistance, please don't hesitate to reach out. We are always here to help.
+
+With warm regards,
+
+Joey Germani
+Founder, Maison Jové`
+  })
+
   const handleTemplateChange = (id: string) => {
     setSelectedTemplateId(id)
+    
+    // Special handling for certificate template
+    if (id === CERTIFICATE_TEMPLATE_ID) {
+      const productName = certificateItems[0]?.productName || ''
+      const content = getCertificateEmailContent(toName, productName)
+      setSubject(content.subject)
+      setBody(content.body)
+      return
+    }
+    
     const tmpl = templates.find((t) => t.id === id)
     if (tmpl) {
       setSubject(tmpl.subject)
@@ -444,24 +472,46 @@ export default function SendEmailPage() {
     }
     setSending(true)
     try {
-      const res = await fetch('/api/admin/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to_email: toEmail,
-          to_name: toName,
-          subject,
-          bodyContent: body,
-          template_id: selectedTemplateId || undefined,
-          order_id: selectedOrderId || undefined,
-          variables: await buildVariables(),
-        }),
-      })
-      if (!res.ok) {
+      // Special handling for certificate template - send with PDF attached
+      if (selectedTemplateId === CERTIFICATE_TEMPLATE_ID && selectedOrderId) {
+        // Send certificate email for each item (or just first item for single-item orders)
+        const itemIndex = 0 // Send certificate for first item
+        const res = await fetch('/api/admin/certificate/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: selectedOrderId,
+            lineItemIndex: itemIndex,
+          }),
+        })
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.error || 'Failed to send certificate email')
+        }
         const data = await res.json()
-        throw new Error(data.error || 'Failed to send')
+        showToast(`Certificate sent to ${data.sentTo}`)
+      } else {
+        // Regular email send
+        const res = await fetch('/api/admin/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to_email: toEmail,
+            to_name: toName,
+            subject,
+            bodyContent: body,
+            template_id: selectedTemplateId || undefined,
+            order_id: selectedOrderId || undefined,
+            variables: await buildVariables(),
+          }),
+        })
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.error || 'Failed to send')
+        }
+        showToast(`Email sent to ${toEmail}`)
       }
-      showToast(`Email sent to ${toEmail}`)
+      
       setToEmail('')
       setToName('')
       setSelectedTemplateId('')
@@ -861,6 +911,12 @@ export default function SendEmailPage() {
                   className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-400"
                 >
                   <option value="">Select a template...</option>
+                  {/* Certificate template - only show when order is selected */}
+                  {selectedOrderId && (
+                    <optgroup label="Certificates">
+                      <option value={CERTIFICATE_TEMPLATE_ID}>📜 Certificate of Purchase</option>
+                    </optgroup>
+                  )}
                   {templatesByGroup.map((g) =>
                     g.templates.length > 0 && (
                       <optgroup key={g.id} label={g.name}>
@@ -878,6 +934,12 @@ export default function SendEmailPage() {
                     </optgroup>
                   )}
                 </select>
+                {selectedTemplateId === CERTIFICATE_TEMPLATE_ID && (
+                  <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
+                    <Paperclip className="w-3 h-3" />
+                    PDF certificate will be automatically attached when you send
+                  </p>
+                )}
               </div>
 
               {/* Subject */}
