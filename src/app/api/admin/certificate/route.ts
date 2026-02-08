@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { generateCertificatePDF, parseCustomizationToSpecs, type CertificateData } from '@/services/certificateService'
-import { CustomizationService } from '@/services/customizationService'
+import { DynamicFilenameService } from '@/services/dynamicFilenameService'
 
 async function checkAdmin() {
   const supabase = await createClient()
@@ -30,6 +30,69 @@ function formatProductName(jewelryType: string, productName?: string): string {
   }
   const lower = jewelryType?.toLowerCase() || 'jewelry'
   return map[lower] || ('Custom ' + lower.charAt(0).toUpperCase() + lower.slice(1))
+}
+
+// Build variant key from customization data (same logic as DynamicFilenameService)
+async function buildVariantKey(jewelryType: string, customizationData: Record<string, string>): Promise<string | null> {
+  try {
+    // Convert customizations to format expected by DynamicFilenameService
+    const variantOptions = Object.entries(customizationData).map(([settingId, optionId]) => ({
+      setting_id: settingId,
+      option_id: String(optionId)
+    }));
+
+    // Generate filename using dynamic service (returns with .webp extension)
+    const filename = await DynamicFilenameService.generateDynamicFilename(jewelryType, variantOptions);
+    
+    // Remove extension to get variant key
+    const variantKey = filename.replace(/\.[^/.]+$/, '');
+    return variantKey;
+  } catch (error) {
+    console.error('Error building variant key:', error);
+    return null;
+  }
+}
+
+// Get the primary image for a variant from variant_images table
+async function getVariantPrimaryImage(supabase: any, variantKey: string): Promise<string | null> {
+  try {
+    // First try to get the primary image
+    const { data: primaryImage, error: primaryError } = await supabase
+      .from('variant_images')
+      .select('image_url')
+      .eq('variant_key', variantKey)
+      .eq('is_primary', true)
+      .single();
+
+    if (!primaryError && primaryImage?.image_url) {
+      return primaryImage.image_url;
+    }
+
+    // Fallback: get the first image by display_order
+    const { data: firstImage, error: firstError } = await supabase
+      .from('variant_images')
+      .select('image_url')
+      .eq('variant_key', variantKey)
+      .order('display_order', { ascending: true })
+      .limit(1)
+      .single();
+
+    if (!firstError && firstImage?.image_url) {
+      return firstImage.image_url;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching variant primary image:', error);
+    return null;
+  }
+}
+
+// Generate variant image URL from storage (fallback)
+function buildVariantStorageUrl(jewelryType: string, variantKey: string): string {
+  const baseUrl = 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item';
+  const folder = `${jewelryType}s`;
+  return `${baseUrl}/${folder}/${variantKey}.webp`;
 }
 
 export async function POST(request: Request) {
@@ -73,29 +136,45 @@ export async function POST(request: Request) {
     }
 
     const item = orderItems[lineItemIndex]
+    const customizationData = item.customization_data || {}
 
-    // Get product image URL - prioritize main product image from database
-    let productImageUrl: string | undefined = undefined
+    // Get product info
     let productData: { type?: string; name?: string; base_image_url?: string } | null = null
-
     if (item.jewelry_type) {
-      // Get product info from database
       const { data: product } = await (supabase
         .from('jewelry_items') as any)
         .select('type, name, base_image_url')
         .eq('id', item.jewelry_type)
         .single()
+      productData = product
+    }
 
-      if (product) {
-        productData = product
-        // Always use the main product image from database
-        productImageUrl = product.base_image_url || undefined
+    // Determine the best image URL for this specific variant
+    let productImageUrl: string | undefined = undefined
+
+    if (item.jewelry_type && Object.keys(customizationData).length > 0) {
+      // Build variant key from customization data
+      const variantKey = await buildVariantKey(item.jewelry_type, customizationData)
+      
+      if (variantKey) {
+        // Try to get the primary image from variant_images table (gallery images)
+        const galleryImage = await getVariantPrimaryImage(supabase, variantKey)
+        
+        if (galleryImage) {
+          productImageUrl = galleryImage
+          console.log('[Certificate] Using gallery image:', productImageUrl)
+        } else {
+          // Fallback: use the generated variant URL from storage
+          productImageUrl = buildVariantStorageUrl(item.jewelry_type, variantKey)
+          console.log('[Certificate] Using storage variant image:', productImageUrl)
+        }
       }
     }
 
-    // Fallback to item's preview image if no main image found
+    // Final fallbacks
     if (!productImageUrl) {
-      productImageUrl = item.preview_image_url || undefined
+      productImageUrl = item.preview_image_url || productData?.base_image_url || undefined
+      console.log('[Certificate] Using fallback image:', productImageUrl)
     }
 
     // Build certificate data
@@ -108,7 +187,7 @@ export async function POST(request: Request) {
       productName: formatProductName(item.jewelry_type, productData?.name || item.product_name),
       productImageUrl,
       lineItemIndex,
-      specifications: parseCustomizationToSpecs(item.customization_data || {})
+      specifications: parseCustomizationToSpecs(customizationData)
     }
 
     // Generate PDF

@@ -400,36 +400,42 @@ export async function generateCertificatePDF(data: CertificateData): Promise<Cer
   
   yPos += 12
   
-  // Specification items - two columns
-  const specs = Object.entries(data.specifications)
-    .filter(([_, value]) => value && value.trim())
-    .map(([key, value]) => ({
+  // Specification items - VERTICAL bullet list format (centered)
+  // Order: Metal, First Stone, Second Stone, Size
+  const specOrder = ['metalType', 'mainStone', 'secondaryStones', 'size', 'diamondCut', 'color', 'cordColor', 'chainLength', 'engraving']
+  
+  const specs = specOrder
+    .filter(key => data.specifications[key] && data.specifications[key]!.trim())
+    .map(key => ({
       label: formatLabel(key),
-      value: formatValue(key, value as string)
+      value: formatValue(key, data.specifications[key] as string)
     }))
   
   doc.setFontSize(10)
-  const specLineHeight = 8
-  const colWidth = contentWidth / 2 - 10
+  const specLineHeight = 7
+  
+  // Calculate the centered position for specs
+  const specStartX = margin + 30
   
   specs.forEach((spec, index) => {
-    const isLeftCol = index % 2 === 0
-    const x = isLeftCol ? margin + 15 : margin + colWidth + 25
-    const row = Math.floor(index / 2)
-    const y = yPos + row * specLineHeight
+    const y = yPos + index * specLineHeight
+    
+    // Bullet point
+    doc.setTextColor(201, 169, 110) // Gold bullet
+    doc.text('•', specStartX, y)
     
     // Label
     doc.setTextColor(102, 102, 102)
     doc.setFont('helvetica', 'normal')
-    doc.text(`${spec.label}:`, x, y)
+    doc.text(`${spec.label}:`, specStartX + 5, y)
     
     // Value
     doc.setTextColor(26, 26, 26)
     doc.setFont('helvetica', 'bold')
-    doc.text(spec.value, x + 45, y)
+    doc.text(spec.value, specStartX + 45, y)
   })
   
-  yPos += Math.ceil(specs.length / 2) * specLineHeight + 15
+  yPos += specs.length * specLineHeight + 10
   
   // Divider
   doc.setDrawColor(232, 223, 213)
