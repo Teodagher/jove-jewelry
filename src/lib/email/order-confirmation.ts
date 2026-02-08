@@ -232,6 +232,57 @@ ${htmlBody}
 </html>`
 }
 
+// Get the primary image for a variant from variant_images table
+async function getVariantPrimaryImage(variantKey: string): Promise<string | null> {
+    try {
+        // First try to get the primary image
+        const { data: primaryImage } = await getSupabase()
+            .from('variant_images')
+            .select('image_url')
+            .eq('variant_key', variantKey)
+            .eq('is_primary', true)
+            .single() as { data: { image_url: string } | null }
+
+        if (primaryImage?.image_url) {
+            return primaryImage.image_url
+        }
+
+        // Fallback: get the first image by display_order
+        const { data: firstImage } = await getSupabase()
+            .from('variant_images')
+            .select('image_url')
+            .eq('variant_key', variantKey)
+            .order('display_order', { ascending: true })
+            .limit(1)
+            .single() as { data: { image_url: string } | null }
+
+        if (firstImage?.image_url) {
+            return firstImage.image_url
+        }
+
+        return null
+    } catch (error) {
+        return null
+    }
+}
+
+// Extract variant key from a customization-item URL
+function extractVariantKeyFromUrl(url: string): string | null {
+    // URL format: .../customization-item/{type}s/{filename}.webp
+    const match = url.match(/customization-item\/[^/]+\/([^/]+)\.[a-zA-Z0-9]+$/)
+    return match ? match[1] : null
+}
+
+// Verify if a URL is accessible (returns 200)
+async function verifyImageUrl(url: string): Promise<boolean> {
+    try {
+        const response = await fetch(url, { method: 'HEAD' })
+        return response.ok
+    } catch {
+        return false
+    }
+}
+
 async function buildOrderItemTableHtml(item: any): Promise<string> {
     const name = item.product_name || formatJewelryType(item.jewelry_type || 'Jewelry')
     let imgUrl = item.preview_image_url
@@ -250,7 +301,31 @@ async function buildOrderItemTableHtml(item: any): Promise<string> {
             if (product) {
                 if (item.customization_data && Object.keys(item.customization_data).length > 0) {
                     const generatedUrl = await CustomizationService.generateVariantImageUrl(product.type, item.customization_data)
-                    imgUrl = generatedUrl || product.base_image_url
+                    
+                    if (generatedUrl) {
+                        // Try to get gallery image first (higher quality/angled shots)
+                        const variantKey = extractVariantKeyFromUrl(generatedUrl)
+                        if (variantKey) {
+                            const galleryImage = await getVariantPrimaryImage(variantKey)
+                            if (galleryImage) {
+                                imgUrl = galleryImage
+                            } else {
+                                // Verify the generated URL exists before using it
+                                const exists = await verifyImageUrl(generatedUrl)
+                                if (exists) {
+                                    imgUrl = generatedUrl
+                                } else {
+                                    // Fall back to base image if variant doesn't exist
+                                    console.warn(`[Email] Variant image not found: ${generatedUrl}, using base image`)
+                                    imgUrl = product.base_image_url
+                                }
+                            }
+                        } else {
+                            imgUrl = generatedUrl
+                        }
+                    } else {
+                        imgUrl = product.base_image_url
+                    }
                 } else {
                     imgUrl = product.base_image_url
                 }
