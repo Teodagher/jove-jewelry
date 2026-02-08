@@ -5,9 +5,10 @@ import NaturalDiamondsSection from '@/components/NaturalDiamondsSection'
 import CraftsmanshipSection from '@/components/CraftsmanshipSection'
 import BespokeSection from '@/components/BespokeSection'
 import OurWorkGallery from '@/components/OurWorkGallery'
+import OurWorkPresets from '@/components/OurWorkPresets'
 import Footer from '@/components/Footer'
+import InstagramFeed from '@/components/InstagramFeed'
 import LiveChatWidget from '@/components/LiveChatWidget'
-import AdminQuickAccessBar from '@/components/AdminQuickAccessBar'
 import ScrollToHashOnLoad from '@/components/ScrollToHashOnLoad'
 import { createClient } from '@supabase/supabase-js'
 
@@ -52,20 +53,21 @@ export default async function Home() {
       {/* Bespoke/Customization Section */}
       <BespokeSection />
       
-      {/* Our Work Gallery - Infinite scroll */}
-      {/* <OurWorkGallery /> */}
+      {/* Our Work - Preset showcase with infinite scroll */}
+      <OurWorkPresets />
       
       {/* Lab-Grown Diamonds Info */}
       <CraftsmanshipSection />
       
+      {/* Instagram Feed */}
+      <InstagramFeed />
+
       {/* Footer */}
       <Footer />
       
       {/* Live Chat Widget */}
       {/* <LiveChatWidget /> */}
       
-      {/* Admin Quick Access Bar (only visible to admins) */}
-      <AdminQuickAccessBar />
     </main>
   )
 }

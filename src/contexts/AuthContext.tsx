@@ -10,11 +10,18 @@ import {
 import { supabase } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
+type SignUpMetadata = {
+  first_name: string;
+  last_name: string;
+  phone: string;
+  country?: string;
+};
+
 type AuthContextType = {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, metadata?: SignUpMetadata) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 };
 
@@ -25,22 +32,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
+    // Get initial user (server-validated, not from local storage)
+    const getInitialUser = async () => {
       const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      if (error) {
-        console.error("Error getting session:", error);
-      }
-
-      setUser(session?.user ?? null);
+      setUser(user ?? null);
       setLoading(false);
     };
 
-    getInitialSession();
+    getInitialUser();
 
     // Listen for auth changes
     const {
@@ -52,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase]);
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -63,11 +65,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+  const signUp = async (email: string, password: string, metadata?: SignUpMetadata) => {
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: metadata ? {
+        data: {
+          first_name: metadata.first_name,
+          last_name: metadata.last_name,
+          full_name: `${metadata.first_name} ${metadata.last_name}`.trim(),
+          phone: metadata.phone,
+          country: metadata.country,
+        },
+      } : undefined,
     });
+
+    // Detect repeated signup (account already exists)
+    if (!error && data?.user?.identities?.length === 0) {
+      return { error: new Error("ACCOUNT_EXISTS") };
+    }
 
     return { error };
   };

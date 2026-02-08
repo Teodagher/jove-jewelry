@@ -4,8 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2025-11-17.clover',
-    })
+    apiVersion: '2025-11-17.clover',
+  })
   : null;
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
@@ -82,7 +82,8 @@ export async function POST(request: NextRequest) {
             images: item.preview_image_url ? [item.preview_image_url] : [],
             metadata: {
               jewelry_type: item.jewelry_type,
-              customization_summary: customizationText
+              customization_summary: customizationText,
+              customization_data: JSON.stringify(item.customization_data || {}).slice(0, 500)
             }
           },
           unit_amount: Math.round(item.total_price * 100), // Stripe expects cents

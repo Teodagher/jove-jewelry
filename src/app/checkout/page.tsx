@@ -1,16 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
-import { MapPin, CreditCard, Truck, Clock, Banknote } from 'lucide-react';
+import { MapPin, CreditCard, Truck, Clock, Banknote, User } from 'lucide-react';
 import ValentinesGiftBox from '@/components/ValentinesGiftBox';
 import PaymentMethodCard from '@/components/ui/payment-method-card';
 import { useToast } from '@/contexts/ToastContext';
 import GoogleMapsModal from '@/components/GoogleMapsModal';
 import HandcraftedBanner from '@/components/HandcraftedBanner';
+import PhoneInput from '@/components/PhoneInput';
 import { getMarketClient, MARKET_INFO } from '@/lib/market-client';
 import { getCurrency, formatPriceForMarket } from '@/lib/currency';
 import { useStripeCheckout } from '@/hooks/useStripeCheckout';
@@ -20,7 +22,6 @@ interface OrderFormData {
   firstName: string;
   lastName: string;
   email: string;
-  countryCode: string;
   phone: string;
   address: string;
   city: string;
@@ -35,7 +36,20 @@ interface OrderFormData {
 type PaymentMethod = 'stripe' | 'cash_on_delivery';
 
 export default function CheckoutPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto"></div>
+      </div>
+    }>
+      <CheckoutContent />
+    </Suspense>
+  );
+}
+
+function CheckoutContent() {
   const { items, itemCount, subtotal, clearCart, loading: cartLoading } = useCart();
+  const { user } = useAuth();
   const { error: showError, success: showSuccess, luxury: showLuxury } = useToast();
   const searchParams = useSearchParams();
 
@@ -58,7 +72,6 @@ export default function CheckoutPage() {
     firstName: '',
     lastName: '',
     email: '',
-    countryCode: '+961',
     phone: '',
     address: '',
     city: '',
@@ -67,6 +80,7 @@ export default function CheckoutPage() {
     floor: '',
     notes: ''
   });
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showMapModal, setShowMapModal] = useState(false);
   const [orderCompleted, setOrderCompleted] = useState(false);
@@ -101,6 +115,36 @@ export default function CheckoutPage() {
       setPaymentMethod('cash_on_delivery');
     }
   }, [searchParams]);
+
+  // Auto-fill form from user profile when logged in
+  useEffect(() => {
+    if (!user || profileLoaded) return;
+
+    const loadProfile = async () => {
+      try {
+        const { data } = await (supabase
+          .from('users') as any)
+          .select('first_name, last_name, email, phone')
+          .eq('auth_user_id', user.id)
+          .single();
+
+        if (data) {
+          setFormData(prev => ({
+            ...prev,
+            firstName: data.first_name || prev.firstName,
+            lastName: data.last_name || prev.lastName,
+            email: data.email || prev.email,
+            phone: data.phone || prev.phone,
+          }));
+        }
+      } catch {
+        // Silently fail - user can fill manually
+      }
+      setProfileLoaded(true);
+    };
+
+    loadProfile();
+  }, [user, profileLoaded]);
 
   // Redirect if cart is empty (but not if we just completed an order)
   useEffect(() => {
@@ -198,57 +242,6 @@ export default function CheckoutPage() {
     return map[lower] || (lower.charAt(0).toUpperCase() + lower.slice(1));
   };
 
-  // Country codes for phone number
-  const countryCodes = [
-    { code: '+961', country: 'Lebanon' },
-    { code: '+1', country: 'US/Canada' },
-    { code: '+33', country: 'France' },
-    { code: '+44', country: 'UK' },
-    { code: '+49', country: 'Germany' },
-    { code: '+39', country: 'Italy' },
-    { code: '+34', country: 'Spain' },
-    { code: '+971', country: 'UAE' },
-    { code: '+966', country: 'Saudi Arabia' },
-    { code: '+20', country: 'Egypt' },
-    { code: '+90', country: 'Turkey' },
-    { code: '+91', country: 'India' },
-    { code: '+86', country: 'China' },
-    { code: '+81', country: 'Japan' },
-    { code: '+82', country: 'South Korea' },
-    { code: '+41', country: 'Switzerland' },
-    { code: '+43', country: 'Austria' },
-    { code: '+31', country: 'Netherlands' },
-    { code: '+32', country: 'Belgium' },
-    { code: '+46', country: 'Sweden' },
-    { code: '+47', country: 'Norway' },
-    { code: '+45', country: 'Denmark' },
-    { code: '+358', country: 'Finland' },
-    { code: '+351', country: 'Portugal' },
-    { code: '+30', country: 'Greece' },
-    { code: '+420', country: 'Czech Republic' },
-    { code: '+48', country: 'Poland' },
-    { code: '+36', country: 'Hungary' },
-    { code: '+385', country: 'Croatia' },
-    { code: '+381', country: 'Serbia' },
-    { code: '+55', country: 'Brazil' },
-    { code: '+54', country: 'Argentina' },
-    { code: '+52', country: 'Mexico' },
-    { code: '+61', country: 'Australia' },
-    { code: '+64', country: 'New Zealand' },
-    { code: '+27', country: 'South Africa' },
-    { code: '+7', country: 'Russia' },
-    { code: '+380', country: 'Ukraine' },
-    { code: '+98', country: 'Iran' },
-    { code: '+972', country: 'Israel' },
-    { code: '+962', country: 'Jordan' },
-    { code: '+963', country: 'Syria' },
-    { code: '+964', country: 'Iraq' },
-    { code: '+965', country: 'Kuwait' },
-    { code: '+973', country: 'Bahrain' },
-    { code: '+974', country: 'Qatar' },
-    { code: '+968', country: 'Oman' },
-    { code: '+967', country: 'Yemen' },
-  ];
 
   const generateCustomizationText = (customizationData: Record<string, unknown>) => {
     const parts: string[] = [];
@@ -375,7 +368,6 @@ export default function CheckoutPage() {
         lastName: formData.lastName?.trim() || '',
         email: formData.email?.trim().toLowerCase() || '',
         phone: formData.phone?.trim() || '',
-        countryCode: formData.countryCode?.trim() || '+961',
         address: formData.address?.trim() || '',
         city: formData.city?.trim() || '',
         area: formData.area?.trim() || '',
@@ -392,7 +384,7 @@ export default function CheckoutPage() {
           first_name: sanitizedFormData.firstName,
           last_name: sanitizedFormData.lastName,
           email: sanitizedFormData.email,
-          phone: `${sanitizedFormData.countryCode} ${sanitizedFormData.phone}`,
+          phone: sanitizedFormData.phone,
         };
 
         const deliveryAddress = {
@@ -406,7 +398,7 @@ export default function CheckoutPage() {
           longitude: sanitizedFormData.longitude,
         };
 
-        const result = await createCheckoutSession(items, customerInfo, deliveryAddress, appliedPromo);
+        const result = await createCheckoutSession(items, customerInfo, deliveryAddress, appliedPromo, user?.id);
 
         if (result.success) {
           // Stripe will redirect, so we don't need to do anything else
@@ -450,7 +442,7 @@ export default function CheckoutPage() {
           first_name: sanitizedFormData.firstName,
           last_name: sanitizedFormData.lastName,
           email: sanitizedFormData.email,
-          phone: `${sanitizedFormData.countryCode} ${sanitizedFormData.phone}`
+          phone: sanitizedFormData.phone
         },
         delivery_address_json: {
           address: sanitizedFormData.address,
@@ -474,16 +466,19 @@ export default function CheckoutPage() {
         })),
         total_amount: Number(finalTotal),
 
+        // Link order to authenticated user account
+        auth_user_id: user?.id || null,
+
         // Existing table structure for backward compatibility - all required fields
         customer_name: `${sanitizedFormData.firstName} ${sanitizedFormData.lastName}`,
         customer_email: sanitizedFormData.email,
-        customer_phone: `${sanitizedFormData.countryCode} ${sanitizedFormData.phone}`,
+        customer_phone: sanitizedFormData.phone,
         delivery_address: sanitizedFormData.address,
         delivery_city: sanitizedFormData.city,
-        delivery_postal_code: null, // Explicitly set nullable field
+        delivery_postal_code: null,
         delivery_notes: sanitizedFormData.notes || null,
-        delivery_latitude: sanitizedFormData.latitude, // 📍 New dedicated coordinate column
-        delivery_longitude: sanitizedFormData.longitude, // 📍 New dedicated coordinate column
+        delivery_latitude: sanitizedFormData.latitude,
+        delivery_longitude: sanitizedFormData.longitude,
         subtotal: Number(subtotal),
         total: Number(finalTotal),
         payment_method: 'cash_on_delivery',
@@ -818,6 +813,27 @@ export default function CheckoutPage() {
         <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
           {/* Order Form */}
           <div className="space-y-4 lg:space-y-6">
+            {/* Logged-in user banner */}
+            {user && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+                <User className="w-5 h-5 text-green-600 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-green-900">Signed in as {user.email}</p>
+                  <p className="text-xs text-green-700">Your details have been auto-filled and this order will be linked to your account.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Guest checkout prompt */}
+            {!user && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <User className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                  <p className="text-sm text-amber-900">Have an account? <a href="/auth/login?redirect=/checkout" className="font-medium underline hover:text-amber-700">Sign in</a> to auto-fill your details and track orders.</p>
+                </div>
+              </div>
+            )}
+
             {/* Customer Information */}
             <div className="jove-bg-card rounded-lg shadow-sm p-4 sm:p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Customer Information</h3>
@@ -875,30 +891,14 @@ export default function CheckoutPage() {
                   <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
                     Phone Number *
                   </label>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <select
-                      name="countryCode"
-                      value={formData.countryCode}
-                      onChange={handleInputChange}
-                      className="w-full sm:w-auto sm:min-w-[140px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 transition-colors bg-white"
-                    >
-                      {countryCodes.map((country) => (
-                        <option key={country.code} value={country.code}>
-                          {country.code} {country.country}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="tel"
-                      id="phone"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      required
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 transition-colors"
-                      placeholder="XX XXX XXX"
-                    />
-                  </div>
+                  <PhoneInput
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(val) => setFormData(prev => ({ ...prev, phone: val }))}
+                    required
+                    variant="standard"
+                    placeholder="Phone number"
+                  />
                 </div>
               </form>
             </div>

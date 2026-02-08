@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
@@ -37,32 +38,55 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
+  // Helper: check admin role using service_role (bypasses RLS, reliable in middleware)
+  const isAdmin = async (authUserId: string): Promise<boolean> => {
+    const serviceClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+    const { data } = await serviceClient
+      .from('users')
+      .select('roles')
+      .eq('auth_user_id', authUserId)
+      .single()
+    return data?.roles?.includes('admin') ?? false
+  }
+
   // Allow public access to login and signup pages
   if (pathname === '/admin/login' || pathname === '/admin/signup') {
     // If user is authenticated and is admin, redirect to dashboard
-    if (user) {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('roles')
-        .eq('auth_user_id', user.id)
-        .single()
-
-      if (userData?.roles?.includes('admin')) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/admin'
-        return NextResponse.redirect(url)
-      }
+    if (user && await isAdmin(user.id)) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/admin'
+      return NextResponse.redirect(url)
     }
     // Allow access to login/signup pages for unauthenticated users or non-admins
     return supabaseResponse
   }
 
-  // Simple admin protection - only check authentication
-  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+  // Account pages protection - require authentication
+  if (pathname.startsWith('/account')) {
     if (!user) {
       const url = request.nextUrl.clone()
       url.pathname = '/auth/login'
       url.searchParams.set('redirect', pathname)
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // Admin protection - check authentication AND admin role
+  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/admin/login'
+      return NextResponse.redirect(url)
+    }
+
+    // Check admin role using service_role client (bypasses RLS)
+    if (!await isAdmin(user.id)) {
+      // Authenticated but not admin - redirect to homepage
+      const url = request.nextUrl.clone()
+      url.pathname = '/'
       return NextResponse.redirect(url)
     }
   }

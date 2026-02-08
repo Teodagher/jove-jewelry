@@ -72,11 +72,7 @@ export default function ProductDescription({ productType, customizationState = {
           .single()
 
         if (error) {
-          if (error.code === 'PGRST116') {
-            setDescription(null)
-          } else {
-            console.error('Error fetching product description:', error)
-          }
+          setDescription(null)
         } else {
           setDescription(data)
         }

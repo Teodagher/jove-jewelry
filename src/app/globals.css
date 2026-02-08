@@ -286,6 +286,63 @@
            focus:outline-none focus:border-maison-gold focus:ring-0;
   }
   
+  /* Phone Input - Maison variant */
+  .phone-input-maison .PhoneInput {
+    @apply flex items-center gap-2;
+  }
+  .phone-input-maison .PhoneInputCountry {
+    @apply flex items-center gap-1 pr-2 border-r border-maison-warm;
+  }
+  .phone-input-maison .PhoneInputCountryIcon {
+    @apply w-6 h-4;
+  }
+  .phone-input-maison .PhoneInputCountrySelectArrow {
+    @apply ml-1 opacity-50;
+  }
+  .phone-input-maison .PhoneInputCountrySelect {
+    @apply absolute inset-0 opacity-0 cursor-pointer;
+  }
+  .phone-input-maison .PhoneInputInput {
+    @apply flex-1 bg-transparent border-0 outline-none
+           text-maison-charcoal font-light tracking-wide
+           placeholder:text-maison-graphite/50 p-0;
+  }
+  .phone-input-maison .PhoneInput {
+    @apply w-full px-4 py-4
+           bg-transparent border border-maison-warm
+           text-maison-charcoal font-light tracking-wide
+           transition-all duration-300;
+  }
+  .phone-input-maison .PhoneInput:focus-within {
+    @apply border-maison-gold;
+  }
+
+  /* Phone Input - Standard variant */
+  .phone-input-standard .PhoneInput {
+    @apply flex items-center gap-2
+           w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm
+           transition-colors;
+  }
+  .phone-input-standard .PhoneInput:focus-within {
+    @apply ring-2 ring-amber-500 border-amber-500;
+  }
+  .phone-input-standard .PhoneInputCountry {
+    @apply flex items-center gap-1 pr-2 border-r border-gray-300;
+  }
+  .phone-input-standard .PhoneInputCountryIcon {
+    @apply w-6 h-4;
+  }
+  .phone-input-standard .PhoneInputCountrySelectArrow {
+    @apply ml-1 opacity-50;
+  }
+  .phone-input-standard .PhoneInputCountrySelect {
+    @apply absolute inset-0 opacity-0 cursor-pointer;
+  }
+  .phone-input-standard .PhoneInputInput {
+    @apply flex-1 bg-transparent border-0 outline-none p-0
+           focus:ring-0;
+  }
+
   /* Luxury Modal/Overlay */
   .maison-overlay {
     @apply fixed inset-0 bg-maison-black/60 backdrop-blur-sm

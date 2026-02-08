@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase/client';
+import PhoneInput from '@/components/PhoneInput';
 
 interface JoveAccountFormProps {
   onSuccess: () => void;
@@ -15,63 +16,10 @@ export default function JoveAccountForm({ onSuccess }: JoveAccountFormProps) {
     email: '',
     password: '',
     confirmPassword: '',
-    countryCode: '+961',
     phone: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Country codes for phone number (same as checkout page)
-  const countryCodes = [
-    { code: '+961', country: 'Lebanon' },
-    { code: '+1', country: 'US/Canada' },
-    { code: '+33', country: 'France' },
-    { code: '+44', country: 'UK' },
-    { code: '+49', country: 'Germany' },
-    { code: '+39', country: 'Italy' },
-    { code: '+34', country: 'Spain' },
-    { code: '+971', country: 'UAE' },
-    { code: '+966', country: 'Saudi Arabia' },
-    { code: '+20', country: 'Egypt' },
-    { code: '+90', country: 'Turkey' },
-    { code: '+91', country: 'India' },
-    { code: '+86', country: 'China' },
-    { code: '+81', country: 'Japan' },
-    { code: '+82', country: 'South Korea' },
-    { code: '+41', country: 'Switzerland' },
-    { code: '+43', country: 'Austria' },
-    { code: '+31', country: 'Netherlands' },
-    { code: '+32', country: 'Belgium' },
-    { code: '+46', country: 'Sweden' },
-    { code: '+47', country: 'Norway' },
-    { code: '+45', country: 'Denmark' },
-    { code: '+358', country: 'Finland' },
-    { code: '+351', country: 'Portugal' },
-    { code: '+30', country: 'Greece' },
-    { code: '+420', country: 'Czech Republic' },
-    { code: '+48', country: 'Poland' },
-    { code: '+36', country: 'Hungary' },
-    { code: '+385', country: 'Croatia' },
-    { code: '+381', country: 'Serbia' },
-    { code: '+55', country: 'Brazil' },
-    { code: '+54', country: 'Argentina' },
-    { code: '+52', country: 'Mexico' },
-    { code: '+61', country: 'Australia' },
-    { code: '+64', country: 'New Zealand' },
-    { code: '+27', country: 'South Africa' },
-    { code: '+7', country: 'Russia' },
-    { code: '+380', country: 'Ukraine' },
-    { code: '+98', country: 'Iran' },
-    { code: '+972', country: 'Israel' },
-    { code: '+962', country: 'Jordan' },
-    { code: '+963', country: 'Syria' },
-    { code: '+964', country: 'Iraq' },
-    { code: '+965', country: 'Kuwait' },
-    { code: '+973', country: 'Bahrain' },
-    { code: '+974', country: 'Qatar' },
-    { code: '+968', country: 'Oman' },
-    { code: '+967', country: 'Yemen' },
-  ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -93,8 +41,8 @@ export default function JoveAccountForm({ onSuccess }: JoveAccountFormProps) {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    if (formData.password.length < 8 || !/[A-Z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
+      setError('Password must be at least 8 characters with 1 uppercase letter and 1 number');
       setLoading(false);
       return;
     }
@@ -110,7 +58,7 @@ export default function JoveAccountForm({ onSuccess }: JoveAccountFormProps) {
             full_name: `${formData.firstName} ${formData.lastName}`,
             first_name: formData.firstName,
             last_name: formData.lastName,
-            phone: `${formData.countryCode} ${formData.phone}`
+            phone: formData.phone
           }
         }
       });
@@ -215,30 +163,14 @@ export default function JoveAccountForm({ onSuccess }: JoveAccountFormProps) {
         <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
           Phone Number
         </label>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <select
-            name="countryCode"
-            value={formData.countryCode}
-            onChange={handleInputChange}
-            className="w-full sm:w-auto sm:min-w-[140px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 transition-colors bg-white"
-          >
-            {countryCodes.map((country) => (
-              <option key={country.code} value={country.code}>
-                {country.code} {country.country}
-              </option>
-            ))}
-          </select>
-          <input
-            type="tel"
-            id="phone"
-            name="phone"
-            value={formData.phone}
-            onChange={handleInputChange}
-            required
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-zinc-500 focus:border-zinc-500 transition-colors"
-            placeholder="71 123 456"
-          />
-        </div>
+        <PhoneInput
+          id="phone"
+          value={formData.phone}
+          onChange={(val) => setFormData(prev => ({ ...prev, phone: val }))}
+          required
+          variant="standard"
+          placeholder="71 123 456"
+        />
       </div>
 
       {/* Password Fields */}

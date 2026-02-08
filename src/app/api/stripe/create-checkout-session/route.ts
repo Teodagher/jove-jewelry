@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
       market,
       currency,
       promoCode,
+      authUserId,
     } = await req.json();
 
     // Validate required fields
@@ -96,6 +97,7 @@ export async function POST(req: NextRequest) {
             metadata: {
               jewelry_type: item.jewelry_type,
               customization_summary: customizationText,
+              customization_data: JSON.stringify(item.customization_data || {}).slice(0, 500) // Stripe limit
             },
           },
           unit_amount: Math.round(itemPrice * 100), // Stripe expects cents, with discount applied
@@ -128,6 +130,7 @@ export async function POST(req: NextRequest) {
         discount_type: promoCode?.discountType || '',
         discount_value: promoCode?.discountValue?.toString() || '',
         discount_amount: discountAmount.toString(),
+        auth_user_id: authUserId || '',
       },
     });
 

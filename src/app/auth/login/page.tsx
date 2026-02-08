@@ -26,8 +26,17 @@ function LoginForm() {
       setError(error.message);
       setLoading(false);
     } else {
-      const redirect = searchParams.get('redirect') || '/';
-      router.push(redirect);
+      let redirect = searchParams.get('redirect') || '/';
+      // Validate redirect is a safe relative path (prevent open redirect)
+      if (!redirect.startsWith('/') || redirect.startsWith('//') || redirect.includes('://')) {
+        redirect = '/';
+      }
+      // Use hard navigation for admin routes to ensure cookies propagate
+      if (redirect.startsWith('/admin')) {
+        window.location.href = redirect;
+      } else {
+        router.push(redirect);
+      }
     }
   };
 
@@ -96,6 +105,12 @@ function LoginForm() {
           </div>
 
           <div className="text-center space-y-2">
+            <Link
+              href="/auth/forgot-password"
+              className="block text-sm text-amber-600 hover:text-amber-500"
+            >
+              Forgot your password?
+            </Link>
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
               <Link href="/auth/signup" className="text-amber-600 hover:text-amber-500">
@@ -106,7 +121,7 @@ function LoginForm() {
               href="/"
               className="block text-sm text-zinc-600 hover:text-zinc-900 transition-colors duration-200"
             >
-              ← Back to Jové
+              &larr; Back to Jov&eacute;
             </Link>
           </div>
         </form>

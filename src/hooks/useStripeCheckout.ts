@@ -52,7 +52,8 @@ export function useStripeCheckout({ market }: UseStripeCheckoutOptions) {
     cartItems: CartItem[],
     customerInfo: CustomerInfo,
     deliveryAddress: DeliveryAddress,
-    promoCode?: PromoCodeData | null
+    promoCode?: PromoCodeData | null,
+    authUserId?: string | null
   ) => {
     setLoading(true);
 
@@ -72,6 +73,7 @@ export function useStripeCheckout({ market }: UseStripeCheckoutOptions) {
           market,
           currency,
           promoCode,
+          authUserId: authUserId || null,
         }),
       });
 

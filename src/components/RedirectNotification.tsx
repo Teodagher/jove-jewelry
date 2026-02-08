@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { X } from 'lucide-react'
 
@@ -11,6 +11,14 @@ const MARKET_NAMES: Record<string, string> = {
 }
 
 export function RedirectNotification() {
+  return (
+    <Suspense fallback={null}>
+      <RedirectNotificationContent />
+    </Suspense>
+  );
+}
+
+function RedirectNotificationContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [show, setShow] = useState(false)

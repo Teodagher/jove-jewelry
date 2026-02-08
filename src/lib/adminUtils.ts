@@ -9,6 +9,10 @@ export interface User {
   auth_user_id: string | null;
   email: string;
   full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  phone: string | null;
+  country: string | null;
   roles: string[];
   created_at: string;
   updated_at: string;

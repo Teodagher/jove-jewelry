@@ -33,14 +33,12 @@ export default function AdminQuickAccessBar() {
           .single();
 
         if (error) {
-          console.error('Error checking admin role:', error);
           setIsAdmin(false);
         } else {
           const userData = data as unknown as UserData;
           setIsAdmin(userData?.roles?.includes('admin') || false);
         }
-      } catch (error) {
-        console.error('Error checking admin role:', error);
+      } catch {
         setIsAdmin(false);
       } finally {
         setIsLoading(false);

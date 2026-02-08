@@ -96,17 +96,6 @@ export async function middleware(request: NextRequest) {
   const currentDomain = hostname.replace(/^www\./, '')
   const targetDomain = getTargetDomainForGeo(country)
 
-  // DEBUG: Log geo information
-  console.log('🌍 Middleware Debug:', {
-    hostname,
-    pathname,
-    country,
-    city: geo.city,
-    currentDomain,
-    targetDomain,
-    geoAvailable: !!country,
-  })
-
   // DEV ONLY: Allow query parameter override for testing
   const url = new URL(request.url)
   const marketOverride = url.searchParams.get('market')
@@ -196,6 +185,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|sw\\.js|workbox-.*|sentry-.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|map)$).*)',
   ],
 }

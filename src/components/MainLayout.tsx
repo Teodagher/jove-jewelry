@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Header from '@/components/Header';
+import AdminQuickAccessBar from '@/components/AdminQuickAccessBar';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -23,6 +24,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       {mounted && !isAdminRoute && (
         <>
           <Header />
+          <AdminQuickAccessBar />
         </>
       )}
       {children}

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+// removed manual email import
+// removed manual email import
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -68,9 +70,18 @@ export async function POST(request: NextRequest) {
         const product = lineItem.price?.product as Stripe.Product;
         const productMetadata = product?.metadata || {};
 
+        let customizationData = {};
+        try {
+          if (productMetadata.customization_data) {
+            customizationData = JSON.parse(productMetadata.customization_data);
+          }
+        } catch (e) {
+          console.warn('Failed to parse customization_data from stripe metadata:', e);
+        }
+
         return {
           jewelry_type: productMetadata.jewelry_type || 'jewelry',
-          customization_data: {}, // We can't reconstruct this from Stripe, stored in metadata if needed
+          customization_data: customizationData,
           customization_summary: productMetadata.customization_summary || lineItem.description || '',
           base_price: (lineItem.amount_total || 0) / 100, // Convert from cents
           total_price: (lineItem.amount_total || 0) / 100,

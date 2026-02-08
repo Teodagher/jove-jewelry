@@ -324,6 +324,21 @@ export default function Header() {
                         <p className="text-sm text-maison-charcoal font-light truncate">{user.email}</p>
                       </div>
                       <div className="py-2">
+                        <Link
+                          href="/account/profile"
+                          onClick={() => setIsAccountMenuOpen(false)}
+                          className="block px-4 py-3 text-sm font-light tracking-wide text-maison-charcoal hover:text-maison-gold hover:bg-maison-cream/50 transition-all duration-300"
+                        >
+                          My Account
+                        </Link>
+                        <Link
+                          href="/account/orders"
+                          onClick={() => setIsAccountMenuOpen(false)}
+                          className="block px-4 py-3 text-sm font-light tracking-wide text-maison-charcoal hover:text-maison-gold hover:bg-maison-cream/50 transition-all duration-300"
+                        >
+                          My Orders
+                        </Link>
+                        <div className="h-px bg-maison-warm/50 mx-4 my-1" />
                         <button
                           onClick={handleSignOut}
                           className="w-full text-left px-4 py-3 text-sm font-light tracking-wide text-maison-charcoal hover:text-maison-gold hover:bg-maison-cream/50 transition-all duration-300"
@@ -485,6 +500,20 @@ export default function Header() {
                 <div className="space-y-3">
                   <p className="text-xs text-maison-graphite/60 uppercase tracking-wider">Account</p>
                   <p className="text-sm text-maison-charcoal font-light">{user.email}</p>
+                  <Link
+                    href="/account/profile"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="block text-sm font-light tracking-wide text-maison-charcoal hover:text-maison-gold transition-colors duration-300"
+                  >
+                    My Account
+                  </Link>
+                  <Link
+                    href="/account/orders"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="block text-sm font-light tracking-wide text-maison-charcoal hover:text-maison-gold transition-colors duration-300"
+                  >
+                    My Orders
+                  </Link>
                   <button
                     onClick={() => {
                       handleSignOut()

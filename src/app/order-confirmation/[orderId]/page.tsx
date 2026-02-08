@@ -3,8 +3,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Download } from 'lucide-react';
+import { CheckCircle, Download, User, Package } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { getMarketClient } from '@/lib/market-client';
 import { getCurrency, formatPrice as formatCurrencyPrice } from '@/lib/currency';
@@ -21,6 +22,7 @@ interface Order {
 export default function OrderConfirmationPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const { clearCart } = useCart();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -202,6 +204,27 @@ export default function OrderConfirmationPage() {
             </p>
           </div>
 
+          {/* Account Prompt for Guest Users */}
+          {!user && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8">
+              <div className="flex items-start gap-3">
+                <User className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-serif font-medium text-zinc-900 mb-1">Create an Account</h3>
+                  <p className="text-sm text-gray-700 leading-relaxed mb-3">
+                    Sign up to track your orders, save your details for faster checkout, and get exclusive access to new collections.
+                  </p>
+                  <Button
+                    onClick={() => router.push('/auth/signup')}
+                    className="bg-black hover:bg-zinc-800 text-white py-2 px-6 text-xs font-light tracking-[0.15em] transition-all duration-500 rounded-none border-0 uppercase"
+                  >
+                    Create Account
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="space-y-4">
             <Button
@@ -211,14 +234,24 @@ export default function OrderConfirmationPage() {
               <Download size={16} />
               Download Invoice
             </Button>
-            
+
+            {user && (
+              <Button
+                onClick={() => router.push('/account/orders')}
+                className="w-full bg-zinc-900 hover:bg-zinc-800 text-white py-4 text-sm font-light tracking-[0.15em] transition-all duration-500 rounded-none border-0 uppercase flex items-center justify-center gap-2"
+              >
+                <Package size={16} />
+                View Your Orders
+              </Button>
+            )}
+
             <Button
               onClick={() => router.push('/customize')}
-              className="w-full bg-black hover:bg-zinc-800 text-white py-4 text-sm font-light tracking-[0.15em] transition-all duration-500 rounded-none border-0 uppercase"
+              className={`w-full ${user ? 'bg-zinc-700 hover:bg-zinc-600' : 'bg-black hover:bg-zinc-800'} text-white py-4 text-sm font-light tracking-[0.15em] transition-all duration-500 rounded-none border-0 uppercase`}
             >
               Create Another Piece
             </Button>
-            
+
             <Button
               onClick={() => router.push('/')}
               variant="outline"

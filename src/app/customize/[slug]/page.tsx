@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import CustomizationComponent from '@/components/CustomizationComponent';
 import { CustomizationService } from '@/services/customizationService';
@@ -18,6 +18,21 @@ interface PresetDesign {
 }
 
 export default function DynamicCustomizePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen jove-bg-primary flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading customization...</p>
+        </div>
+      </div>
+    }>
+      <DynamicCustomizeContent />
+    </Suspense>
+  );
+}
+
+function DynamicCustomizeContent() {
   const params = useParams();
   const slug = params.slug as string;
   const searchParams = useSearchParams();

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import PhoneInput from '@/components/PhoneInput';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -13,12 +14,16 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [accountExists, setAccountExists] = useState(false);
   const { signIn, signUp } = useAuth();
 
   useEffect(() => {
@@ -37,11 +42,15 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   }, [isOpen]);
 
   const resetForm = () => {
+    setFirstName('');
+    setLastName('');
     setEmail('');
+    setPhone('');
     setPassword('');
     setConfirmPassword('');
     setError(null);
     setSuccess(false);
+    setAccountExists(false);
   };
 
   const handleClose = () => {
@@ -60,14 +69,32 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
         setLoading(false);
         return;
       }
-      if (password.length < 6) {
-        setError('Password must be at least 6 characters');
+      if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+        setError('Password must be at least 8 characters with 1 uppercase letter and 1 number');
         setLoading(false);
         return;
       }
-      const { error } = await signUp(email, password);
+      if (!firstName.trim() || !lastName.trim()) {
+        setError('First name and last name are required');
+        setLoading(false);
+        return;
+      }
+      if (!phone.trim()) {
+        setError('Phone number is required');
+        setLoading(false);
+        return;
+      }
+      const { error } = await signUp(email, password, {
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        phone: phone.trim(),
+      });
       if (error) {
-        setError(error.message);
+        if (error.message === 'ACCOUNT_EXISTS') {
+          setAccountExists(true);
+        } else {
+          setError(error.message);
+        }
       } else {
         setSuccess(true);
       }
@@ -87,6 +114,71 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     setError(null);
     setSuccess(false);
   };
+
+  if (accountExists && mode === 'signup') {
+    return (
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-maison-black/70 backdrop-blur-sm"
+              onClick={handleClose}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+              className="relative w-full max-w-md bg-maison-ivory p-8 md:p-12 shadow-2xl"
+            >
+              <button
+                onClick={handleClose}
+                className="absolute top-6 right-6 text-maison-graphite/60 hover:text-maison-black transition-colors duration-300"
+              >
+                <X size={20} strokeWidth={1} />
+              </button>
+              <div className="text-center">
+                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-8 h-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <h2 className="font-serif text-2xl md:text-3xl font-light text-maison-black mb-4">
+                  Account Already Exists
+                </h2>
+                <p className="text-maison-graphite font-light leading-relaxed mb-8">
+                  An account with this email already exists. Please sign in instead, or reset your password if you've forgotten it.
+                </p>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => { setAccountExists(false); setMode('login'); }}
+                    className="maison-btn-primary w-full"
+                  >
+                    Sign In
+                  </button>
+                  <a
+                    href="/auth/forgot-password"
+                    className="block w-full border border-maison-graphite/30 hover:border-maison-graphite/60 text-maison-graphite py-3 px-6 text-xs font-light tracking-[0.15em] uppercase transition-all duration-300 text-center"
+                  >
+                    Reset Password
+                  </a>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  }
 
   if (success && mode === 'signup') {
     return (
@@ -207,6 +299,39 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                 </motion.div>
               )}
 
+              {mode === 'signup' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="auth-first-name" className="block text-xs uppercase tracking-wider text-maison-graphite mb-2 font-medium">
+                      First Name
+                    </label>
+                    <input
+                      id="auth-first-name"
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required
+                      className="maison-input"
+                      placeholder="First name"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="auth-last-name" className="block text-xs uppercase tracking-wider text-maison-graphite mb-2 font-medium">
+                      Last Name
+                    </label>
+                    <input
+                      id="auth-last-name"
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      required
+                      className="maison-input"
+                      placeholder="Last name"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label htmlFor="auth-email" className="block text-xs uppercase tracking-wider text-maison-graphite mb-2 font-medium">
                   Email Address
@@ -221,6 +346,22 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                   placeholder="your@email.com"
                 />
               </div>
+
+              {mode === 'signup' && (
+                <div>
+                  <label htmlFor="auth-phone" className="block text-xs uppercase tracking-wider text-maison-graphite mb-2 font-medium">
+                    Phone Number
+                  </label>
+                  <PhoneInput
+                    id="auth-phone"
+                    value={phone}
+                    onChange={setPhone}
+                    required
+                    variant="maison"
+                    placeholder="71 123 456"
+                  />
+                </div>
+              )}
 
               <div>
                 <label htmlFor="auth-password" className="block text-xs uppercase tracking-wider text-maison-graphite mb-2 font-medium">
@@ -237,7 +378,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                 />
                 {mode === 'signup' && (
                   <p className="text-xs text-maison-graphite/60 mt-1 font-light">
-                    Must be at least 6 characters
+                    Min 8 characters, 1 uppercase, 1 number
                   </p>
                 )}
               </div>

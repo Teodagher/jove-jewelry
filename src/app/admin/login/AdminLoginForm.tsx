@@ -35,11 +35,25 @@ export default function AdminLoginForm() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated AND admin
   useEffect(() => {
     if (user && !authLoading) {
-      logger.log('🔀 AdminLogin: User found, redirecting to admin')
-      router.push('/admin')
+      // Check if user has admin role before redirecting
+      supabase
+        .from('users')
+        .select('roles')
+        .eq('auth_user_id', user.id)
+        .single()
+        .then(({ data }: { data: { roles: string[] | null } | null }) => {
+          if (data?.roles?.includes('admin')) {
+            logger.log('🔀 AdminLogin: Admin user found, redirecting to admin')
+            router.push('/admin')
+          } else {
+            logger.log('⚠️ AdminLogin: User is not admin, signing out')
+            setError("You don't have admin access")
+            supabase.auth.signOut()
+          }
+        })
     }
   }, [user, authLoading, router])
 
@@ -67,11 +81,20 @@ export default function AdminLoginForm() {
 
       logger.log('✅ AdminLogin: Authentication successful, checking admin role')
 
-      // Simplified - just allow any authenticated user for now
-      // Role checking can be added back later if needed
+      // Verify user has admin role
+      const { data: userData } = await supabase
+        .from('users')
+        .select('roles')
+        .eq('auth_user_id', authData.user.id)
+        .single() as { data: { roles: string[] | null } | null }
+
+      if (!userData?.roles?.includes('admin')) {
+        logger.log('⚠️ AdminLogin: User does not have admin role')
+        await supabase.auth.signOut()
+        throw new Error("You don't have admin access")
+      }
 
       logger.log('🎉 AdminLogin: Admin login successful')
-      // Auth state change will trigger redirect via useEffect
       router.push('/admin')
     } catch (error: unknown) {
       logger.error('❌ AdminLogin: Login error:', error)

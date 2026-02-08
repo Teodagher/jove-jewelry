@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
+// removed manual email import
 
 function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -82,9 +83,18 @@ export async function POST(req: NextRequest) {
         const product = lineItem.price?.product as Stripe.Product;
         const productMetadata = product?.metadata || {};
 
+        let customizationData = {};
+        try {
+          if (productMetadata.customization_data) {
+            customizationData = JSON.parse(productMetadata.customization_data);
+          }
+        } catch (e) {
+          console.warn('Failed to parse customization_data from stripe metadata:', e);
+        }
+
         return {
           jewelry_type: productMetadata.jewelry_type || 'jewelry',
-          customization_data: {}, // We can't reconstruct this from Stripe, stored in metadata if needed
+          customization_data: customizationData,
           customization_summary:
             productMetadata.customization_summary || lineItem.description || '',
           base_price: (lineItem.amount_total || 0) / 100, // Convert from cents
@@ -108,10 +118,12 @@ export async function POST(req: NextRequest) {
         items: orderItems,
         total_amount: (session.amount_total || 0) / 100,
 
+        // Link order to authenticated user account
+        auth_user_id: metadata.auth_user_id || null,
+
         // Existing table structure
-        customer_name: `${metadata.customer_first_name || ''} ${
-          metadata.customer_last_name || ''
-        }`.trim(),
+        customer_name: `${metadata.customer_first_name || ''} ${metadata.customer_last_name || ''
+          }`.trim(),
         customer_email:
           session.customer_email || session.customer_details?.email || '',
         customer_phone: metadata.customer_phone || '',
@@ -126,13 +138,12 @@ export async function POST(req: NextRequest) {
         payment_method: 'stripe',
         status: session.payment_status === 'paid' ? 'paid' : 'pending',
         stripe_session_id: session.id,
-        notes: `Stripe Session: ${session.id}${
-          deliveryAddress.notes ? `\n${deliveryAddress.notes}` : ''
-        }`,
+        notes: `Stripe Session: ${session.id}${deliveryAddress.notes ? `\n${deliveryAddress.notes}` : ''
+          }`,
         order_notes: deliveryAddress.notes || null,
 
         // Stripe metadata
-        discount_code: null, // Discounts can be added later if needed
+        discount_code: null,
         discount_amount: session.total_details?.amount_discount
           ? session.total_details.amount_discount / 100
           : null,

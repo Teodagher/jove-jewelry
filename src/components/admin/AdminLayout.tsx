@@ -27,7 +27,8 @@ import {
   Globe,
   FolderOpen,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  Mail
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -62,6 +63,15 @@ const navigation = [
   { name: 'Media Library', href: '/admin/media-library', icon: Images },
   { name: 'Orders', href: '/admin/orders', icon: Package },
   { name: 'User Accounts', href: '/admin/users', icon: ShieldCheck },
+  {
+    name: 'Email',
+    href: '/admin/email',
+    icon: Mail,
+    children: [
+      { name: 'Templates', href: '/admin/email' },
+      { name: 'Send Email', href: '/admin/email/send' },
+    ]
+  },
   { name: 'Live Chat', href: '/admin/chat', icon: MessageCircle },
   { name: 'Promo Codes', href: '/admin/promo-codes', icon: Tag },
   { name: 'Customers', href: '/admin/customers', icon: Users },
@@ -253,7 +263,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   </Link>
 
                   {/* Sub-navigation for items with children */}
-                  {item.children && (pathname.startsWith('/admin/pricing') || pathname.startsWith('/admin/website-customization')) && (
+                  {item.children && (pathname.startsWith('/admin/pricing') || pathname.startsWith('/admin/website-customization') || pathname.startsWith('/admin/email')) && (
                     <div className="ml-8 mt-1 space-y-1">
                       {item.children.map((child) => (
                         <Link

@@ -13,6 +13,7 @@ import {
   Calendar,
   Crown,
   ShoppingBag,
+  ShoppingCart,
   DollarSign,
   TrendingUp,
   Clock,
@@ -26,6 +27,21 @@ import {
   Tag,
   MoreVertical
 } from 'lucide-react';
+
+interface CartItem {
+  id: string;
+  session_id: string;
+  user_id: string | null;
+  jewelry_type: string;
+  product_name: string | null;
+  customization_data: Record<string, unknown>;
+  base_price: number;
+  total_price: number;
+  preview_image_url: string | null;
+  quantity: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
 
 interface OrderItem {
   id: string;
@@ -82,6 +98,7 @@ export default function AdminUserDetailPage() {
 
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingRole, setUpdatingRole] = useState(false);
@@ -127,6 +144,19 @@ export default function AdminUserDetailPage() {
 
         if (ordersError) throw ordersError;
         setOrders(ordersData || []);
+      }
+
+      // Fetch cart items by auth_user_id
+      if (userData.auth_user_id) {
+        const { data: cartData, error: cartError } = await supabase
+          .from('cart_items')
+          .select('*')
+          .eq('user_id', userData.auth_user_id)
+          .order('created_at', { ascending: false });
+
+        if (!cartError) {
+          setCartItems(cartData || []);
+        }
       }
     } catch (err) {
       console.error('Error fetching user details:', err);
@@ -391,6 +421,78 @@ export default function AdminUserDetailPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Cart Items */}
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">
+          Items in Cart
+          {cartItems.length > 0 && (
+            <span className="ml-2 text-sm font-normal text-gray-500">
+              ({cartItems.length} item{cartItems.length !== 1 ? 's' : ''} &middot; {formatPrice(cartItems.reduce((sum, item) => sum + item.total_price * item.quantity, 0))})
+            </span>
+          )}
+        </h3>
+
+        {cartItems.length === 0 ? (
+          <div className="bg-white rounded-lg border border-zinc-200 p-8 text-center">
+            <ShoppingCart className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+            <p className="font-medium text-gray-900">Cart is empty</p>
+            <p className="text-sm text-gray-500 mt-1">This user has no items in their cart.</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg border border-zinc-200 divide-y divide-gray-100">
+            {cartItems.map((item) => (
+              <div key={item.id} className="flex items-start gap-3 p-4">
+                <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {item.preview_image_url ? (
+                    <img
+                      src={item.preview_image_url}
+                      alt="Custom jewelry"
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                  ) : (
+                    <Package className="w-6 h-6 text-gray-400" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">
+                    {item.product_name || `Custom ${formatJewelryType(item.jewelry_type)}`}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Qty: {item.quantity} &middot; {formatPrice(item.total_price)} each
+                  </p>
+                  {item.customization_data && Object.keys(item.customization_data).length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {Object.entries(item.customization_data)
+                        .filter(([key]) => !['preview_image_url', 'base_price', 'total_price'].includes(key))
+                        .slice(0, 5)
+                        .map(([key, value]) => (
+                          <span key={key} className="inline-flex text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                            {key.replace(/_/g, ' ')}: {String(value)}
+                          </span>
+                        ))}
+                    </div>
+                  )}
+                  {(item.customization_data?.engraving as string) && (
+                    <div className="mt-1.5 p-1.5 bg-amber-50 border border-amber-200 rounded">
+                      <span className="text-xs font-medium text-amber-800">Engraving: </span>
+                      <span className="text-xs text-amber-700 font-mono">
+                        &quot;{String(item.customization_data.engraving)}&quot;
+                      </span>
+                    </div>
+                  )}
+                  {item.created_at && (
+                    <p className="text-xs text-gray-400 mt-1">Added {formatDateTime(item.created_at)}</p>
+                  )}
+                </div>
+                <p className="text-sm font-semibold text-gray-900 flex-shrink-0">
+                  {formatPrice(item.total_price * item.quantity)}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Orders List */}
