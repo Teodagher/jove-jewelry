@@ -671,8 +671,8 @@ export default function SendEmailPage() {
                 )}
               </div>
 
-              {/* Certificate Panel - Only shows when order is selected */}
-              {selectedOrderId && certificateItems.length > 0 && (
+              {/* Certificate Panel - Shows when order is selected */}
+              {selectedOrderId && (
                 <div className="border border-amber-200 bg-amber-50/50 rounded-lg overflow-hidden">
                   <button
                     onClick={() => setShowCertificatePanel(!showCertificatePanel)}
@@ -681,15 +681,27 @@ export default function SendEmailPage() {
                     <div className="flex items-center gap-2">
                       <Award className="w-4 h-4 text-amber-600" />
                       <span className="text-sm font-semibold text-amber-900">Certificate of Purchase</span>
-                      <span className="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded font-medium">
-                        {certificateItems.length} item{certificateItems.length !== 1 ? 's' : ''}
-                      </span>
+                      {certificateItems.length > 0 ? (
+                        <span className="text-[10px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded font-medium">
+                          {certificateItems.length} item{certificateItems.length !== 1 ? 's' : ''}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-medium">
+                          Loading...
+                        </span>
+                      )}
                     </div>
                     <ChevronDown className={`w-4 h-4 text-amber-600 transition-transform ${showCertificatePanel ? 'rotate-180' : ''}`} />
                   </button>
                   
                   {showCertificatePanel && (
                     <div className="px-4 pb-4 border-t border-amber-200">
+                      {certificateItems.length === 0 ? (
+                        <p className="text-[11px] text-amber-700 mt-3 py-4 text-center">
+                          No items found for this order. The order may not have any line items in the database.
+                        </p>
+                      ) : (
+                        <>
                       <p className="text-[11px] text-amber-700 mt-3 mb-3">
                         Generate luxury PDF certificates for each item in this order.
                       </p>
@@ -784,6 +796,8 @@ export default function SendEmailPage() {
                           <Paperclip className="w-3 h-3" />
                           Download certificates and attach to email manually.
                         </p>
+                      )}
+                        </>
                       )}
                     </div>
                   )}
