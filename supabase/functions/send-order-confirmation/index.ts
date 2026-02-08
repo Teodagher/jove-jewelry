@@ -148,7 +148,7 @@ const handler = async (req: Request): Promise<Response> => {
       '{{order_items_html}}': buildOrderItemsHtml(processedItems),
     };
 
-    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || 'Maison Jové <noreply@maisonjove.com>';
+    const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || 'Maison Jové <support@maisonjove.com>';
     const replyTo = Deno.env.get("RESEND_REPLY_TO");
 
     // Send Client Email

@@ -213,7 +213,7 @@ export async function POST(request: Request) {
       result.certificateId
     )
 
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Maison Jové <noreply@maisonjove.com>'
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Maison Jové <support@maisonjove.com>'
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: fromEmail,
       to: [order.customer_email],

@@ -260,7 +260,7 @@ export async function POST(request: Request) {
     const htmlContent = buildHtmlEmail(resolvedBody)
 
     // Send via Resend
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Maison Jové <noreply@maisonjove.com>'
+    const fromEmail = process.env.RESEND_FROM_EMAIL || 'Maison Jové <support@maisonjove.com>'
 
     const { data: resendData, error: resendError } = await getResend().emails.send({
       from: fromEmail,

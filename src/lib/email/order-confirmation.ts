@@ -96,7 +96,7 @@ export async function sendOrderConfirmationEmails(orderId: string) {
             variables['{{order_items_html}}'] = ''
         }
 
-        const fromEmail = process.env.RESEND_FROM_EMAIL || 'Maison Jové <noreply@maisonjove.com>'
+        const fromEmail = process.env.RESEND_FROM_EMAIL || 'Maison Jové <support@maisonjove.com>'
         const replyTo = process.env.RESEND_REPLY_TO
 
         // 5. Send Client Email
