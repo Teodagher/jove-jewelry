@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { generateCertificatePDF, parseCustomizationToSpecs, type CertificateData } from '@/services/certificateService'
-import { CustomizationService } from '@/services/customizationService'
 
 async function checkAdmin() {
   const supabase = await createClient()
@@ -30,6 +29,122 @@ function formatProductName(jewelryType: string, productName?: string): string {
   }
   const lower = jewelryType?.toLowerCase() || 'jewelry'
   return map[lower] || ('Custom ' + lower.charAt(0).toUpperCase() + lower.slice(1))
+}
+
+// Get filename mappings for a jewelry type using server-side supabase
+async function getFilenameMappings(supabase: any, jewelryType: string): Promise<Map<string, string>> {
+  try {
+    // Get jewelry item IDs for this type
+    const { data: jewelryItems } = await supabase
+      .from('jewelry_items')
+      .select('id')
+      .eq('type', jewelryType)
+      .eq('is_active', true);
+
+    if (!jewelryItems || jewelryItems.length === 0) {
+      return new Map();
+    }
+
+    const jewelryItemIds = jewelryItems.map((item: any) => item.id);
+
+    // Fetch customization options with filename slugs
+    const { data: mappings } = await supabase
+      .from('customization_options')
+      .select('option_id, filename_slug')
+      .eq('is_active', true)
+      .eq('affects_image_variant', true)
+      .in('jewelry_item_id', jewelryItemIds)
+      .not('filename_slug', 'is', null);
+
+    const result = new Map<string, string>();
+    for (const m of mappings || []) {
+      if (m.option_id && m.filename_slug) {
+        result.set(m.option_id, m.filename_slug);
+      }
+    }
+    return result;
+  } catch (error) {
+    console.error('Error fetching filename mappings:', error);
+    return new Map();
+  }
+}
+
+// Generate variant image URL server-side
+async function generateVariantImageUrl(
+  supabase: any,
+  jewelryType: string,
+  customizations: { [key: string]: string }
+): Promise<string | null> {
+  const baseUrl = 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item';
+  
+  try {
+    // Get filename mappings
+    const mappingMap = await getFilenameMappings(supabase, jewelryType);
+    
+    // Build variant options from customizations
+    const variantOptions = Object.entries(customizations).map(([setting_id, option_id]) => ({
+      setting_id,
+      option_id
+    }));
+
+    // Extract options by setting
+    const chainOption = variantOptions.find(opt => opt.setting_id === 'chain_type');
+    const firstStoneOption = variantOptions.find(opt => opt.setting_id === 'first_stone');
+    const secondStoneOption = variantOptions.find(opt => opt.setting_id === 'second_stone');
+    const metalOption = variantOptions.find(opt => opt.setting_id === 'metal');
+
+    // Build filename parts
+    const filenameParts = [jewelryType];
+
+    // Add chain/cord
+    if (chainOption) {
+      const slug = mappingMap.get(chainOption.option_id) || chainOption.option_id;
+      filenameParts.push(slug);
+    }
+
+    // Add first stone (if not diamond)
+    if (firstStoneOption) {
+      const slug = mappingMap.get(firstStoneOption.option_id) || firstStoneOption.option_id;
+      filenameParts.push(slug);
+    }
+
+    // Add second stone
+    if (secondStoneOption) {
+      const slug = mappingMap.get(secondStoneOption.option_id) || secondStoneOption.option_id;
+      filenameParts.push(slug);
+    }
+
+    // Add metal
+    if (metalOption) {
+      const slug = mappingMap.get(metalOption.option_id) || metalOption.option_id;
+      filenameParts.push(slug);
+    }
+
+    const baseFilename = filenameParts.join('-');
+    const folder = `${jewelryType}s`;
+
+    // List files in the folder to find the actual filename (handles different extensions)
+    const { data: files } = await supabase
+      .storage
+      .from('customization-item')
+      .list(folder, { limit: 1000 });
+
+    // Find matching file (case-insensitive)
+    const matchingFile = files?.find((f: any) => {
+      const nameWithoutExt = f.name.substring(0, f.name.lastIndexOf('.'));
+      return nameWithoutExt.toLowerCase() === baseFilename.toLowerCase();
+    });
+
+    if (matchingFile) {
+      return `${baseUrl}/${folder}/${matchingFile.name}`;
+    }
+
+    // Fallback: try with .webp extension
+    return `${baseUrl}/${folder}/${baseFilename}.webp`;
+  } catch (error) {
+    console.error('Error generating variant URL:', error);
+    return null;
+  }
 }
 
 // Get the primary image for a variant from variant_images table
@@ -70,7 +185,7 @@ async function getVariantPrimaryImage(supabase: any, variantKey: string): Promis
 // Extract variant key from a customization-item URL
 function extractVariantKeyFromUrl(url: string): string | null {
   // URL format: .../customization-item/{type}s/{filename}.webp
-  const match = url.match(/customization-item\/[^/]+\/([^/]+)\.webp$/);
+  const match = url.match(/customization-item\/[^/]+\/([^/]+)\.[a-zA-Z0-9]+$/);
   return match ? match[1] : null;
 }
 
@@ -135,10 +250,9 @@ export async function POST(request: Request) {
     let debugGalleryImage: string | null = null
 
     if (productData?.type && Object.keys(customizationData).length > 0) {
-      // Use CustomizationService to generate the correct variant image URL
-      // This handles the file index lookup for different extensions (.png, .webp, etc.)
-      // IMPORTANT: Use productData.type (e.g., 'bracelet') not item.jewelry_type (product ID)
-      const variantImageUrl = await CustomizationService.generateVariantImageUrl(
+      // Generate variant image URL using server-side logic
+      const variantImageUrl = await generateVariantImageUrl(
+        supabase,
         productData.type,
         customizationData
       );
@@ -158,7 +272,7 @@ export async function POST(request: Request) {
             productImageUrl = galleryImage;
             console.log('[Certificate] Using gallery image:', productImageUrl);
           } else {
-            // Use the generated variant URL from CustomizationService
+            // Use the generated variant URL
             productImageUrl = variantImageUrl;
             console.log('[Certificate] Using variant image:', productImageUrl);
           }
