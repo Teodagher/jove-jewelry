@@ -130,6 +130,9 @@ export async function POST(request: Request) {
 
     // Determine the best image URL for this specific variant
     let productImageUrl: string | undefined = undefined
+    let debugVariantImageUrl: string | null = null
+    let debugVariantKey: string | null = null
+    let debugGalleryImage: string | null = null
 
     if (item.jewelry_type && Object.keys(customizationData).length > 0) {
       // Use CustomizationService to generate the correct variant image URL
@@ -138,14 +141,17 @@ export async function POST(request: Request) {
         item.jewelry_type,
         customizationData
       );
+      debugVariantImageUrl = variantImageUrl
       
       if (variantImageUrl) {
         // Extract variant key from the URL to check variant_images table
         const variantKey = extractVariantKeyFromUrl(variantImageUrl);
+        debugVariantKey = variantKey
         
         if (variantKey) {
           // Try to get gallery image first (higher quality/angled shots)
           const galleryImage = await getVariantPrimaryImage(supabase, variantKey);
+          debugGalleryImage = galleryImage
           
           if (galleryImage) {
             productImageUrl = galleryImage;
@@ -191,6 +197,16 @@ export async function POST(request: Request) {
       filename: `${result.certificateId}.pdf`,
       orderNumber: certificateData.orderNumber,
       productName: certificateData.productName,
+      debug: {
+        imageUrlUsed: productImageUrl,
+        jewelryType: item.jewelry_type,
+        customizationData,
+        variantImageUrl: debugVariantImageUrl,
+        variantKey: debugVariantKey,
+        galleryImage: debugGalleryImage,
+        baseImageUrl: productData?.base_image_url || null,
+        previewImageUrl: item.preview_image_url || null,
+      }
     })
   } catch (err: any) {
     console.error('[Certificate] generation error:', err)
