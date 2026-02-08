@@ -93,48 +93,16 @@ export default function AdminUserDetailPage() {
       setLoading(true);
       setError(null);
 
-      // Fetch user
-      const { data: userData, error: userError } = await (supabase as any)
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      // Fetch user and orders via API route (uses service_role, bypasses RLS)
+      const res = await fetch(`/api/admin/users/${userId}`);
+      const data = await res.json();
 
-      if (userError) throw userError;
-      setUser(userData);
-
-      // Fetch orders by email OR auth_user_id
-      const email = userData.email?.toLowerCase();
-      const authUserId = userData.auth_user_id;
-
-      let query = supabase
-        .from('orders')
-        .select(`
-          *,
-          order_items (
-            id,
-            jewelry_type,
-            customization_data,
-            customization_summary,
-            base_price,
-            total_price,
-            quantity,
-            subtotal,
-            preview_image_url
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      // Build OR filter
-      if (authUserId && email) {
-        query = query.or(`customer_email.ilike.${email},customer_info->>auth_user_id.eq.${authUserId}`);
-      } else if (email) {
-        query = query.ilike('customer_email', email);
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to fetch user details');
       }
 
-      const { data: ordersData, error: ordersError } = await query;
-      if (ordersError) throw ordersError;
-      setOrders(ordersData || []);
+      setUser(data.user);
+      setOrders(data.orders || []);
     } catch (err) {
       console.error('Error fetching user details:', err);
       setError('Failed to load user details.');
