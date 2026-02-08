@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { generateCertificatePDF, parseCustomizationToSpecs, type CertificateData } from '@/services/certificateService'
-import { DynamicFilenameService } from '@/services/dynamicFilenameService'
+import { CustomizationService } from '@/services/customizationService'
 
 async function checkAdmin() {
   const supabase = await createClient()
@@ -30,27 +30,6 @@ function formatProductName(jewelryType: string, productName?: string): string {
   }
   const lower = jewelryType?.toLowerCase() || 'jewelry'
   return map[lower] || ('Custom ' + lower.charAt(0).toUpperCase() + lower.slice(1))
-}
-
-// Build variant key from customization data (same logic as DynamicFilenameService)
-async function buildVariantKey(jewelryType: string, customizationData: Record<string, string>): Promise<string | null> {
-  try {
-    // Convert customizations to format expected by DynamicFilenameService
-    const variantOptions = Object.entries(customizationData).map(([settingId, optionId]) => ({
-      setting_id: settingId,
-      option_id: String(optionId)
-    }));
-
-    // Generate filename using dynamic service (returns with .webp extension)
-    const filename = await DynamicFilenameService.generateDynamicFilename(jewelryType, variantOptions);
-    
-    // Remove extension to get variant key
-    const variantKey = filename.replace(/\.[^/.]+$/, '');
-    return variantKey;
-  } catch (error) {
-    console.error('Error building variant key:', error);
-    return null;
-  }
 }
 
 // Get the primary image for a variant from variant_images table
@@ -88,11 +67,11 @@ async function getVariantPrimaryImage(supabase: any, variantKey: string): Promis
   }
 }
 
-// Generate variant image URL from storage (fallback)
-function buildVariantStorageUrl(jewelryType: string, variantKey: string): string {
-  const baseUrl = 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item';
-  const folder = `${jewelryType}s`;
-  return `${baseUrl}/${folder}/${variantKey}.webp`;
+// Extract variant key from a customization-item URL
+function extractVariantKeyFromUrl(url: string): string | null {
+  // URL format: .../customization-item/{type}s/{filename}.webp
+  const match = url.match(/customization-item\/[^/]+\/([^/]+)\.webp$/);
+  return match ? match[1] : null;
 }
 
 export async function POST(request: Request) {
@@ -153,20 +132,32 @@ export async function POST(request: Request) {
     let productImageUrl: string | undefined = undefined
 
     if (item.jewelry_type && Object.keys(customizationData).length > 0) {
-      // Build variant key from customization data
-      const variantKey = await buildVariantKey(item.jewelry_type, customizationData)
+      // Use CustomizationService to generate the correct variant image URL
+      // This handles the file index lookup for different extensions (.png, .webp, etc.)
+      const variantImageUrl = await CustomizationService.generateVariantImageUrl(
+        item.jewelry_type,
+        customizationData
+      );
       
-      if (variantKey) {
-        // Try to get the primary image from variant_images table (gallery images)
-        const galleryImage = await getVariantPrimaryImage(supabase, variantKey)
+      if (variantImageUrl) {
+        // Extract variant key from the URL to check variant_images table
+        const variantKey = extractVariantKeyFromUrl(variantImageUrl);
         
-        if (galleryImage) {
-          productImageUrl = galleryImage
-          console.log('[Certificate] Using gallery image:', productImageUrl)
+        if (variantKey) {
+          // Try to get gallery image first (higher quality/angled shots)
+          const galleryImage = await getVariantPrimaryImage(supabase, variantKey);
+          
+          if (galleryImage) {
+            productImageUrl = galleryImage;
+            console.log('[Certificate] Using gallery image:', productImageUrl);
+          } else {
+            // Use the generated variant URL from CustomizationService
+            productImageUrl = variantImageUrl;
+            console.log('[Certificate] Using variant image:', productImageUrl);
+          }
         } else {
-          // Fallback: use the generated variant URL from storage
-          productImageUrl = buildVariantStorageUrl(item.jewelry_type, variantKey)
-          console.log('[Certificate] Using storage variant image:', productImageUrl)
+          // Fallback to generated URL if we can't extract variant key
+          productImageUrl = variantImageUrl;
         }
       }
     }
