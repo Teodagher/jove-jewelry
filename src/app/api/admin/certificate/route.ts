@@ -171,10 +171,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // Final fallbacks
+    // Final fallback: use product base image (NOT preview_image_url which is a user photo)
     if (!productImageUrl) {
-      productImageUrl = item.preview_image_url || productData?.base_image_url || undefined
-      console.log('[Certificate] Using fallback image:', productImageUrl)
+      productImageUrl = productData?.base_image_url || undefined
+      console.log('[Certificate] Using product base image:', productImageUrl)
     }
 
     // Build certificate data
