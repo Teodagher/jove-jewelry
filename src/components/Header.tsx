@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ShoppingCart, User, Menu, X, ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -29,8 +30,20 @@ export default function Header() {
   const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login')
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
   const [siteStyle, setSiteStyle] = useState<string>('original')
+  const [showEmailConfirmed, setShowEmailConfirmed] = useState(false)
   const { itemCount } = useCart()
   const { user, signOut } = useAuth()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  // Detect email confirmation redirect
+  useEffect(() => {
+    if (searchParams.get('confirmed') === 'true') {
+      setShowEmailConfirmed(true)
+      // Clean the URL without reloading
+      router.replace('/', { scroll: false })
+    }
+  }, [searchParams, router])
   
   // Fetch site style
   useEffect(() => {
@@ -553,6 +566,68 @@ export default function Header() {
 
       {/* Spacer for fixed header (+ banner when Valentine's active) */}
       <div className={siteStyle === 'valentines' ? 'h-[104px] md:h-[116px]' : 'h-18 md:h-20'} />
+
+      {/* Email Confirmed Modal */}
+      <AnimatePresence>
+        {showEmailConfirmed && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-maison-black/70 backdrop-blur-sm"
+              onClick={() => setShowEmailConfirmed(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+              className="relative w-full max-w-md bg-maison-ivory p-8 md:p-12 shadow-2xl"
+            >
+              <button
+                onClick={() => setShowEmailConfirmed(false)}
+                className="absolute top-6 right-6 text-maison-graphite/60 hover:text-maison-black transition-colors duration-300"
+              >
+                <X size={20} strokeWidth={1} />
+              </button>
+              <div className="text-center">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, duration: 0.5, type: 'spring', stiffness: 200 }}
+                  className="w-16 h-16 bg-maison-gold/10 rounded-full flex items-center justify-center mx-auto mb-6"
+                >
+                  <svg className="w-8 h-8 text-maison-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                </motion.div>
+                <h2 className="font-serif text-2xl md:text-3xl font-light text-maison-black mb-4">
+                  Email Verified
+                </h2>
+                <p className="text-maison-graphite font-light leading-relaxed mb-8">
+                  Your email has been successfully verified. You can now log in to your account.
+                </p>
+                <button
+                  onClick={() => {
+                    setShowEmailConfirmed(false)
+                    openAuthModal('login')
+                  }}
+                  className="maison-btn-primary w-full"
+                >
+                  Log In
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Auth Modal */}
       <AuthModal

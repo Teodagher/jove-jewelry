@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Header from '@/components/Header';
 import AdminQuickAccessBar from '@/components/AdminQuickAccessBar';
@@ -23,7 +23,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
     <div className="antialiased">
       {mounted && !isAdminRoute && (
         <>
-          <Header />
+          <Suspense fallback={null}>
+            <Header />
+          </Suspense>
           <AdminQuickAccessBar />
         </>
       )}

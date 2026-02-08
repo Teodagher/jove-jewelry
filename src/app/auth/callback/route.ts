@@ -33,9 +33,9 @@ export async function GET(request: Request) {
       if (!redirectTo.startsWith('/') || redirectTo.startsWith('//') || redirectTo.includes('://')) {
         redirectTo = '/'
       }
-      // For email confirmation (default next=/), show the confirmed page
+      // For email confirmation (default next=/), redirect to home with confirmed flag
       if (redirectTo === '/') {
-        return NextResponse.redirect(`${origin}/auth/confirmed`)
+        return NextResponse.redirect(`${origin}/?confirmed=true`)
       }
       return NextResponse.redirect(`${origin}${redirectTo}`)
     }
