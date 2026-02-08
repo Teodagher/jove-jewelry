@@ -34,12 +34,23 @@ async function getFileIndex(folder: string): Promise<Map<string, string>> {
         .list(folder, { limit: 1000 });
 
       if (!error && files) {
-        for (const file of files) {
+        // Sort files so PNG comes before WebP (for email compatibility)
+        // This ensures PNG is preferred when both exist
+        const sortedFiles = [...files].sort((a, b) => {
+          const aExt = a.name.split('.').pop()?.toLowerCase() || '';
+          const bExt = b.name.split('.').pop()?.toLowerCase() || '';
+          // PNG priority: png > jpg > jpeg > webp
+          const priority = { png: 0, jpg: 1, jpeg: 2, webp: 3 };
+          return (priority[aExt as keyof typeof priority] ?? 99) - (priority[bExt as keyof typeof priority] ?? 99);
+        });
+
+        for (const file of sortedFiles) {
           if (!file.name) continue;
           // Strip extension to get base name
           const lastDot = file.name.lastIndexOf('.');
           const baseName = lastDot > 0 ? file.name.substring(0, lastDot) : file.name;
           // Store with lowercase baseName for case-insensitive lookup
+          // Since we sorted PNG first, PNG will be stored if both exist
           index.set(baseName.toLowerCase(), file.name);
         }
       }
