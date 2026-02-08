@@ -134,11 +134,12 @@ export async function POST(request: Request) {
     let debugVariantKey: string | null = null
     let debugGalleryImage: string | null = null
 
-    if (item.jewelry_type && Object.keys(customizationData).length > 0) {
+    if (productData?.type && Object.keys(customizationData).length > 0) {
       // Use CustomizationService to generate the correct variant image URL
       // This handles the file index lookup for different extensions (.png, .webp, etc.)
+      // IMPORTANT: Use productData.type (e.g., 'bracelet') not item.jewelry_type (product ID)
       const variantImageUrl = await CustomizationService.generateVariantImageUrl(
-        item.jewelry_type,
+        productData.type,
         customizationData
       );
       debugVariantImageUrl = variantImageUrl
@@ -199,7 +200,7 @@ export async function POST(request: Request) {
       productName: certificateData.productName,
       debug: {
         imageUrlUsed: productImageUrl,
-        jewelryType: item.jewelry_type,
+        jewelryType: productData?.type || item.jewelry_type,
         customizationData,
         variantImageUrl: debugVariantImageUrl,
         variantKey: debugVariantKey,
