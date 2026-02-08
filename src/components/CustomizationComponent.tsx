@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { JewelryItem, CustomizationState, CustomizationOption, DiamondType, MetalType } from '@/types/customization';
 import type { CustomizationSetting } from '@/types/customization';
 import { CustomizationService } from '@/services/customizationService';
@@ -176,25 +176,18 @@ export default function CustomizationComponent({
 
           // Apply proposed selections if any (sets value but allows user to change it later)
           if (result.proposedSelections && Object.keys(result.proposedSelections).length > 0) {
-            console.log('📋 Received proposedSelections:', result.proposedSelections);
             setCustomizationState(prevState => {
-              console.log('📋 Current state before applying proposed selections:', prevState);
               const newState = { ...prevState };
               let hasChanges = false;
 
               Object.entries(result.proposedSelections).forEach(([settingId, optionId]) => {
-                console.log(`📋 Checking proposed selection: ${settingId} = ${optionId}, userSelections:`, userSelections);
                 // Only apply proposed selection if user hasn't manually selected this setting
                 if (!userSelections.has(settingId) && newState[settingId] !== optionId) {
-                  console.log(`📋 Applying proposed selection: ${settingId} = ${optionId}`);
                   newState[settingId] = optionId;
                   hasChanges = true;
-                } else {
-                  console.log(`📋 Skipping proposed selection for ${settingId} - user has made manual selection`);
                 }
               });
 
-              console.log('📋 New state after proposed selections:', newState);
               return hasChanges ? newState : prevState;
             });
           }
@@ -232,7 +225,6 @@ export default function CustomizationComponent({
 
   // Apply a preset's customization
   const applyPreset = (preset: PresetDesign) => {
-    console.log('🎨 Applying preset:', preset.name, preset.customization_data);
     setSelectedPresetId(preset.id);
     setCustomizationState(preset.customization_data);
     // Mark these as user selections so rules don't override them
@@ -248,7 +240,6 @@ export default function CustomizationComponent({
     
     // If an initial preset is provided, use those values
     if (initialPreset && Object.keys(initialPreset).length > 0) {
-      console.log('🎨 Applying initial preset:', initialPreset);
       Object.entries(initialPreset).forEach(([key, value]) => {
         updates[key] = value;
       });
@@ -313,85 +304,92 @@ export default function CustomizationComponent({
     }
   }, [jewelryItem.settings, jewelryItem.id, customizationState]);
 
-  // Aggressively preload common variant images for better performance
+  // Preload common variant images after initial image has loaded
+  const preloadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
-    const preloadWithRetry = (url: string, retries = 3) => {
+    const preloadWithRetry = (url: string, retries = 1) => {
       const link = document.createElement('link');
       link.rel = 'preload';
       link.as = 'image';
       link.href = url;
       link.crossOrigin = 'anonymous';
-      
+
       link.onload = () => {
         document.head.removeChild(link);
       };
-      
+
       link.onerror = () => {
         document.head.removeChild(link);
         if (retries > 0) {
           setTimeout(() => preloadWithRetry(url, retries - 1), 1000);
         }
       };
-      
+
       document.head.appendChild(link);
     };
-    
-    if (jewelryItem.id === 'bracelet') {
-      // Preload only ACTUALLY existing bracelet combinations (based on compression script output)
-      const existingBracelets = [
-        'bracelet-black-leather-blue-sapphire-whitegold.webp',
-        'bracelet-black-leather-blue-sapphire-yellowgold.webp',
-        'bracelet-black-leather-emerald-whitegold.webp',
-        'bracelet-black-leather-emerald-yellowgold.webp',
-        'bracelet-black-leather-pink-sapphire-whitegold.webp',
-        'bracelet-black-leather-pink-sapphire-yellowgold.webp',
-        'bracelet-black-leather-ruby-whitegold.webp',
-        'bracelet-gold-cord-blue-sapphire-yellowgold.webp',
-        'bracelet-gold-cord-emerald-yellowgold.webp',
-        'bracelet-gold-cord-pink-sapphire-yellowgold.webp',
-        'bracelet-gold-cord-ruby-yellowgold.webp'
-      ];
-      
-      existingBracelets.forEach(filename => {
-        const preloadUrl = `https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/bracelets/${filename}`;
-        preloadWithRetry(preloadUrl);
-      });
+
+    // Delay preloading by 3 seconds to let the initial image load first
+    preloadTimeoutRef.current = setTimeout(() => {
+      if (jewelryItem.id === 'bracelet') {
+        const existingBracelets = [
+          'bracelet-black-leather-blue-sapphire-whitegold.webp',
+          'bracelet-black-leather-blue-sapphire-yellowgold.webp',
+          'bracelet-black-leather-emerald-whitegold.webp',
+          'bracelet-black-leather-emerald-yellowgold.webp',
+          'bracelet-black-leather-pink-sapphire-whitegold.webp',
+          'bracelet-black-leather-pink-sapphire-yellowgold.webp',
+          'bracelet-black-leather-ruby-whitegold.webp',
+          'bracelet-gold-cord-blue-sapphire-yellowgold.webp',
+          'bracelet-gold-cord-emerald-yellowgold.webp',
+          'bracelet-gold-cord-pink-sapphire-yellowgold.webp',
+          'bracelet-gold-cord-ruby-yellowgold.webp'
+        ];
+
+        existingBracelets.forEach(filename => {
+          const preloadUrl = `https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/bracelets/${filename}`;
+          preloadWithRetry(preloadUrl);
+        });
       } else if (jewelryItem.type === 'necklace') {
-      // Preload only existing necklace combinations
-      const existingNecklaces = [
-        'necklace-black-leather-emerald-whitegold.webp',
-        'necklace-black-leather-emerald-yellowgold.webp',
-        'necklace-black-leather-ruby-whitegold.webp',
-        'necklace-black-leather-ruby-yellowgold.webp',
-        'necklace-black-leather-bluesapphire-whitegold.webp',
-        'necklace-black-leather-bluesapphire-yellowgold.webp',
-        'necklace-white-gold-emerald-whitegold.webp',
-        'necklace-white-gold-ruby-whitegold.webp'
-      ];
-      
-      existingNecklaces.forEach(filename => {
-        const preloadUrl = `https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/necklaces/${filename}`;
-        preloadWithRetry(preloadUrl);
-      });
+        const existingNecklaces = [
+          'necklace-black-leather-emerald-whitegold.webp',
+          'necklace-black-leather-emerald-yellowgold.webp',
+          'necklace-black-leather-ruby-whitegold.webp',
+          'necklace-black-leather-ruby-yellowgold.webp',
+          'necklace-black-leather-bluesapphire-whitegold.webp',
+          'necklace-black-leather-bluesapphire-yellowgold.webp',
+          'necklace-white-gold-emerald-whitegold.webp',
+          'necklace-white-gold-ruby-whitegold.webp'
+        ];
+
+        existingNecklaces.forEach(filename => {
+          const preloadUrl = `https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/necklaces/${filename}`;
+          preloadWithRetry(preloadUrl);
+        });
       } else if (jewelryItem.type === 'ring') {
-      // Preload all ring combinations (HQ WebP)
-      const existingRings = [
-        'Ring blue sapphire white gold.webp',
-        'Ring blue sapphire yellow gold.webp',
-        'Ring emerald white gold.webp',
-        'Ring emerald yellow gold.webp',
-        'Ring pink sapphire white gold.webp',
-        'Ring pink sapphire yellow gold.webp',
-        'Ring ruby white gold.webp',
-        'Ring ruby yellow gold.webp'
-      ];
-      
-      existingRings.forEach(filename => {
-        const preloadUrl = `https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/rings/${filename}`;
-        preloadWithRetry(preloadUrl);
-      });
-    }
-  }, [jewelryItem.type]);
+        const existingRings = [
+          'Ring blue sapphire white gold.webp',
+          'Ring blue sapphire yellow gold.webp',
+          'Ring emerald white gold.webp',
+          'Ring emerald yellow gold.webp',
+          'Ring pink sapphire white gold.webp',
+          'Ring pink sapphire yellow gold.webp',
+          'Ring ruby white gold.webp',
+          'Ring ruby yellow gold.webp'
+        ];
+
+        existingRings.forEach(filename => {
+          const preloadUrl = `https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/rings/${filename}`;
+          preloadWithRetry(preloadUrl);
+        });
+      }
+    }, 3000);
+
+    return () => {
+      if (preloadTimeoutRef.current) {
+        clearTimeout(preloadTimeoutRef.current);
+      }
+    };
+  }, [jewelryItem.type, jewelryItem.id]);
 
   // Calculate total prices for all variants based on pricing type
   const totalPriceNatural = useMemo(() => {
@@ -510,25 +508,18 @@ export default function CustomizationComponent({
 
       // Apply proposed selections if any (sets value but allows user to change it later)
       if (result.proposedSelections && Object.keys(result.proposedSelections).length > 0) {
-        console.log('🔄 Received proposedSelections in rules effect:', result.proposedSelections);
         setCustomizationState(prevState => {
-          console.log('🔄 Current state before applying proposed selections:', prevState);
           const newState = { ...prevState };
           let hasChanges = false;
 
           Object.entries(result.proposedSelections).forEach(([settingId, optionId]) => {
-            console.log(`🔄 Checking proposed selection: ${settingId} = ${optionId}, userSelections:`, userSelections);
             // Only apply proposed selection if user hasn't manually selected this setting
             if (!userSelections.has(settingId) && newState[settingId] !== optionId) {
-              console.log(`🔄 Applying proposed selection: ${settingId} = ${optionId}`);
               newState[settingId] = optionId;
               hasChanges = true;
-            } else {
-              console.log(`🔄 Skipping proposed selection for ${settingId} - user has made manual selection`);
             }
           });
 
-          console.log('🔄 New state after proposed selections:', newState);
           return hasChanges ? newState : prevState;
         });
       }
@@ -554,6 +545,7 @@ export default function CustomizationComponent({
   }, [jewelryItem.pricingType, selectedDiamondType, selectedMetalType, totalPriceNatural, totalPriceLabGrown, totalPriceGold, totalPriceSilver]);
 
   // Generate preview image URL based on customization state (async)
+  const previewDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(jewelryItem.baseImage);
   const [imageVariantSettings, setImageVariantSettings] = useState<Set<string>>(new Set());
   const [currentVariantKey, setCurrentVariantKey] = useState<string | null>(null);
@@ -584,7 +576,6 @@ export default function CustomizationComponent({
 
         const variantSettingIds = new Set((settingsData as any[])?.map((item: any) => item.setting_id) || []);
         setImageVariantSettings(variantSettingIds);
-        console.log(`🖼️ Loaded image variant settings for ${jewelryItem.type}:`, Array.from(variantSettingIds));
       } catch (error) {
         console.error('Error loading image variant settings:', error);
       }
@@ -594,6 +585,11 @@ export default function CustomizationComponent({
   }, [jewelryItem.id, jewelryItem.type]);
 
   useEffect(() => {
+    // Clear any pending debounce
+    if (previewDebounceRef.current) {
+      clearTimeout(previewDebounceRef.current);
+    }
+
     const generatePreviewUrl = async () => {
       // Check if we have any image variant settings loaded
       if (imageVariantSettings.size === 0) {
@@ -605,7 +601,6 @@ export default function CustomizationComponent({
       // Wait for rules to be applied - this ensures auto-selections are included
       // Without this, we might generate URL before auto-select rules update the state
       if (rulesLoading || !appliedRules) {
-        console.log('⏳ Waiting for rules to be applied before generating preview URL');
         return;
       }
 
@@ -617,7 +612,6 @@ export default function CustomizationComponent({
         )
       );
       if (rulesStateHash && rulesStateHash !== currentStateHash) {
-        console.log('⏳ Waiting for rules to be re-computed for current state');
         return;
       }
 
@@ -638,14 +632,6 @@ export default function CustomizationComponent({
 
       const hasAllRequiredImageVariants = requiredSettingsWithValues.length === imageVariantSettings.size;
 
-      console.log(`🔍 Image variant check for ${jewelryItem.type}:`, {
-        allVariantSettings: Array.from(imageVariantSettings),
-        settingsWithValues: requiredSettingsWithValues,
-        hasAllRequired: hasAllRequiredImageVariants,
-        effectiveState,
-        autoSelections: appliedRules.autoSelections
-      });
-
       // Only generate variant URL if we have values for ALL settings that affect image variants
       if (hasAllRequiredImageVariants) {
         // Convert effective state to string-only object for the service, but only include image variant settings
@@ -656,8 +642,6 @@ export default function CustomizationComponent({
             stringCustomizations[settingId] = value;
           }
         });
-
-        console.log(`✅ Generating variant URL for ${jewelryItem.type} with customizations:`, stringCustomizations);
 
         const generatedUrl = await CustomizationService.generateVariantImageUrl(jewelryItem.type, stringCustomizations);
         if (generatedUrl) {
@@ -670,9 +654,9 @@ export default function CustomizationComponent({
           return;
         }
       }
-      
+
       // Fallback logic for initial load or when not all variant settings are selected
-      
+
       // If no base image and no customizations selected yet, use a default variant
       if (!jewelryItem.baseImage && Object.keys(customizationState).length === 0) {
         if (jewelryItem.type === 'bracelet') {
@@ -688,89 +672,83 @@ export default function CustomizationComponent({
           return;
         }
       }
-      
+
       setPreviewImageUrl(jewelryItem.baseImage);
     };
 
-    generatePreviewUrl();
+    // Debounce the preview URL generation to avoid thrashing on rapid clicks
+    previewDebounceRef.current = setTimeout(generatePreviewUrl, 150);
+
+    return () => {
+      if (previewDebounceRef.current) {
+        clearTimeout(previewDebounceRef.current);
+      }
+    };
   }, [customizationState, jewelryItem, imageVariantSettings, rulesLoading, appliedRules, rulesStateHash]);
 
 
 
-  // Handle option selection
-  const handleOptionSelect = (settingId: string, optionId: string) => {
+  // Handle option selection - stabilized with useCallback
+  const handleOptionSelect = useCallback((settingId: string, optionId: string) => {
     // Track that user manually selected this setting
     setUserSelections(prev => new Set([...prev, settingId]));
-    console.log(`👤 User manually selected: ${settingId} = ${optionId}`);
-    
-    // Deselect preset when user makes any change (they're now customizing their own)
-    if (selectedPresetId) {
-      console.log('🎨 Deselecting preset - user is customizing their own');
-      setSelectedPresetId(null);
-    }
-    
-    const newState = {
-      ...customizationState,
-      [settingId]: optionId
-    };
-    
-    // Auto-adjust metal based on chain type to ensure image availability
-    if (settingId === 'chain_type') {
-      if (jewelryItem.id === 'necklace') {
-        if (optionId === 'yellow_gold_chain_real') {
-          // Yellow gold chain only works with yellow gold metal
-          newState.metal = 'yellow_gold';
-        } else if (optionId === 'white_gold_chain') {
-          // White gold chain only works with white gold metal  
-          newState.metal = 'white_gold';
-        }
-        // Black leather works with both, so don't auto-change
-      } else if (jewelryItem.id === 'bracelet') {
-        if (optionId === 'gold_cord') {
-          // Gold cord bracelets only work with yellow gold metal
-          newState.metal = 'yellow_gold';
-        } else if (optionId === 'black_leather') {
-          // Black leather bracelets work with both, but default to white gold
-          newState.metal = 'white_gold';
+
+    // Deselect preset when user makes any change
+    setSelectedPresetId(null);
+
+    setCustomizationState(prevState => {
+      const newState = {
+        ...prevState,
+        [settingId]: optionId
+      };
+
+      // Auto-adjust metal based on chain type to ensure image availability
+      if (settingId === 'chain_type') {
+        if (jewelryItem.id === 'necklace') {
+          if (optionId === 'yellow_gold_chain_real') {
+            newState.metal = 'yellow_gold';
+          } else if (optionId === 'white_gold_chain') {
+            newState.metal = 'white_gold';
+          }
+        } else if (jewelryItem.id === 'bracelet') {
+          if (optionId === 'gold_cord') {
+            newState.metal = 'yellow_gold';
+          } else if (optionId === 'black_leather') {
+            newState.metal = 'white_gold';
+          }
         }
       }
-    }
-    
-    // Auto-select Black Onyx for second stone when Black Onyx is selected as first stone
+
+      // Auto-select Black Onyx for second stone when Black Onyx is selected as first stone
+      if (settingId === 'first_stone' && optionId === 'black_onyx') {
+        newState.second_stone = 'second_stone_black_onyx';
+        newState.black_onyx_stone_size = 'small_onyx_08ct';
+        delete newState.diamond_size;
+        if (newState.chain_type === 'gold_cord') {
+          newState.chain_type = 'black_leather';
+        }
+      }
+
+      // Clear second stone if switching away from Black Onyx to diamond
+      if (settingId === 'first_stone' && optionId === 'diamond' && prevState.first_stone === 'black_onyx') {
+        newState.second_stone = 'emerald';
+        newState.diamond_size = 'small_015ct';
+        delete newState.black_onyx_stone_size;
+      }
+
+      return newState;
+    });
+
+    // Force natural diamond type for Black Onyx
     if (settingId === 'first_stone' && optionId === 'black_onyx') {
-      // Automatically select Black Onyx for second stone (matches database option_id)
-      newState.second_stone = 'second_stone_black_onyx';
-      
-      // Auto-select default black onyx stone size (small)
-      newState.black_onyx_stone_size = 'small_onyx_08ct';
-      
-      // Clear diamond size selection if it was set
-      delete newState.diamond_size;
-      
-      // Force natural diamond type for Black Onyx (Black Onyx only available as natural)
       setSelectedDiamondType('natural');
-      
-      // Force black leather chain type for Black Onyx (only leather cords compatible)
-      if (newState.chain_type === 'gold_cord') {
-        newState.chain_type = 'black_leather';
-      }
     }
-    
-    // Clear second stone if switching away from Black Onyx to diamond
-    if (settingId === 'first_stone' && optionId === 'diamond' && customizationState.first_stone === 'black_onyx') {
-      // Reset to default emerald when switching from Black Onyx to Diamond
-      newState.second_stone = 'emerald';
-      
-      // Auto-select default diamond size (small)
-      newState.diamond_size = 'small_015ct';
-      
-      // Clear black onyx stone size selection if it was set
-      delete newState.black_onyx_stone_size;
-    }
-    
-    setCustomizationState(newState);
-    onCustomizationChange?.(newState, totalPrice);
-  };
+  }, [jewelryItem.id]);
+
+  // Notify parent of customization changes
+  useEffect(() => {
+    onCustomizationChange?.(customizationState, totalPrice);
+  }, [customizationState, totalPrice, onCustomizationChange]);
 
   // Check if a setting's images are loaded - must have ALL option images loaded
   const isSettingImagesLoaded = (setting: CustomizationSetting) => {
@@ -1154,10 +1132,11 @@ export default function CustomizationComponent({
                           ease: "easeOut"
                         }}
                       >
-                        <CustomizationSetting
+                        <SettingPanel
                           setting={setting}
+                          settingId={setting.id}
                           selectedValue={customizationState[setting.id] as string}
-                          onSelect={(optionId) => handleOptionSelect(setting.id, optionId)}
+                          onOptionSelect={handleOptionSelect}
                           customizationState={customizationState}
                           appliedRules={appliedRules}
                           rulesLoading={rulesLoading}
@@ -1286,10 +1265,11 @@ export default function CustomizationComponent({
                               ease: "easeOut"
                             }}
                           >
-                            <CustomizationSetting
+                            <SettingPanel
                               setting={setting}
+                              settingId={setting.id}
                               selectedValue={customizationState[setting.id] as string}
-                              onSelect={(optionId) => handleOptionSelect(setting.id, optionId)}
+                              onOptionSelect={handleOptionSelect}
                               customizationState={customizationState}
                               appliedRules={appliedRules}
                               rulesLoading={rulesLoading}
@@ -1370,23 +1350,33 @@ export default function CustomizationComponent({
 }
 
 // Individual Setting Component
-interface CustomizationSettingProps {
+interface SettingPanelProps {
   setting: CustomizationSetting;
+  settingId: string;
   selectedValue?: string;
-  onSelect: (optionId: string) => void;
-  customizationState: CustomizationState;  // Add this to access other selections
-  appliedRules: RulesEngineResult | null;  // Add rules engine results
-  rulesLoading: boolean;  // Add rules loading state
+  onOptionSelect: (settingId: string, optionId: string) => void;
+  customizationState: CustomizationState;
+  appliedRules: RulesEngineResult | null;
+  rulesLoading: boolean;
 }
 
-function CustomizationSetting({ 
-  setting, 
-  selectedValue, 
-  onSelect, 
+const SettingPanel = React.memo(function SettingPanel({
+  setting,
+  settingId,
+  selectedValue,
+  onOptionSelect,
   customizationState,
   appliedRules,
   rulesLoading
-}: CustomizationSettingProps) {
+}: SettingPanelProps) {
+  // Ref-stabilize callback so OptionButton gets a stable onSelect reference
+  const onOptionSelectRef = useRef(onOptionSelect);
+  onOptionSelectRef.current = onOptionSelect;
+
+  const onSelect = useCallback((optionId: string) => {
+    onOptionSelectRef.current(settingId, optionId);
+  }, [settingId]);
+
   // Use specialized RingSizeSelector for ring size options
   if (setting.id === 'ring_size') {
     return (
@@ -1475,7 +1465,7 @@ function CustomizationSetting({
           </p>
         )}
       </div>
-      
+
       {/* Options Grid - Compact Cards for Mobile */}
       <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4 max-w-4xl mx-auto">
         {filteredOptions.map((option) => (
@@ -1483,28 +1473,51 @@ function CustomizationSetting({
             key={option.id}
             option={option}
             isSelected={selectedValue === option.id}
-            onSelect={() => onSelect(option.id)}
+            optionId={option.id}
+            onSelectOption={onSelect}
           />
         ))}
       </div>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparator: only re-render if relevant props changed for this setting
+  // onOptionSelect is ref-stabilized inside, so skip comparing it
+  if (prevProps.selectedValue !== nextProps.selectedValue) return false;
+  if (prevProps.settingId !== nextProps.settingId) return false;
+  if (prevProps.rulesLoading !== nextProps.rulesLoading) return false;
+
+  // Check if the filtered options for this specific setting changed
+  const prevFiltered = prevProps.appliedRules?.filteredSettings.find(s => s.id === prevProps.settingId);
+  const nextFiltered = nextProps.appliedRules?.filteredSettings.find(s => s.id === nextProps.settingId);
+  if (prevFiltered !== nextFiltered) {
+    const prevIds = prevFiltered?.options.map(o => o.option_id).join(',') ?? '';
+    const nextIds = nextFiltered?.options.map(o => o.option_id).join(',') ?? '';
+    if (prevIds !== nextIds) return false;
+  }
+
+  return true;
+});
 
 // Individual Option Button Component - Compact Card Style for Mobile
 interface OptionButtonProps {
   option: CustomizationOption;
   isSelected: boolean;
-  onSelect: () => void;
+  optionId: string;
+  onSelectOption: (id: string) => void;
 }
 
-function OptionButton({ option, isSelected, onSelect }: OptionButtonProps) {
+const OptionButton = React.memo(function OptionButton({ option, isSelected, optionId, onSelectOption }: OptionButtonProps) {
+  const handleClick = useCallback(() => {
+    onSelectOption(optionId);
+  }, [onSelectOption, optionId]);
+
   return (
     <button
-      onClick={onSelect}
+      onClick={handleClick}
       className={`group relative flex flex-col items-center p-2 sm:p-3 rounded-lg transition-all duration-300 ${
-        isSelected 
-          ? 'bg-[#1a1a1a] shadow-lg scale-[1.02]' 
+        isSelected
+          ? 'bg-[#1a1a1a] shadow-lg scale-[1.02]'
           : 'bg-white hover:bg-[#faf9f7] shadow-sm hover:shadow-md border border-[#e8e4df] hover:border-[#b8977e]/30'
       }`}
     >
@@ -1516,13 +1529,13 @@ function OptionButton({ option, isSelected, onSelect }: OptionButtonProps) {
           </svg>
         </div>
       )}
-      
+
       {/* Visual representation - smaller on mobile */}
       <div className="mb-1.5 sm:mb-3">
         {option.image ? (
           <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden transition-all duration-300 ${
-            isSelected 
-              ? 'ring-2 ring-[#b8977e] ring-offset-2 ring-offset-[#1a1a1a]' 
+            isSelected
+              ? 'ring-2 ring-[#b8977e] ring-offset-2 ring-offset-[#1a1a1a]'
               : 'ring-1 ring-[#e8e4df] group-hover:ring-[#b8977e]/50'
           }`}>
             <img
@@ -1535,28 +1548,28 @@ function OptionButton({ option, isSelected, onSelect }: OptionButtonProps) {
         ) : option.color ? (
           <div
             className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full transition-all duration-300 shadow-inner ${
-              isSelected 
-                ? 'ring-2 ring-[#b8977e] ring-offset-2 ring-offset-[#1a1a1a] scale-110' 
+              isSelected
+                ? 'ring-2 ring-[#b8977e] ring-offset-2 ring-offset-[#1a1a1a] scale-110'
                 : 'ring-1 ring-[#e8e4df] group-hover:ring-[#b8977e]/50 group-hover:scale-105'
             }`}
             style={{ background: option.color }}
           />
         ) : (
           <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-[#f5f3f0] to-[#e8e4df] transition-all duration-300 ${
-            isSelected 
-              ? 'ring-2 ring-[#b8977e] ring-offset-2 ring-offset-[#1a1a1a]' 
+            isSelected
+              ? 'ring-2 ring-[#b8977e] ring-offset-2 ring-offset-[#1a1a1a]'
               : 'ring-1 ring-[#e8e4df] group-hover:ring-[#b8977e]/50'
           }`} />
         )}
       </div>
-      
+
       {/* Option name - smaller text on mobile */}
       <span className={`text-[10px] sm:text-xs font-light text-center leading-tight transition-colors duration-300 line-clamp-2 ${
         isSelected ? 'text-white' : 'text-[#1a1a1a] group-hover:text-[#b8977e]'
       }`}>
         {option.name}
       </span>
-      
+
       {/* Subtle price indicator - hide on mobile to save space */}
       {option.price !== undefined && option.price > 0 && (
         <span className={`hidden sm:block mt-1 text-[10px] transition-colors duration-300 ${
@@ -1567,4 +1580,4 @@ function OptionButton({ option, isSelected, onSelect }: OptionButtonProps) {
       )}
     </button>
   );
-}
+});

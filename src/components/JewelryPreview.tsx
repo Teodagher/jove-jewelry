@@ -31,18 +31,43 @@ export default function JewelryPreview({
   const imageRef = React.useRef<HTMLImageElement>(null);
   const cache = useRef(getImageCache()).current;
 
+  // Crossfade state
+  const [previousImageUrl, setPreviousImageUrl] = useState<string | null>(null);
+  const [newImageReady, setNewImageReady] = useState(false);
+  const prevImageUrlRef = useRef(imageUrl);
+
+  // Crossfade: when imageUrl changes, set up previous/new image layers
+  useEffect(() => {
+    const oldUrl = prevImageUrlRef.current;
+    if (oldUrl && imageUrl && oldUrl !== imageUrl) {
+      if (cache.isLoaded(imageUrl)) {
+        setPreviousImageUrl(null);
+        setNewImageReady(true);
+      } else {
+        setPreviousImageUrl(oldUrl);
+        setNewImageReady(false);
+      }
+    } else if (!oldUrl && imageUrl) {
+      setPreviousImageUrl(null);
+      setNewImageReady(cache.isLoaded(imageUrl));
+    }
+    prevImageUrlRef.current = imageUrl;
+  }, [imageUrl, cache]);
+
   // Check cache on mount and when imageUrl changes
   useEffect(() => {
     if (!imageUrl) {
       setImageLoading(false);
       setImageError(false);
+      setPreviousImageUrl(null);
       return;
     }
-    
+
     // Check if already cached
     if (cache.isLoaded(imageUrl)) {
       setImageLoading(false);
       setImageError(false);
+      setNewImageReady(true);
       return;
     }
     
@@ -88,17 +113,20 @@ export default function JewelryPreview({
   }, [imageUrl, retryCount]);
 
   const handleImageLoad = useCallback(() => {
-    if (!imageLoading) return;
-    
     setImageLoading(false);
     setImageError(false);
     setRetryCount(0);
-    
+    setNewImageReady(true);
+
     // Update cache
     if (imageUrl) {
       cache.setLoaded(imageUrl);
     }
-  }, [imageUrl, imageLoading, cache]);
+    // Clear previous image after fade-out completes
+    setTimeout(() => {
+      setPreviousImageUrl(null);
+    }, 350);
+  }, [imageUrl, cache]);
 
   const handleImageError = useCallback(() => {
     setImageLoading(false);
@@ -175,16 +203,33 @@ export default function JewelryPreview({
           </div>
         )}
         
+        {/* Previous Image (crossfade: stays visible until new image loads) */}
+        {!imageError && previousImageUrl && (
+          <div className="absolute inset-0 p-4 sm:p-6 md:p-8">
+            <Image
+              src={previousImageUrl}
+              alt=""
+              fill
+              className={`object-contain transition-opacity duration-300 ease-in-out ${
+                newImageReady ? 'opacity-0' : 'opacity-100'
+              }`}
+              quality={85}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              aria-hidden="true"
+            />
+          </div>
+        )}
+
         {/* Main Image */}
         {!imageError && imageUrl && (
           <div className="absolute inset-0 p-4 sm:p-6 md:p-8">
             <Image
-              key={imageUrl} // Force remount on URL change
               src={imageUrl}
               alt={alt}
               fill
               className={`object-contain transition-opacity duration-300 ease-in-out ${
-                imageLoading && !isCached ? 'opacity-30' : 'opacity-100'
+                (!newImageReady && previousImageUrl) ? 'opacity-0' :
+                (imageLoading && !isCached) ? 'opacity-0' : 'opacity-100'
               }`}
               onLoad={handleImageLoad}
               onError={handleImageError}

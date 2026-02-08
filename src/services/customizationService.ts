@@ -7,6 +7,54 @@ import { DynamicFilenameService } from './dynamicFilenameService';
 import type { Market } from '@/lib/market-client';
 import { getBasePrice, getOptionPrice, isItemAvailableInMarket, isOptionAvailableInMarket } from '@/lib/pricing';
 
+// In-memory cache for variant image URLs to avoid redundant filename generation
+const variantUrlCache = new Map<string, string>();
+
+// One-time file index per storage folder: maps baseName (no extension) -> actual filename
+// This avoids calling storage.list() on every click while still resolving correct extensions
+const folderFileIndex = new Map<string, Map<string, string>>();
+const folderIndexLoading = new Map<string, Promise<Map<string, string>>>();
+
+async function getFileIndex(folder: string): Promise<Map<string, string>> {
+  // Return cached index if available
+  if (folderFileIndex.has(folder)) {
+    return folderFileIndex.get(folder)!;
+  }
+
+  // Deduplicate concurrent requests for the same folder
+  if (folderIndexLoading.has(folder)) {
+    return folderIndexLoading.get(folder)!;
+  }
+
+  const loadPromise = (async () => {
+    const index = new Map<string, string>();
+    try {
+      const { data: files, error } = await supabase.storage
+        .from('customization-item')
+        .list(folder, { limit: 1000 });
+
+      if (!error && files) {
+        for (const file of files) {
+          if (!file.name) continue;
+          // Strip extension to get base name
+          const lastDot = file.name.lastIndexOf('.');
+          const baseName = lastDot > 0 ? file.name.substring(0, lastDot) : file.name;
+          // Store with lowercase baseName for case-insensitive lookup
+          index.set(baseName.toLowerCase(), file.name);
+        }
+      }
+    } catch {
+      // Silently fail - URL construction will fall back to .webp
+    }
+    folderFileIndex.set(folder, index);
+    folderIndexLoading.delete(folder);
+    return index;
+  })();
+
+  folderIndexLoading.set(folder, loadPromise);
+  return loadPromise;
+}
+
 export class CustomizationService {
   // Fetch jewelry item with all customization options by slug
   static async getJewelryItemConfigBySlug(slug: string, market: Market = 'lb'): Promise<JewelryItem | null> {
@@ -498,12 +546,16 @@ export class CustomizationService {
   // Generate dynamic variant image URL based on customization selections
   static async generateVariantImageUrl(jewelryType: string, customizations: { [key: string]: string }): Promise<string | null> {
     const baseUrl = 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item'
-    
-    console.log('🔧 CustomizationService: Generating URL using dynamic service for:', {
-      jewelryType,
-      customizations,
-      timestamp: new Date().toISOString()
-    });
+
+    // Build cache key from jewelryType + sorted customization entries
+    const cacheKey = jewelryType + JSON.stringify(
+      Object.entries(customizations).sort(([a], [b]) => a.localeCompare(b))
+    );
+
+    const cached = variantUrlCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
 
     try {
       // Convert customizations to format expected by DynamicFilenameService
@@ -514,43 +566,19 @@ export class CustomizationService {
 
       // Generate filename using dynamic service (returns with .webp extension)
       const filename = await DynamicFilenameService.generateDynamicFilename(jewelryType, variantOptions);
-      const baseName = filename.replace(/\.[^/.]+$/, ''); // Strip extension
       const folder = `${jewelryType}s`;
 
-      // Check which file extension actually exists in storage (.webp preferred, fallback to .PNG/.png)
-      const extensions = ['.webp', '.PNG', '.png'];
+      // Resolve actual filename from one-time folder index (handles .PNG/.png/.webp)
+      const baseName = filename.substring(0, filename.lastIndexOf('.'));
+      const fileIndex = await getFileIndex(folder);
+      const actualFilename = fileIndex.get(baseName.toLowerCase()) || filename;
+      const finalUrl = `${baseUrl}/${folder}/${actualFilename}`;
 
-      try {
-        const { data: files } = await supabase.storage
-          .from('customization-item')
-          .list(folder, { search: baseName });
-
-        if (files && files.length > 0) {
-          // Find the first matching file with a supported extension
-          const match = files.find(f => {
-            const fBase = f.name.replace(/\.[^/.]+$/, '');
-            return fBase === baseName && extensions.some(ext => f.name.endsWith(ext));
-          });
-
-          if (match) {
-            // Add cache buster using file's updated_at timestamp to bust Next.js image cache
-            const cacheBuster = match.updated_at ? `?t=${new Date(match.updated_at).getTime()}` : '';
-            const finalUrl = `${baseUrl}/${folder}/${match.name}${cacheBuster}`;
-            console.log('✅ Found existing file with resolved extension:', finalUrl);
-            return finalUrl;
-          }
-        }
-      } catch (storageError) {
-        console.warn('⚠️ Could not check storage for file extension, defaulting to .webp:', storageError);
-      }
-
-      // Default to .webp if no file found (new upload expected)
-      const finalUrl = `${baseUrl}/${folder}/${filename}`;
-      console.log('✅ Generated URL (default .webp):', finalUrl);
+      variantUrlCache.set(cacheKey, finalUrl);
       return finalUrl;
 
     } catch (error) {
-      console.error('❌ Error generating dynamic variant URL:', error);
+      console.error('Error generating dynamic variant URL:', error);
       return null;
     }
   }

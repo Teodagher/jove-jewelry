@@ -87,8 +87,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://ndqxwvascqwhqaoqkpng.supabase.co" />
         <link rel="dns-prefetch" href="https://ndqxwvascqwhqaoqkpng.supabase.co" />
         
-        {/* Luxury Skin - Design layer */}
-        <link rel="stylesheet" href="/luxury-skin.css" />
+        {/* Luxury Skin CSS disabled — paired with luxury-skin.js which is disabled */}
         
         <Script
           crossOrigin="anonymous"
@@ -131,8 +130,9 @@ export default function RootLayout({
             </CartProvider>
           </AuthProvider>
         </ToastProvider>
-        {/* Luxury Skin JS - Customize page enhancer */}
-        <Script src="/luxury-skin.js" strategy="lazyOnload" />
+        {/* Luxury Skin JS disabled — causes HierarchyRequestError by trying to
+           reparent <body>/<main> inside its own child (circular appendChild).
+           The script was designed for traditional HTML forms, not React components. */}
       </body>
     </html>
   );

@@ -51,6 +51,11 @@ export default function ImageGallery({
   const cache = useRef(getImageCache()).current;
   const minSwipeDistance = 50;
 
+  // Crossfade state: track previous image to avoid flash on transition
+  const [previousImageUrl, setPreviousImageUrl] = useState<string | null>(null);
+  const [newImageReady, setNewImageReady] = useState(false);
+  const prevIndexRef = useRef(currentIndex);
+
   // Check if image is cached
   const isImageCached = useCallback((url: string): boolean => {
     return cache.isLoaded(url);
@@ -97,13 +102,36 @@ export default function ImageGallery({
       // Check if current image is already cached
       if (allImages.length > 0 && isImageCached(allImages[0])) {
         setImageLoading(false);
+        setNewImageReady(true);
+      } else {
+        setNewImageReady(false);
       }
+      setPreviousImageUrl(null);
       
       setLoading(false);
     };
 
     loadGalleryImages();
   }, [primaryImageUrl, variantKey, isImageCached]);
+
+  // Crossfade: when currentIndex changes, set up previous/new image layers
+  useEffect(() => {
+    if (images.length === 0) return;
+    const newUrl = images[currentIndex];
+    const oldUrl = images[prevIndexRef.current];
+
+    if (prevIndexRef.current !== currentIndex && oldUrl && oldUrl !== newUrl) {
+      // If the new image is already cached, skip the crossfade entirely
+      if (cache.isLoaded(newUrl)) {
+        setPreviousImageUrl(null);
+        setNewImageReady(true);
+      } else {
+        setPreviousImageUrl(oldUrl);
+        setNewImageReady(false);
+      }
+    }
+    prevIndexRef.current = currentIndex;
+  }, [currentIndex, images, cache]);
 
   // Preload adjacent images when current changes
   useEffect(() => {
@@ -194,10 +222,15 @@ export default function ImageGallery({
   // Handle image load
   const handleImageLoad = useCallback(() => {
     setImageLoading(false);
+    setNewImageReady(true);
     // Add to cache
     if (currentImageUrl) {
       cache.setLoaded(currentImageUrl);
     }
+    // Clear previous image after a short delay to allow fade-out
+    setTimeout(() => {
+      setPreviousImageUrl(null);
+    }, 350);
   }, [currentImageUrl, cache]);
 
   // Handle image error
@@ -245,16 +278,33 @@ export default function ImageGallery({
           </div>
         )}
 
+        {/* Previous Image (crossfade: stays visible until new image loads) */}
+        {previousImageUrl && (
+          <div className="absolute inset-0 p-8">
+            <Image
+              src={previousImageUrl}
+              alt=""
+              fill
+              className={`object-contain transition-opacity duration-300 ${
+                newImageReady ? 'opacity-0' : 'opacity-100'
+              }`}
+              quality={90}
+              sizes="550px"
+              aria-hidden="true"
+            />
+          </div>
+        )}
+
         {/* Current Image */}
         {currentImageUrl && (
           <div className="absolute inset-0 p-8">
             <Image
-              key={currentImageUrl}
               src={currentImageUrl}
               alt={`${alt}${hasMultipleImages ? ` - Image ${currentIndex + 1}` : ''}`}
               fill
               className={`object-contain transition-opacity duration-300 ${
-                imageLoading && !isImageCached(currentImageUrl) ? 'opacity-30' : 'opacity-100'
+                (!newImageReady && previousImageUrl) ? 'opacity-0' :
+                (imageLoading && !isImageCached(currentImageUrl)) ? 'opacity-0' : 'opacity-100'
               }`}
               onLoad={handleImageLoad}
               onError={handleImageError}
@@ -338,16 +388,33 @@ export default function ImageGallery({
             </div>
           )}
 
+          {/* Previous Image (crossfade: stays visible until new image loads) */}
+          {previousImageUrl && (
+            <div className="absolute inset-0 p-2">
+              <Image
+                src={previousImageUrl}
+                alt=""
+                fill
+                className={`object-contain transition-opacity duration-300 ${
+                  newImageReady ? 'opacity-0' : 'opacity-100'
+                }`}
+                quality={85}
+                sizes="(max-width: 768px) 85vw, 50vw"
+                aria-hidden="true"
+              />
+            </div>
+          )}
+
           {/* Current Image */}
           {currentImageUrl && (
             <div className="absolute inset-0 p-2">
               <Image
-                key={currentImageUrl}
                 src={currentImageUrl}
                 alt={`${alt}${hasMultipleImages ? ` - Image ${currentIndex + 1}` : ''}`}
                 fill
                 className={`object-contain transition-opacity duration-300 ${
-                  imageLoading && !isImageCached(currentImageUrl) ? 'opacity-30' : 'opacity-100'
+                  (!newImageReady && previousImageUrl) ? 'opacity-0' :
+                  (imageLoading && !isImageCached(currentImageUrl)) ? 'opacity-0' : 'opacity-100'
                 }`}
                 onLoad={handleImageLoad}
                 onError={handleImageError}
