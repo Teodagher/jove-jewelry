@@ -4,6 +4,8 @@ const nextConfig = {
   compiler: {
     removeConsole: false,
   },
+  // Ensure sharp is available in serverless functions
+  serverExternalPackages: ['sharp'],
   images: {
     unoptimized: false, // Enable optimization for better performance
     minimumCacheTTL: 3600, // Cache images for 1 hour (cache busting via ?t= handles updates)
