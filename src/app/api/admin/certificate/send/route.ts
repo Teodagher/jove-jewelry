@@ -47,20 +47,23 @@ function generateCertificateEmailHtml(customerName: string, productName: string,
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Helvetica:wght@300;400;700&display=swap');
+  </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #faf9f7; font-family: 'Georgia', 'Times New Roman', serif;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #faf9f7;">
+<body style="margin: 0; padding: 0; background-color: #FAF8F5; font-family: 'Helvetica', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #FAF8F5;">
     <tr>
       <td align="center" style="padding: 40px 20px;">
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border: 1px solid #e8e4df;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border: 1px solid #E8DFD5;">
           
           <!-- Header -->
           <tr>
-            <td align="center" style="padding: 40px 40px 30px 40px; border-bottom: 1px solid #e8e4df;">
-              <h1 style="margin: 0; font-size: 28px; font-weight: 300; letter-spacing: 4px; color: #1a1a1a; text-transform: uppercase;">
+            <td align="center" style="padding: 40px 40px 20px 40px; border-bottom: 1px solid #E8DFD5;">
+              <h1 style="margin: 0; font-size: 28px; font-weight: 300; letter-spacing: 4px; color: #1A1A1A; text-transform: uppercase;">
                 MAISON JOVÉ
               </h1>
-              <p style="margin: 8px 0 0 0; font-size: 11px; letter-spacing: 2px; color: #8b7355; text-transform: uppercase;">
+              <p style="margin: 8px 0 0 0; font-size: 11px; letter-spacing: 2px; color: #C9A96E; text-transform: uppercase;">
                 Fine Jewellery
               </p>
             </td>
@@ -69,33 +72,33 @@ function generateCertificateEmailHtml(customerName: string, productName: string,
           <!-- Content -->
           <tr>
             <td style="padding: 40px;">
-              <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #333333;">
+              <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #1A1A1A;">
                 Dear ${customerName},
               </p>
               
-              <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #333333;">
+              <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #1A1A1A;">
                 Thank you for your recent purchase from Maison Jové. We are honored to have crafted your exquisite piece and hope it brings you joy for years to come.
               </p>
               
-              <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #333333;">
+              <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #1A1A1A;">
                 Please find attached your official <strong>Certificate of Purchase</strong> for your ${productName}. This certificate serves as documentation of your unique piece and its specifications.
               </p>
               
-              <div style="background-color: #faf9f7; border-left: 3px solid #8b7355; padding: 20px; margin: 30px 0;">
+              <div style="background-color: #FAF8F5; border-left: 3px solid #C9A96E; padding: 20px; margin: 30px 0;">
                 <p style="margin: 0; font-size: 14px; color: #666666;">
-                  <strong style="color: #333333;">Certificate ID:</strong> ${certificateId}
+                  <strong style="color: #1A1A1A;">Certificate ID:</strong> ${certificateId}
                 </p>
               </div>
               
-              <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #333333;">
+              <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.8; color: #1A1A1A;">
                 Should you have any questions about your purchase or require any assistance, please don't hesitate to reach out. We are always here to help.
               </p>
               
-              <p style="margin: 30px 0 0 0; font-size: 16px; line-height: 1.8; color: #333333;">
+              <p style="margin: 30px 0 0 0; font-size: 16px; line-height: 1.8; color: #1A1A1A;">
                 With warm regards,
               </p>
               
-              <p style="margin: 5px 0 0 0; font-size: 16px; color: #333333;">
+              <p style="margin: 5px 0 0 0; font-size: 16px; color: #1A1A1A;">
                 <strong>Joey Germani</strong><br>
                 <span style="font-size: 14px; color: #666666;">Founder, Maison Jové</span>
               </p>
@@ -104,10 +107,10 @@ function generateCertificateEmailHtml(customerName: string, productName: string,
           
           <!-- Footer -->
           <tr>
-            <td style="padding: 30px 40px; background-color: #faf9f7; border-top: 1px solid #e8e4df;">
+            <td style="padding: 30px 40px; background-color: #FAF8F5; border-top: 1px solid #E8DFD5;">
               <p style="margin: 0; font-size: 12px; color: #999999; text-align: center;">
                 Maison Jové · Fine Jewellery<br>
-                <a href="https://maisonjove.com.au" style="color: #8b7355; text-decoration: none;">maisonjove.com.au</a>
+                <a href="https://maisonjove.com.au" style="color: #C9A96E; text-decoration: none;">maisonjove.com.au</a>
               </p>
             </td>
           </tr>
