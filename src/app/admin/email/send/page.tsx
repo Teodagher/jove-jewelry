@@ -324,41 +324,46 @@ Founder, Maison Jové`
 
   const buildRealOrderItemsHtml = async (items: any[]): Promise<string> => {
     const renderedItems = await Promise.all(items.map(async (item) => {
-      let displayImageUrl = item.preview_image_url
+      let displayImageUrl: string | null = null
 
-      if (!displayImageUrl && item.jewelry_type) {
+      // Always try to generate the correct customized product image first
+      if (item.jewelry_type) {
         const product = jewelryItems.find(p => p.id === item.jewelry_type)
-        if (product && item.customization_data) {
+        if (product && item.customization_data && Object.keys(item.customization_data).length > 0) {
           const generatedUrl = await CustomizationService.generateVariantImageUrl(
             product.type,
             item.customization_data
           )
-          if (generatedUrl) {
-            displayImageUrl = generatedUrl
-          } else {
-            displayImageUrl = product.base_image_url
-          }
+          displayImageUrl = generatedUrl || product.base_image_url
         } else if (product) {
           displayImageUrl = product.base_image_url
         }
       }
 
+      // Fallback to preview_image_url if nothing else worked
+      if (!displayImageUrl) {
+        displayImageUrl = item.preview_image_url || null
+      }
+
+      // Product name with "Custom" prefix for customized items
+      const productLabel = item.product_name || jewelryItems.find(p => p.id === item.jewelry_type)?.name || 'Jewelry'
+      const isCustomized = item.customization_data && Object.keys(item.customization_data).length > 0
+      const displayName = isCustomized ? `Custom ${productLabel}` : productLabel
+
       return `
       <table cellpadding="0" cellspacing="0" border="0" style="width:100%;border:1px solid #e8e4de;border-radius:8px;overflow:hidden;margin-bottom:12px;border-collapse:collapse;">
         <tr>
-          <td style="width:90px;vertical-align:top;padding:0;">
-            <div style="width:90px;height:90px;background-color:#f5f3f0;text-align:center;overflow:hidden;border-radius:8px 0 0 8px;">
+          <td style="width:90px;height:90px;vertical-align:top;padding:0;overflow:hidden;border-radius:8px 0 0 8px;background-color:#f5f3f0;">
               ${displayImageUrl
-          ? `<img src="${displayImageUrl}" alt="Product" style="width:100%;height:100%;object-fit:cover;display:block;">`
+          ? `<img src="${displayImageUrl}" alt="Product" width="90" height="90" style="width:90px;height:90px;object-fit:cover;display:block;">`
           : `<div style="width:90px;height:90px;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:24px;">&#9670;</div>`
         }
-            </div>
           </td>
           <td style="vertical-align:top;padding:12px 16px;">
             <table cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;">
               <tr>
                 <td style="font-size:14px;font-weight:600;color:#1a1a1a;font-family:Georgia,'Times New Roman',serif;padding:0 0 4px;">
-                  ${item.product_name || (jewelryItems.find(p => p.id === item.jewelry_type)?.name || 'Custom Jewelry')}
+                  ${displayName}
                   ${item.quantity > 1 ? `<span style="color:#888;font-weight:400;">x${item.quantity}</span>` : ''}
                 </td>
                 <td style="font-size:14px;font-weight:600;color:#1a1a1a;font-family:Georgia,'Times New Roman',serif;text-align:right;white-space:nowrap;padding:0 0 4px;">

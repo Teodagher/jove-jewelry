@@ -102,16 +102,33 @@ async function generateVariantImageUrl(
       filenameParts.push(slug);
     }
 
-    // Add first stone (if not diamond)
-    if (firstStoneOption) {
-      const slug = mappingMap.get(firstStoneOption.option_id) || firstStoneOption.option_id;
-      filenameParts.push(slug);
-    }
+    // Dual-stone logic: when first_stone is diamond, skip it from filename
+    // (matches DynamicFilenameService behavior)
+    const extractStone = (id: string): string => {
+      if (id && id.includes('_')) {
+        const parts = id.split('_');
+        if (parts.length >= 2) {
+          const twoWord = parts.slice(-2).join('_');
+          if (['blue_sapphire', 'pink_sapphire', 'yellow_sapphire'].includes(twoWord)) return twoWord;
+        }
+        const last = parts[parts.length - 1];
+        if (['ruby', 'emerald', 'diamond', 'sapphire'].includes(last)) return last;
+      }
+      return id;
+    };
 
-    // Add second stone
-    if (secondStoneOption) {
-      const slug = mappingMap.get(secondStoneOption.option_id) || secondStoneOption.option_id;
-      filenameParts.push(slug);
+    const actualFirstStone = firstStoneOption ? extractStone(firstStoneOption.option_id) : '';
+
+    if (firstStoneOption && actualFirstStone !== 'diamond' && secondStoneOption) {
+      // Both stones, first is not diamond
+      filenameParts.push(mappingMap.get(firstStoneOption.option_id) || firstStoneOption.option_id);
+      filenameParts.push(mappingMap.get(secondStoneOption.option_id) || secondStoneOption.option_id);
+    } else if (secondStoneOption) {
+      // First stone is diamond (skipped) or absent, include second stone only
+      filenameParts.push(mappingMap.get(secondStoneOption.option_id) || secondStoneOption.option_id);
+    } else if (firstStoneOption) {
+      // Only first stone exists, include it regardless
+      filenameParts.push(mappingMap.get(firstStoneOption.option_id) || firstStoneOption.option_id);
     }
 
     // Add metal
@@ -365,15 +382,57 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: itemsError.message }, { status: 500 })
     }
 
-    // Format items for UI
-    const items = (orderItems || []).map((item: any, index: number) => ({
-      index,
-      id: item.id,
-      productName: formatProductName(item.jewelry_type, item.product_name),
-      summary: item.customization_summary || '',
-      imageUrl: item.preview_image_url || null,
-      price: item.total_price,
-      certificateId: `MJ-${new Date(order.created_at).getFullYear()}-${(order.order_number || order.id.slice(0, 8)).toUpperCase()}-${index + 1}`
+    // Resolve customized product images for each item
+    const items = await Promise.all((orderItems || []).map(async (item: any, index: number) => {
+      let imageUrl: string | null = null
+
+      // Get product info to resolve the jewelry type
+      let productData: { type?: string; base_image_url?: string } | null = null
+      if (item.jewelry_type) {
+        const { data: product } = await (supabase
+          .from('jewelry_items') as any)
+          .select('type, base_image_url')
+          .eq('id', item.jewelry_type)
+          .single()
+        productData = product
+      }
+
+      const customizationData = item.customization_data || {}
+
+      if (productData?.type && Object.keys(customizationData).length > 0) {
+        // Generate variant image URL using the same logic as POST handler
+        const variantImageUrl = await generateVariantImageUrl(
+          supabase,
+          productData.type,
+          customizationData
+        )
+
+        if (variantImageUrl) {
+          // Try gallery image first (higher quality)
+          const variantKey = extractVariantKeyFromUrl(variantImageUrl)
+          if (variantKey) {
+            const galleryImage = await getVariantPrimaryImage(supabase, variantKey)
+            imageUrl = galleryImage || variantImageUrl
+          } else {
+            imageUrl = variantImageUrl
+          }
+        }
+      }
+
+      // Fallback to product base image
+      if (!imageUrl) {
+        imageUrl = productData?.base_image_url || item.preview_image_url || null
+      }
+
+      return {
+        index,
+        id: item.id,
+        productName: formatProductName(item.jewelry_type, item.product_name),
+        summary: item.customization_summary || '',
+        imageUrl,
+        price: item.total_price,
+        certificateId: `MJ-${new Date(order.created_at).getFullYear()}-${(order.order_number || order.id.slice(0, 8)).toUpperCase()}-${index + 1}`
+      }
     }))
 
     return NextResponse.json({

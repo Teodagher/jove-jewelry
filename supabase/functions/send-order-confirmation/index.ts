@@ -154,7 +154,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Send Client Email
     if (clientTemplate && order.customer_email) {
       const subject = resolveVariables(clientTemplate.subject, variables);
-      const bodyContent = resolveVariables(clientTemplate.content, variables);
+      const bodyContent = resolveVariables(clientTemplate.body || '', variables);
       const html = buildHtmlEmail(bodyContent);
 
       await resend.emails.send({
@@ -170,22 +170,38 @@ const handler = async (req: Request): Promise<Response> => {
       await logEmailHistory(supabase, orderId, clientTemplate.id, order.customer_email, order.customer_name, subject, 'sent');
     }
 
-    // Send Admin Email
+    // Send Admin Email to ALL admin users
     if (adminTemplate) {
-      const adminEmail = replyTo || 'admin@maisonjove.com';
       const subject = resolveVariables(adminTemplate.subject, variables);
-      const bodyContent = resolveVariables(adminTemplate.content, variables);
+      const bodyContent = resolveVariables(adminTemplate.body || '', variables);
       const html = buildHtmlEmail(bodyContent);
 
-      await resend.emails.send({
-        from: fromEmail,
-        to: [adminEmail],
-        subject: subject,
-        html: html,
-      });
-      console.log(`[OrderConfirmation] Admin email sent to ${adminEmail}`);
+      // Fetch all admin emails from users table
+      const { data: adminUsers } = await supabase
+        .from('users')
+        .select('email, full_name')
+        .contains('roles', ['admin']);
 
-      await logEmailHistory(supabase, orderId, adminTemplate.id, adminEmail, 'Admin', subject, 'sent');
+      const adminEmails = adminUsers?.map((u: any) => u.email).filter(Boolean) || [];
+
+      if (adminEmails.length > 0) {
+        // Send to all admins (excluding the customer if they happen to be an admin)
+        const filteredAdmins = adminEmails.filter((e: string) => e !== order.customer_email);
+
+        if (filteredAdmins.length > 0) {
+          await resend.emails.send({
+            from: fromEmail,
+            to: filteredAdmins,
+            subject: subject,
+            html: html,
+          });
+          console.log(`[OrderConfirmation] Admin email sent to ${filteredAdmins.join(', ')}`);
+
+          for (const adminEmail of filteredAdmins) {
+            await logEmailHistory(supabase, orderId, adminTemplate.id, adminEmail, 'Admin', subject, 'sent');
+          }
+        }
+      }
     }
 
     return new Response(JSON.stringify({ success: true }), {

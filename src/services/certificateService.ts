@@ -239,7 +239,7 @@ function generateCertificateId(orderNumber: string, lineItemIndex: number, purch
 }
 
 // Fetch image and convert to base64 (converts WebP to PNG for jsPDF compatibility)
-async function fetchImageAsBase64(url: string): Promise<{ base64: string; format: 'PNG' | 'JPEG' } | null> {
+async function fetchImageAsBase64(url: string, cropToSquare: boolean = false): Promise<{ base64: string; format: 'PNG' | 'JPEG' } | null> {
   try {
     // Try the original URL first
     let response = await fetch(url, {
@@ -282,9 +282,26 @@ async function fetchImageAsBase64(url: string): Promise<{ base64: string; format
     if (isJpeg) {
       format = 'JPEG'
     }
-    
+
+    // Crop to square (center crop, like object-fit: cover) and convert to PNG
+    if (cropToSquare) {
+      try {
+        const metadata = await sharp(buffer).metadata()
+        if (metadata.width && metadata.height) {
+          const size = Math.min(metadata.width, metadata.height)
+          buffer = Buffer.from(await sharp(buffer)
+            .resize(size, size, { fit: 'cover', position: 'centre' })
+            .png()
+            .toBuffer())
+          format = 'PNG'
+        }
+      } catch (cropError) {
+        console.error('Error cropping image:', cropError)
+      }
+    }
+
     // Convert WebP to PNG using sharp (jsPDF doesn't support WebP)
-    if (isWebP) {
+    if (!cropToSquare && isWebP) {
       try {
         const convertedBuffer = await sharp(buffer).png().toBuffer()
         buffer = Buffer.from(convertedBuffer)
@@ -381,7 +398,7 @@ export async function generateCertificatePDF(data: CertificateData): Promise<Cer
   let imageAdded = false
   if (data.productImageUrl) {
     try {
-      const imageData = await fetchImageAsBase64(data.productImageUrl)
+      const imageData = await fetchImageAsBase64(data.productImageUrl, true)
       if (imageData) {
         // Add padding inside the box
         const imagePadding = 4
