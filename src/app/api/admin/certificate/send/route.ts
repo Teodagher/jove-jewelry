@@ -3,6 +3,177 @@ import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { generateCertificatePDF, parseCustomizationToSpecs, type CertificateData } from '@/services/certificateService'
 
+// Import functions from certificate route to match PDF generation
+async function generateVariantImageUrl(
+  supabase: any,
+  jewelryType: string,
+  customizations: { [key: string]: string }
+): Promise<string | null> {
+  const baseUrl = 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item';
+  
+  try {
+    // Get filename mappings
+    const mappingMap = await getFilenameMappings(supabase, jewelryType);
+    
+    // Build variant options from customizations
+    const variantOptions = Object.entries(customizations).map(([setting_id, option_id]) => ({
+      setting_id,
+      option_id
+    }));
+
+    // Extract options by setting
+    const chainOption = variantOptions.find(opt => opt.setting_id === 'chain_type');
+    const firstStoneOption = variantOptions.find(opt => opt.setting_id === 'first_stone');
+    const secondStoneOption = variantOptions.find(opt => opt.setting_id === 'second_stone');
+    const metalOption = variantOptions.find(opt => opt.setting_id === 'metal');
+
+    // Build filename parts
+    const filenameParts = [jewelryType];
+
+    // Add chain/cord
+    if (chainOption) {
+      const slug = mappingMap.get(chainOption.option_id) || chainOption.option_id;
+      filenameParts.push(slug);
+    }
+
+    // Dual-stone logic: when first_stone is diamond, skip it from filename
+    const extractStone = (id: string): string => {
+      if (id && id.includes('_')) {
+        const parts = id.split('_');
+        if (parts.length >= 2) {
+          const twoWord = parts.slice(-2).join('_');
+          if (['blue_sapphire', 'pink_sapphire', 'yellow_sapphire'].includes(twoWord)) return twoWord;
+        }
+        const last = parts[parts.length - 1];
+        if (['ruby', 'emerald', 'diamond', 'sapphire'].includes(last)) return last;
+      }
+      return id;
+    };
+
+    const actualFirstStone = firstStoneOption ? extractStone(firstStoneOption.option_id) : '';
+
+    if (firstStoneOption && actualFirstStone !== 'diamond' && secondStoneOption) {
+      // Both stones, first is not diamond
+      filenameParts.push(mappingMap.get(firstStoneOption.option_id) || firstStoneOption.option_id);
+      filenameParts.push(mappingMap.get(secondStoneOption.option_id) || secondStoneOption.option_id);
+    } else if (secondStoneOption) {
+      // First stone is diamond (skipped) or absent, include second stone only
+      filenameParts.push(mappingMap.get(secondStoneOption.option_id) || secondStoneOption.option_id);
+    } else if (firstStoneOption) {
+      // Only first stone exists, include it regardless
+      filenameParts.push(mappingMap.get(firstStoneOption.option_id) || firstStoneOption.option_id);
+    }
+
+    // Add metal
+    if (metalOption) {
+      const slug = mappingMap.get(metalOption.option_id) || metalOption.option_id;
+      filenameParts.push(slug);
+    }
+
+    const baseFilename = filenameParts.join('-');
+    const folder = `${jewelryType}s`;
+
+    // List files in the folder to find the actual filename (handles different extensions)
+    const { data: files } = await supabase
+      .storage
+      .from('customization-item')
+      .list(folder, { limit: 1000 });
+
+    // Find matching file (case-insensitive)
+    const matchingFile = files?.find((f: any) => {
+      const nameWithoutExt = f.name.substring(0, f.name.lastIndexOf('.'));
+      return nameWithoutExt.toLowerCase() === baseFilename.toLowerCase();
+    });
+
+    if (matchingFile) {
+      return `${baseUrl}/${folder}/${matchingFile.name}`;
+    }
+
+    // Fallback: try with .webp extension
+    return `${baseUrl}/${folder}/${baseFilename}.webp`;
+  } catch (error) {
+    console.error('Error generating variant URL:', error);
+    return null;
+  }
+}
+
+async function getFilenameMappings(supabase: any, jewelryType: string): Promise<Map<string, string>> {
+  try {
+    // Get jewelry item IDs for this type
+    const { data: jewelryItems } = await supabase
+      .from('jewelry_items')
+      .select('id')
+      .eq('type', jewelryType)
+      .eq('is_active', true);
+
+    if (!jewelryItems || jewelryItems.length === 0) {
+      return new Map();
+    }
+
+    const jewelryItemIds = jewelryItems.map((item: any) => item.id);
+
+    // Fetch customization options with filename slugs
+    const { data: mappings } = await supabase
+      .from('customization_options')
+      .select('option_id, filename_slug')
+      .eq('is_active', true)
+      .eq('affects_image_variant', true)
+      .in('jewelry_item_id', jewelryItemIds)
+      .not('filename_slug', 'is', null);
+
+    const result = new Map<string, string>();
+    for (const m of mappings || []) {
+      if (m.option_id && m.filename_slug) {
+        result.set(m.option_id, m.filename_slug);
+      }
+    }
+    return result;
+  } catch (error) {
+    console.error('Error fetching filename mappings:', error);
+    return new Map();
+  }
+}
+
+async function getVariantPrimaryImage(supabase: any, variantKey: string): Promise<string | null> {
+  try {
+    // First try to get the primary image
+    const { data: primaryImage, error: primaryError } = await supabase
+      .from('variant_images')
+      .select('image_url')
+      .eq('variant_key', variantKey)
+      .eq('is_primary', true)
+      .single();
+
+    if (!primaryError && primaryImage?.image_url) {
+      return primaryImage.image_url;
+    }
+
+    // Fallback: get the first image by display_order
+    const { data: firstImage, error: firstError } = await supabase
+      .from('variant_images')
+      .select('image_url')
+      .eq('variant_key', variantKey)
+      .order('display_order', { ascending: true })
+      .limit(1)
+      .single();
+
+    if (!firstError && firstImage?.image_url) {
+      return firstImage.image_url;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching variant primary image:', error);
+    return null;
+  }
+}
+
+function extractVariantKeyFromUrl(url: string): string | null {
+  // URL format: .../customization-item/{type}s/{filename}.webp
+  const match = url.match(/customization-item\/[^/]+\/([^/]+)\.[a-zA-Z0-9]+$/);
+  return match ? match[1] : null;
+}
+
 // Lazy initialize Resend
 let resendInstance: Resend | null = null
 function getResend(): Resend {
@@ -182,9 +353,36 @@ export async function POST(request: Request) {
       }
     }
 
-    if (!productImageUrl) {
-      productImageUrl = item.preview_image_url || undefined
+    // Fetch full product image using variant generation logic
+const customizationData = item.customization_data || {}
+if (productData?.type && Object.keys(customizationData).length > 0) {
+  const variantImageUrl = await generateVariantImageUrl(
+    supabase,
+    productData.type,
+    customizationData
+  )
+
+  if (variantImageUrl) {
+    const variantKey = extractVariantKeyFromUrl(variantImageUrl)
+    
+    if (variantKey) {
+      const galleryImage = await getVariantPrimaryImage(supabase, variantKey)
+      
+      if (galleryImage) {
+        productImageUrl = galleryImage
+      } else {
+        productImageUrl = variantImageUrl
+      }
+    } else {
+      productImageUrl = variantImageUrl
     }
+  }
+}
+
+// Fallback to base or preview image
+if (!productImageUrl) {
+  productImageUrl = productData?.base_image_url || item.preview_image_url || undefined
+}
 
     const productName = formatProductName(item.jewelry_type, productData?.name || item.product_name)
     const orderNumber = order.order_number || order.id.slice(0, 8).toUpperCase()
