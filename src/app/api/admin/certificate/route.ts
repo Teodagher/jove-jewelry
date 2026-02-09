@@ -138,7 +138,10 @@ async function generateVariantImageUrl(
     }
 
     const baseFilename = filenameParts.join('-');
-    const folder = `${jewelryType}s`;
+    // Handle already-plural types to avoid double pluralization
+    const folder = ['rings', 'bracelets', 'earrings'].includes(jewelryType) 
+      ? jewelryType 
+      : `${jewelryType}s`;
 
     // List files in the folder to find the actual filename (handles different extensions)
     const { data: files } = await supabase
