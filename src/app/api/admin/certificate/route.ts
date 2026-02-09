@@ -275,15 +275,23 @@ export async function POST(request: Request) {
       );
       debugVariantImageUrl = variantImageUrl
       
+      console.log('[Certificate] Generated Variant Image URL:', variantImageUrl);
+      console.log('[Certificate] Customization Data:', JSON.stringify(customizationData, null, 2));
+      console.log('[Certificate] Jewelry Type:', productData.type);
+      
       if (variantImageUrl) {
         // Extract variant key from the URL to check variant_images table
         const variantKey = extractVariantKeyFromUrl(variantImageUrl);
         debugVariantKey = variantKey
         
+        console.log('[Certificate] Extracted Variant Key:', variantKey);
+        
         if (variantKey) {
           // Try to get gallery image first (higher quality/angled shots)
           const galleryImage = await getVariantPrimaryImage(supabase, variantKey);
           debugGalleryImage = galleryImage
+          
+          console.log('[Certificate] Gallery Image Result:', galleryImage);
           
           if (galleryImage) {
             productImageUrl = galleryImage;
@@ -296,14 +304,37 @@ export async function POST(request: Request) {
         } else {
           // Fallback to generated URL if we can't extract variant key
           productImageUrl = variantImageUrl;
+          console.log('[Certificate] No variant key, using generated URL:', productImageUrl);
         }
+      } else {
+        console.log('[Certificate] No variant image URL generated');
       }
     }
 
-    // Final fallback: use product base image (NOT preview_image_url which is a user photo)
+    // Comprehensive fallback image selection
     if (!productImageUrl) {
-      productImageUrl = productData?.base_image_url || undefined
-      console.log('[Certificate] Using product base image:', productImageUrl)
+      // Priority order:
+      // 1. Base image from product data 
+      // 2. Preview image from line item
+      // 3. First found variant image for the item
+      // 4. Static fallback image
+      productImageUrl = 
+        productData?.base_image_url || 
+        item.preview_image_url || 
+        (productData?.type 
+          ? await generateVariantImageUrl(
+              supabase, 
+              productData.type, 
+              customizationData
+            )
+          : 'https://maisonjove.com.au/default-jewelry.jpg'
+        )
+
+      console.log('[Certificate] Fallback Image Selection:', {
+        baseImageUrl: productData?.base_image_url,
+        previewImageUrl: item.preview_image_url,
+        finalImageUrl: productImageUrl
+      })
     }
 
     // Build certificate data

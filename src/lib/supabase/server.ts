@@ -4,7 +4,7 @@ import type { Database } from '@/types/database.types';
 
 export async function createClient() {
   const cookieStore = await cookies();
-  return createServerClient<Database>(
+  const client = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -19,8 +19,21 @@ export async function createClient() {
           cookieStore.set({ name, value: "", ...options, maxAge: 0 });
         },
       },
+      db: {
+        // Add additional logging
+        onQuery: (query) => {
+          console.log('[Supabase Query]', JSON.stringify({
+            method: query.method,
+            table: query.table,
+            params: query.params,
+            filter: query.filter
+          }, null, 2));
+        }
+      }
     }
   );
+
+  return client;
 }
 
 export async function getUser() {

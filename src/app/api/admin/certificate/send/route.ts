@@ -356,32 +356,63 @@ export async function POST(request: Request) {
     // Fetch full product image using variant generation logic
 const customizationData = item.customization_data || {}
 if (productData?.type && Object.keys(customizationData).length > 0) {
+  console.log('[Certificate Email] Customization Data:', JSON.stringify(customizationData, null, 2));
+  console.log('[Certificate Email] Jewelry Type:', productData.type);
+  
   const variantImageUrl = await generateVariantImageUrl(
     supabase,
     productData.type,
     customizationData
   )
 
+  console.log('[Certificate Email] Generated Variant Image URL:', variantImageUrl);
+
   if (variantImageUrl) {
     const variantKey = extractVariantKeyFromUrl(variantImageUrl)
+    
+    console.log('[Certificate Email] Extracted Variant Key:', variantKey);
     
     if (variantKey) {
       const galleryImage = await getVariantPrimaryImage(supabase, variantKey)
       
+      console.log('[Certificate Email] Gallery Image Result:', galleryImage);
+      
       if (galleryImage) {
         productImageUrl = galleryImage
+        console.log('[Certificate Email] Using gallery image:', productImageUrl);
       } else {
         productImageUrl = variantImageUrl
+        console.log('[Certificate Email] Using variant image:', productImageUrl);
       }
     } else {
       productImageUrl = variantImageUrl
+      console.log('[Certificate Email] No variant key, using generated URL:', productImageUrl);
     }
+  } else {
+    console.log('[Certificate Email] No variant image URL generated');
   }
 }
 
-// Fallback to base or preview image
+// Comprehensive fallback image selection
 if (!productImageUrl) {
-  productImageUrl = productData?.base_image_url || item.preview_image_url || undefined
+  // Priority order:
+  // 1. Base image from product data 
+  // 2. Preview image from line item
+  // 3. First found variant image for the item
+  // 4. Static fallback image
+  productImageUrl = 
+    productData?.base_image_url || 
+    item.preview_image_url || 
+    (productData?.type 
+      ? await generateVariantImageUrl(supabase, productData.type, customizationData)
+      : 'https://maisonjove.com.au/default-jewelry.jpg'
+    )
+
+  console.log('[Certificate Email] Fallback Image Selection:', {
+    baseImageUrl: productData?.base_image_url,
+    previewImageUrl: item.preview_image_url,
+    finalImageUrl: productImageUrl
+  })
 }
 
     const productName = formatProductName(item.jewelry_type, productData?.name || item.product_name)
