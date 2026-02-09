@@ -21,7 +21,7 @@ export async function createClient() {
       },
       db: {
         // Add additional logging
-        onQuery: (query) => {
+        onQuery: (query: { method?: string; table?: string; params?: unknown; filter?: unknown }) => {
           console.log('[Supabase Query]', JSON.stringify({
             method: query.method,
             table: query.table,
