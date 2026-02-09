@@ -4,12 +4,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import type { User } from '@/lib/adminUtils';
+import { ROLES, Role, getHighestRole, hasAdminAccess } from '@/lib/roles';
 import {
   Search,
   Filter,
   Users,
   Crown,
-  MoreVertical
+  Palette,
+  MoreVertical,
+  Check
 } from 'lucide-react';
 
 interface UserWithStats extends User {
@@ -74,9 +77,11 @@ export default function AdminUsersPage() {
     fetchUsers();
   }, [fetchUsers]);
 
-  const handleRoleUpdate = async (userId: string, action: 'promote' | 'demote') => {
-    if (action === 'demote') {
-      const confirmed = window.confirm('Are you sure you want to remove admin access from this user?');
+  const handleRoleChange = async (userId: string, role: Role, action: 'add_role' | 'remove_role') => {
+    const roleInfo = ROLES[role];
+    
+    if (action === 'remove_role') {
+      const confirmed = window.confirm(`Are you sure you want to remove ${roleInfo.displayName} access from this user?`);
       if (!confirmed) return;
     }
 
@@ -85,7 +90,7 @@ export default function AdminUsersPage() {
       const res = await fetch('/api/admin/users/update-role', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, action }),
+        body: JSON.stringify({ userId, action, role }),
       });
 
       const data = await res.json();
@@ -113,16 +118,15 @@ export default function AdminUsersPage() {
     const matchesRole =
       roleFilter === 'all' ||
       (roleFilter === 'admin' && user.roles?.includes('admin')) ||
-      (roleFilter === 'customer' && !user.roles?.includes('admin'));
+      (roleFilter === 'admin_designer' && user.roles?.includes('admin_designer')) ||
+      (roleFilter === 'customer' && !hasAdminAccess(user.roles || []));
 
     return matchesSearch && matchesRole;
   });
 
   // Stats
   const adminCount = users.filter(u => u.roles?.includes('admin')).length;
-
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
+  const designerCount = users.filter(u => u.roles?.includes('admin_designer') && !u.roles?.includes('admin')).length;
 
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString('en-US', {
@@ -130,6 +134,37 @@ export default function AdminUsersPage() {
       month: 'short',
       day: 'numeric',
     });
+
+  // Render role badge(s) for a user
+  const renderRoleBadges = (userRoles: string[] | null) => {
+    const roles = userRoles || [];
+    const isAdmin = roles.includes('admin');
+    const isDesigner = roles.includes('admin_designer');
+    
+    if (isAdmin) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">
+          <Crown className="h-3 w-3" />
+          Admin
+        </span>
+      );
+    }
+    
+    if (isDesigner) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
+          <Palette className="h-3 w-3" />
+          Designer
+        </span>
+      );
+    }
+    
+    return (
+      <span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">
+        Customer
+      </span>
+    );
+  };
 
   if (loading) {
     return (
@@ -151,6 +186,19 @@ export default function AdminUsersPage() {
       <div className="border-b border-gray-200 pb-5">
         <h1 className="text-3xl font-light text-gray-900 font-serif tracking-wider">User Accounts</h1>
         <p className="mt-2 text-sm text-gray-600">Manage registered user accounts and roles</p>
+        <div className="mt-4 flex flex-wrap gap-4 text-sm">
+          <span className="inline-flex items-center gap-1.5 text-amber-700">
+            <Crown className="h-4 w-4" />
+            {adminCount} Admin{adminCount !== 1 ? 's' : ''}
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-purple-700">
+            <Palette className="h-4 w-4" />
+            {designerCount} Designer{designerCount !== 1 ? 's' : ''}
+          </span>
+          <span className="text-gray-500">
+            {users.length} total users
+          </span>
+        </div>
       </div>
 
       {/* Filters */}
@@ -178,6 +226,7 @@ export default function AdminUsersPage() {
               >
                 <option value="all">All Roles</option>
                 <option value="admin">Admin</option>
+                <option value="admin_designer">Designer</option>
                 <option value="customer">Customer</option>
               </select>
             </div>
@@ -213,7 +262,10 @@ export default function AdminUsersPage() {
                 </tr>
               ) : (
                 filteredUsers.map((user) => {
-                  const isAdmin = user.roles?.includes('admin');
+                  const userRoles = user.roles || [];
+                  const isAdmin = userRoles.includes('admin');
+                  const isDesigner = userRoles.includes('admin_designer');
+                  
                   return (
                     <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
@@ -235,16 +287,7 @@ export default function AdminUsersPage() {
                         {user.phone || '—'}
                       </td>
                       <td className="px-6 py-4">
-                        {isAdmin ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800">
-                            <Crown className="h-3 w-3" />
-                            Admin
-                          </span>
-                        ) : (
-                          <span className="inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">
-                            Customer
-                          </span>
-                        )}
+                        {renderRoleBadges(user.roles)}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500 hidden md:table-cell">
                         {formatDate(user.created_at)}
@@ -270,7 +313,7 @@ export default function AdminUsersPage() {
                             {menuOpen === user.id && (
                               <>
                                 <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(null)} />
-                                <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-zinc-200 z-20 py-1">
+                                <div className="absolute right-0 mt-1 w-52 bg-white rounded-lg shadow-lg border border-zinc-200 z-20 py-1">
                                   <Link
                                     href={`/admin/users/${user.id}`}
                                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
@@ -279,37 +322,44 @@ export default function AdminUsersPage() {
                                     View Profile
                                   </Link>
                                   <div className="border-t border-gray-100 my-1" />
-                                  <p className="px-4 py-1 text-xs text-gray-400 uppercase tracking-wider">Change Role</p>
+                                  <p className="px-4 py-1 text-xs text-gray-400 uppercase tracking-wider">Assign Roles</p>
+                                  
+                                  {/* Admin Role */}
                                   <button
                                     onClick={(e) => {
                                       e.preventDefault();
                                       setMenuOpen(null);
-                                      if (!isAdmin) return;
-                                      handleRoleUpdate(user.id, 'demote');
+                                      handleRoleChange(user.id, 'admin', isAdmin ? 'remove_role' : 'add_role');
                                     }}
-                                    className={`w-full text-left px-4 py-2 text-sm ${
-                                      !isAdmin
-                                        ? 'text-gray-900 bg-gray-50 font-medium cursor-default'
-                                        : 'text-gray-700 hover:bg-gray-50'
-                                    }`}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between"
                                   >
-                                    Customer {!isAdmin && <span className="text-xs text-gray-400 ml-1">(current)</span>}
+                                    <span className="flex items-center gap-2">
+                                      <Crown className="h-4 w-4 text-amber-600" />
+                                      Admin
+                                    </span>
+                                    {isAdmin && <Check className="h-4 w-4 text-green-600" />}
                                   </button>
+                                  
+                                  {/* Designer Role */}
                                   <button
                                     onClick={(e) => {
                                       e.preventDefault();
                                       setMenuOpen(null);
-                                      if (isAdmin) return;
-                                      handleRoleUpdate(user.id, 'promote');
+                                      handleRoleChange(user.id, 'admin_designer', isDesigner ? 'remove_role' : 'add_role');
                                     }}
-                                    className={`w-full text-left px-4 py-2 text-sm ${
-                                      isAdmin
-                                        ? 'text-gray-900 bg-gray-50 font-medium cursor-default'
-                                        : 'text-gray-700 hover:bg-gray-50'
-                                    }`}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-between"
                                   >
-                                    Admin {isAdmin && <span className="text-xs text-gray-400 ml-1">(current)</span>}
+                                    <span className="flex items-center gap-2">
+                                      <Palette className="h-4 w-4 text-purple-600" />
+                                      Designer
+                                    </span>
+                                    {isDesigner && <Check className="h-4 w-4 text-green-600" />}
                                   </button>
+                                  
+                                  <div className="border-t border-gray-100 my-1" />
+                                  <p className="px-4 py-2 text-xs text-gray-400">
+                                    Click to toggle role on/off
+                                  </p>
                                 </div>
                               </>
                             )}

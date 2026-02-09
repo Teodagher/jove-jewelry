@@ -30,6 +30,7 @@ import {
   ShieldCheck,
   Mail
 } from 'lucide-react';
+import { hasAdminAccess, canAccessPath, getHighestRole, ROLES } from '@/lib/roles';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -85,6 +86,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [user, setUser] = useState<any>(null);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMarket, setSelectedMarket] = useState<Market>('lb');
   const [marketSelectorOpen, setMarketSelectorOpen] = useState(false);
@@ -117,6 +119,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const checkAdminRole = async (authUser: typeof user) => {
       if (!authUser) {
         setUser(null);
+        setUserRoles([]);
         setLoading(false);
         return;
       }
@@ -127,11 +130,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         .eq('auth_user_id', authUser.id)
         .single() as { data: { roles: string[] | null } | null };
 
-      if (userData?.roles?.includes('admin')) {
+      const roles = userData?.roles || [];
+      
+      if (hasAdminAccess(roles)) {
         setUser(authUser);
+        setUserRoles(roles);
       } else {
-        logger.log('⚠️ AdminLayout: User is not admin, clearing user');
+        logger.log('⚠️ AdminLayout: User does not have admin access, clearing user');
         setUser(null);
+        setUserRoles([]);
       }
       setLoading(false);
     };
@@ -192,6 +199,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return pathname.startsWith(href);
   };
 
+  // Filter navigation based on user roles
+  const filteredNavigation = navigation.filter(item => 
+    canAccessPath(userRoles, item.href)
+  );
+
+  // Get user's role for display
+  const highestRole = getHighestRole(userRoles);
+  const roleInfo = highestRole ? ROLES[highestRole] : null;
+
   const handleSignOut = async () => {
     try {
       logger.log('🏗️ Signing out user');
@@ -225,7 +241,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 flex-shrink-0">
           <div>
             <h1 className="text-xl font-serif font-light text-zinc-900 tracking-wider">JOVÉ</h1>
-            <p className="text-xs text-zinc-600 font-light tracking-[0.2em]">ADMIN</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-zinc-600 font-light tracking-[0.2em]">ADMIN</p>
+              {roleInfo && highestRole !== 'admin' && (
+                <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded ${roleInfo.bgColor} ${roleInfo.color}`}>
+                  {roleInfo.displayName}
+                </span>
+              )}
+            </div>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -238,7 +261,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         {/* Navigation - scrollable */}
         <nav className="flex-1 px-3 py-6 overflow-y-auto">
           <div className="space-y-1">
-            {navigation.map((item) => {
+            {filteredNavigation.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
 
