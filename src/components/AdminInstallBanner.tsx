@@ -48,7 +48,7 @@ export default function AdminInstallBanner() {
 
                 <div className="flex items-center gap-2">
                     <Link
-                        href="/install-admin"
+                        href="/setup-admin"
                         className="bg-white text-amber-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-50 transition-colors whitespace-nowrap"
                     >
                         Install Now

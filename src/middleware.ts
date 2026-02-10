@@ -83,7 +83,7 @@ export async function middleware(request: NextRequest) {
   // Skip market logic for admin routes, API routes, and static files
   if (
     pathname.startsWith('/admin') ||
-    pathname.startsWith('/install-admin') ||
+    pathname.startsWith('/setup-admin') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
     pathname.match(/\.(ico|png|jpg|jpeg|svg|gif|webp)$/)
