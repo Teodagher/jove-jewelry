@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { House, Sparkle, ShoppingCart, User, DotsThreeOutline } from '@phosphor-icons/react';
+import { House, Diamond, ShoppingCart, User, DotsThreeOutline } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -70,7 +70,7 @@ export default function BottomNav() {
 
     const navItems = [
         { href: '/', icon: House, label: 'Home' },
-        { href: '/customize', icon: Sparkle, label: 'Customize' },
+        { href: '/customize', icon: Diamond, label: 'Customize' },
         { href: '/cart', icon: ShoppingCart, label: 'Cart', badge: itemCount },
         { href: user ? '/account' : '/auth/login', icon: User, label: 'Account' },
     ];
