@@ -15,6 +15,21 @@ export default function BottomNav() {
     const [isVisible, setIsVisible] = useState(true);
     const [lastScrollY, setLastScrollY] = useState(0);
     const [showMoreMenu, setShowMoreMenu] = useState(false);
+    const [isStandalone, setIsStandalone] = useState(false);
+
+    // Check if app is in standalone mode (installed as PWA)
+    useEffect(() => {
+        const checkStandalone = () => {
+            const isInStandaloneMode =
+                window.matchMedia('(display-mode: standalone)').matches ||
+                (window.navigator as any).standalone === true ||
+                document.referrer.includes('android-app://');
+
+            setIsStandalone(isInStandaloneMode);
+        };
+
+        checkStandalone();
+    }, []);
 
     // Hide/show on scroll
     useEffect(() => {
@@ -38,6 +53,11 @@ export default function BottomNav() {
 
     // Don't show on admin routes
     if (pathname?.startsWith('/admin')) {
+        return null;
+    }
+
+    // ONLY show bottom nav when installed as PWA (standalone mode)
+    if (!isStandalone) {
         return null;
     }
 

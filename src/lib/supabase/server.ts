@@ -19,17 +19,6 @@ export async function createClient() {
           cookieStore.set({ name, value: "", ...options, maxAge: 0 });
         },
       },
-      db: {
-        // Add additional logging
-        onQuery: (query: { method?: string; table?: string; params?: unknown; filter?: unknown }) => {
-          console.log('[Supabase Query]', JSON.stringify({
-            method: query.method,
-            table: query.table,
-            params: query.params,
-            filter: query.filter
-          }, null, 2));
-        }
-      }
     }
   );
 

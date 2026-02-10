@@ -31,6 +31,7 @@ export default function Header() {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
   const [siteStyle, setSiteStyle] = useState<string>('original')
   const [showEmailConfirmed, setShowEmailConfirmed] = useState(false)
+  const [isStandalone, setIsStandalone] = useState(false)
   const { itemCount } = useCart()
   const { user, signOut } = useAuth()
   const searchParams = useSearchParams()
@@ -44,6 +45,20 @@ export default function Header() {
       router.replace('/', { scroll: false })
     }
   }, [searchParams, router])
+
+  // Check if running in standalone mode (PWA)
+  useEffect(() => {
+    const checkStandalone = () => {
+      const isInStandaloneMode =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone === true ||
+        document.referrer.includes('android-app://');
+
+      setIsStandalone(isInStandaloneMode);
+    };
+
+    checkStandalone();
+  }, []);
 
   // Fetch site style
   useEffect(() => {
@@ -196,38 +211,51 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 md:h-20">
 
-            {/* Mobile: Logo centered, Cart on right */}
-            <div className="flex md:hidden items-center justify-between w-full">
-              {/* Spacer for balance */}
-              <div className="w-10" />
-
-              {/* Logo - centered */}
-              <Link href="/" className="flex flex-col items-center group">
-                <span className="font-serif text-base font-light text-maison-black tracking-[0.2em] transition-colors duration-300 group-hover:text-maison-gold whitespace-nowrap">
-                  MAISON JOVÉ
-                </span>
-                <span className="text-[8px] text-maison-graphite/70 font-light tracking-[0.3em]">
-                  FINE JEWELLERY
-                </span>
-              </Link>
-
-              {/* Cart Icon */}
-              <Link
-                href="/cart"
-                className="p-2 text-maison-charcoal hover:text-maison-gold transition-colors duration-300 relative"
-                aria-label="Cart"
+            {/* Mobile: Show hamburger menu when NOT in PWA standalone mode */}
+            {!isStandalone && (
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="md:hidden p-2 text-maison-charcoal hover:text-maison-gold transition-colors duration-300"
+                aria-label="Toggle menu"
               >
-                <ShoppingCart size={20} strokeWidth={1.5} />
-                {itemCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-maison-gold text-maison-black text-[10px] font-medium rounded-full h-4 w-4 flex items-center justify-center">
-                    {itemCount}
-                  </span>
-                )}
-              </Link>
-            </div>
+                {isMenuOpen ? <X size={22} strokeWidth={1} /> : <Menu size={22} strokeWidth={1} />}
+              </button>
+            )}
 
-            {/* Desktop: Original layout */}
-            <Link href="/" className="hidden md:flex flex-col items-start group">
+            {/* Mobile PWA: Centered logo with spacer (only in standalone mode) */}
+            {isStandalone && (
+              <div className="flex md:hidden items-center justify-between w-full">
+                {/* Spacer for balance */}
+                <div className="w-10" />
+
+                {/* Logo - centered */}
+                <Link href="/" className="flex flex-col items-center group">
+                  <span className="font-serif text-base font-light text-maison-black tracking-[0.2em] transition-colors duration-300 group-hover:text-maison-gold whitespace-nowrap">
+                    MAISON JOVÉ
+                  </span>
+                  <span className="text-[8px] text-maison-graphite/70 font-light tracking-[0.3em]">
+                    FINE JEWELLERY
+                  </span>
+                </Link>
+
+                {/* Cart Icon */}
+                <Link
+                  href="/cart"
+                  className="p-2 text-maison-charcoal hover:text-maison-gold transition-colors duration-300 relative"
+                  aria-label="Cart"
+                >
+                  <ShoppingCart size={20} strokeWidth={1.5} />
+                  {itemCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-maison-gold text-maison-black text-[10px] font-medium rounded-full h-4 w-4 flex items-center justify-center">
+                      {itemCount}
+                    </span>
+                  )}
+                </Link>
+              </div>
+            )}
+
+            {/* Logo - Desktop always, Mobile only when NOT in PWA */}
+            <Link href="/" className={`${isStandalone ? 'hidden md:flex' : 'flex'} flex-col items-start group`}>
               <span className="font-serif text-lg md:text-xl font-light text-maison-black tracking-[0.2em] transition-colors duration-300 group-hover:text-maison-gold whitespace-nowrap">
                 MAISON JOVÉ
               </span>
