@@ -208,13 +208,26 @@ export default function Header() {
           }`}
         style={{
           top: siteStyle === 'valentines' ? 'calc(max(env(safe-area-inset-top), 8px) + 32px)' : '0',
-          paddingTop: siteStyle === 'valentines' ? '0' : 'env(safe-area-inset-top)',
         }}
       >
+        {/* Safe area background extension - fills the notch area */}
+        <div
+          className="absolute left-0 right-0 bg-maison-ivory -z-10"
+          style={{
+            top: '-100px',
+            height: '100px',
+          }}
+        />
+
         {/* Top accent line */}
         <div className="h-px bg-gradient-to-r from-transparent via-maison-gold/40 to-transparent" />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+          style={{
+            paddingTop: siteStyle === 'valentines' ? '0' : 'env(safe-area-inset-top)',
+          }}
+        >
           <div className="flex items-center justify-between h-16 md:h-20">
 
             {/* Mobile: Show hamburger menu when NOT in PWA standalone mode */}
