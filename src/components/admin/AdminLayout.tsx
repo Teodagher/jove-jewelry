@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { hasAdminAccess, canAccessPath, getHighestRole, ROLES } from '@/lib/roles';
 import AdminInstallPrompt from '../AdminInstallPrompt';
+import AdminInstallBanner from '../AdminInstallBanner';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -222,204 +223,207 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
 
   return (
-    <div className="h-screen flex overflow-hidden jove-bg-primary">
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        >
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-75" />
-        </div>
-      )}
+    <>
+      <AdminInstallBanner />
+      <div className="h-screen flex overflow-hidden jove-bg-primary">
+        {/* Mobile sidebar overlay */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <div className="fixed inset-0 bg-gray-600 bg-opacity-75" />
+          </div>
+        )}
 
-      {/* Fixed Sidebar */}
-      <div className={`
+        {/* Fixed Sidebar */}
+        <div className={`
         fixed inset-y-0 left-0 z-50 w-64 jove-bg-card shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        {/* Sidebar Header */}
-        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 flex-shrink-0">
-          <div>
-            <h1 className="text-xl font-serif font-light text-zinc-900 tracking-wider">JOVÉ</h1>
-            <div className="flex items-center gap-2">
-              <p className="text-xs text-zinc-600 font-light tracking-[0.2em]">ADMIN</p>
-              {roleInfo && highestRole !== 'admin' && (
-                <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded ${roleInfo.bgColor} ${roleInfo.color}`}>
-                  {roleInfo.displayName}
-                </span>
-              )}
+          {/* Sidebar Header */}
+          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 flex-shrink-0">
+            <div>
+              <h1 className="text-xl font-serif font-light text-zinc-900 tracking-wider">JOVÉ</h1>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-zinc-600 font-light tracking-[0.2em]">ADMIN</p>
+                {roleInfo && highestRole !== 'admin' && (
+                  <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded ${roleInfo.bgColor} ${roleInfo.color}`}>
+                    {roleInfo.displayName}
+                  </span>
+                )}
+              </div>
             </div>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden p-1 rounded-md text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-6 w-6" />
+            </button>
           </div>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-1 rounded-md text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-6 w-6" />
-          </button>
-        </div>
 
-        {/* Navigation - scrollable */}
-        <nav className="flex-1 px-3 py-6 overflow-y-auto">
-          <div className="space-y-1">
-            {filteredNavigation.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
+          {/* Navigation - scrollable */}
+          <nav className="flex-1 px-3 py-6 overflow-y-auto">
+            <div className="space-y-1">
+              {filteredNavigation.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.href);
 
-              return (
-                <div key={item.name}>
-                  <Link
-                    href={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`
+                return (
+                  <div key={item.name}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setSidebarOpen(false)}
+                      className={`
                       group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200
                       ${active
-                        ? 'bg-zinc-100 text-zinc-900'
-                        : 'text-gray-600 jove-bg-accent-hover hover:text-gray-900'
-                      }
+                          ? 'bg-zinc-100 text-zinc-900'
+                          : 'text-gray-600 jove-bg-accent-hover hover:text-gray-900'
+                        }
                     `}
-                  >
-                    <Icon className={`
+                    >
+                      <Icon className={`
                       mr-3 h-5 w-5 flex-shrink-0
                       ${active ? 'text-zinc-900' : 'text-gray-400 group-hover:text-gray-500'}
                     `} />
-                    {item.name}
-                  </Link>
+                      {item.name}
+                    </Link>
 
-                  {/* Sub-navigation for items with children */}
-                  {item.children && (pathname.startsWith('/admin/pricing') || pathname.startsWith('/admin/website-customization') || pathname.startsWith('/admin/email')) && (
-                    <div className="ml-8 mt-1 space-y-1">
-                      {item.children.map((child) => (
-                        <Link
-                          key={child.name}
-                          href={child.href}
-                          onClick={() => setSidebarOpen(false)}
-                          className={`
+                    {/* Sub-navigation for items with children */}
+                    {item.children && (pathname.startsWith('/admin/pricing') || pathname.startsWith('/admin/website-customization') || pathname.startsWith('/admin/email')) && (
+                      <div className="ml-8 mt-1 space-y-1">
+                        {item.children.map((child) => (
+                          <Link
+                            key={child.name}
+                            href={child.href}
+                            onClick={() => setSidebarOpen(false)}
+                            className={`
                             block px-3 py-2 text-sm rounded-lg transition-colors duration-200
                             ${pathname === child.href
-                              ? 'bg-zinc-50 text-zinc-900 font-medium'
-                              : 'text-gray-500 jove-bg-accent-hover hover:text-gray-700'
-                            }
+                                ? 'bg-zinc-50 text-zinc-900 font-medium'
+                                : 'text-gray-500 jove-bg-accent-hover hover:text-gray-700'
+                              }
                           `}
-                        >
-                          {child.name}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
+                          >
+                            {child.name}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Website Style Selector */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <WebsiteStyleSelector />
+            </div>
+
+            {/* Market Preview Selector */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => setMarketSelectorOpen(!marketSelectorOpen)}
+                className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+              >
+                <div className="flex items-center">
+                  <Globe className="mr-3 h-5 w-5 text-gray-400" />
+                  <span>Market Preview</span>
                 </div>
-              );
-            })}
-          </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{MARKET_INFO[selectedMarket].flag}</span>
+                  <svg className={`w-4 h-4 transition-transform ${marketSelectorOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </button>
 
-          {/* Website Style Selector */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <WebsiteStyleSelector />
-          </div>
+              {marketSelectorOpen && (
+                <div className="mt-2 ml-3 space-y-1">
+                  {ADMIN_MARKETS.map((market) => {
+                    const info = MARKET_INFO[market];
+                    const isSelected = selectedMarket === market;
 
-          {/* Market Preview Selector */}
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <button
-              onClick={() => setMarketSelectorOpen(!marketSelectorOpen)}
-              className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-            >
-              <div className="flex items-center">
-                <Globe className="mr-3 h-5 w-5 text-gray-400" />
-                <span>Market Preview</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{MARKET_INFO[selectedMarket].flag}</span>
-                <svg className={`w-4 h-4 transition-transform ${marketSelectorOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </button>
-
-            {marketSelectorOpen && (
-              <div className="mt-2 ml-3 space-y-1">
-                {ADMIN_MARKETS.map((market) => {
-                  const info = MARKET_INFO[market];
-                  const isSelected = selectedMarket === market;
-
-                  return (
-                    <button
-                      key={market}
-                      onClick={() => handleMarketChange(market)}
-                      className={`
+                    return (
+                      <button
+                        key={market}
+                        onClick={() => handleMarketChange(market)}
+                        className={`
                         flex items-center gap-2 w-full px-3 py-2 text-sm rounded-lg transition-colors duration-200
                         ${isSelected
-                          ? 'bg-zinc-900 text-white'
-                          : 'text-gray-600 hover:bg-gray-100'
-                        }
+                            ? 'bg-zinc-900 text-white'
+                            : 'text-gray-600 hover:bg-gray-100'
+                          }
                       `}
-                    >
-                      <span className="text-lg">{info.flag}</span>
-                      <span>{info.name}</span>
-                      <span className="text-xs opacity-70">({info.currency})</span>
-                    </button>
-                  );
-                })}
-                <p className="px-3 py-2 text-xs text-gray-500">
-                  Preview site as customer from selected country
-                </p>
-              </div>
-            )}
-          </div>
-        </nav>
-
-        {/* Bottom section - fixed */}
-        <div className="flex-shrink-0 p-4 border-t border-gray-200 space-y-2">
-          <button
-            onClick={() => {
-              // Just redirect to home page without signing out
-              window.location.href = '/';
-            }}
-            className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-600 rounded-lg jove-bg-accent-hover hover:text-gray-900 transition-colors duration-200"
-          >
-            <svg className="mr-3 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Go back to website
-          </button>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-600 rounded-lg jove-bg-accent-hover hover:text-gray-900 transition-colors duration-200"
-          >
-            <LogOut className="mr-3 h-5 w-5 text-gray-400" />
-            Sign out
-          </button>
-        </div>
-      </div>
-
-      {/* Main content area */}
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
-        {/* Mobile header */}
-        <div className="lg:hidden flex items-center justify-between h-16 px-4 jove-bg-card jove-border">
-          <button
-            type="button"
-            className="p-2 rounded-md text-gray-400 hover:text-gray-500"
-            onClick={() => setSidebarOpen(true)}
-          >
-            <Menu className="h-6 w-6" />
-          </button>
-          <div>
-            <span className="text-lg font-serif font-light text-zinc-900 tracking-wider">JOVÉ ADMIN</span>
-          </div>
-          <div className="w-10" /> {/* Spacer for centering */}
-        </div>
-
-        {/* Main scrollable content */}
-        <main className="flex-1 overflow-y-auto jove-bg-primary">
-          <div className="py-8">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-              {children}
+                      >
+                        <span className="text-lg">{info.flag}</span>
+                        <span>{info.name}</span>
+                        <span className="text-xs opacity-70">({info.currency})</span>
+                      </button>
+                    );
+                  })}
+                  <p className="px-3 py-2 text-xs text-gray-500">
+                    Preview site as customer from selected country
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
-        </main>
-      </div>
+          </nav>
 
-      {/* Admin Install Prompt */}
-      <AdminInstallPrompt />
-    </div>
+          {/* Bottom section - fixed */}
+          <div className="flex-shrink-0 p-4 border-t border-gray-200 space-y-2">
+            <button
+              onClick={() => {
+                // Just redirect to home page without signing out
+                window.location.href = '/';
+              }}
+              className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-600 rounded-lg jove-bg-accent-hover hover:text-gray-900 transition-colors duration-200"
+            >
+              <svg className="mr-3 h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Go back to website
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="flex items-center w-full px-3 py-2 text-sm font-medium text-gray-600 rounded-lg jove-bg-accent-hover hover:text-gray-900 transition-colors duration-200"
+            >
+              <LogOut className="mr-3 h-5 w-5 text-gray-400" />
+              Sign out
+            </button>
+          </div>
+        </div>
+
+        {/* Main content area */}
+        <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
+          {/* Mobile header */}
+          <div className="lg:hidden flex items-center justify-between h-16 px-4 jove-bg-card jove-border">
+            <button
+              type="button"
+              className="p-2 rounded-md text-gray-400 hover:text-gray-500"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+            <div>
+              <span className="text-lg font-serif font-light text-zinc-900 tracking-wider">JOVÉ ADMIN</span>
+            </div>
+            <div className="w-10" /> {/* Spacer for centering */}
+          </div>
+
+          {/* Main scrollable content */}
+          <main className="flex-1 overflow-y-auto jove-bg-primary">
+            <div className="py-8">
+              <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                {children}
+              </div>
+            </div>
+          </main>
+        </div>
+
+        {/* Admin Install Prompt */}
+        <AdminInstallPrompt />
+      </div>
+    </>
   );
 }
