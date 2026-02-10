@@ -149,7 +149,8 @@ export default function RootLayout({
               </Suspense>
               <MainLayout>{children}</MainLayout>
               <ToastContainer />
-              <InstallPrompt />
+              {/* Install Prompt - Temporarily disabled */}
+              {/* <InstallPrompt /> */}
             </CartProvider>
           </AuthProvider>
         </ToastProvider>
