@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - Maison Jové</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #FAF7F2;
+      color: #1A1A1A;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      text-align: center;
+      max-width: 500px;
+    }
+    
+    .logo {
+      font-family: Georgia, serif;
+      font-size: 2rem;
+      font-weight: 300;
+      letter-spacing: 0.2em;
+      color: #1A1A1A;
+      margin-bottom: 0.5rem;
+    }
+    
+    .subtitle {
+      font-size: 0.625rem;
+      letter-spacing: 0.3em;
+      color: rgba(26, 26, 26, 0.5);
+      margin-bottom: 3rem;
+    }
+    
+    .icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 2rem;
+      opacity: 0.3;
+    }
+    
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 300;
+      margin-bottom: 1rem;
+      color: #1A1A1A;
+    }
+    
+    p {
+      font-size: 1rem;
+      font-weight: 300;
+      color: rgba(26, 26, 26, 0.7);
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+    
+    .btn {
+      display: inline-block;
+      padding: 12px 32px;
+      background: #1A1A1A;
+      color: #FAF7F2;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 300;
+      letter-spacing: 0.1em;
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .btn:hover {
+      background: #D4AF37;
+      color: #1A1A1A;
+    }
+    
+    .divider {
+      width: 60px;
+      height: 1px;
+      background: rgba(212, 175, 55, 0.4);
+      margin: 2rem auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">MAISON JOVÉ</div>
+    <div class="subtitle">FINE JEWELLERY</div>
+    
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+      <path d="M2 17l10 5 10-5"/>
+      <path d="M2 12l10 5 10-5"/>
+    </svg>
+    
+    <h1>You're Offline</h1>
+    
+    <p>
+      It seems you've lost your internet connection. Please check your network and try again.
+    </p>
+    
+    <div class="divider"></div>
+    
+    <button class="btn" onclick="window.location.reload()">
+      TRY AGAIN
+    </button>
+  </div>
+</body>
+</html>

@@ -13,7 +13,7 @@ const nextConfig = {
     contentDispositionType: 'attachment',
     domains: [
       "source.unsplash.com",
-      "images.unsplash.com", 
+      "images.unsplash.com",
       "ext.same-assets.com",
       "ugc.same-assets.com",
       "ndqxwvascqwhqaoqkpng.supabase.co", // Add Supabase storage domain
@@ -45,6 +45,33 @@ const nextConfig = {
         pathname: "/storage/v1/object/public/**",
       },
     ],
+  },
+  // PWA Configuration
+  async headers() {
+    return [
+      {
+        source: '/manifest.json',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/manifest+json',
+          },
+        ],
+      },
+      {
+        source: '/sw.js',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/javascript',
+          },
+          {
+            key: 'Service-Worker-Allowed',
+            value: '/',
+          },
+        ],
+      },
+    ];
   },
 };
 

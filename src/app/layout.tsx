@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "./mobile.css";
 import Script from "next/script";
 import { Suspense } from "react";
 import ServiceWorkerRegister from "../components/ServiceWorkerRegister";
@@ -11,6 +12,7 @@ import ToastContainer from "@/components/ToastContainer";
 import MainLayout from "@/components/MainLayout";
 import ClarityInit from "./ClarityInit";
 import { RedirectNotification } from "@/components/RedirectNotification";
+import InstallPrompt from "@/components/InstallPrompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -78,17 +80,32 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <head>
+        {/* PWA Meta Tags */}
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+        <meta name="theme-color" content="#D4AF37" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Maison Jové" />
+
+        {/* Manifest */}
+        <link rel="manifest" href="/manifest.json" />
+
         {/* Favicon */}
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon.ico" type="image/x-icon" />
         <link rel="shortcut icon" href="/favicon.ico" />
-        
+
+        {/* Apple Touch Icons */}
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
         {/* Preconnect to Supabase storage for faster image loading */}
         <link rel="preconnect" href="https://ndqxwvascqwhqaoqkpng.supabase.co" />
         <link rel="dns-prefetch" href="https://ndqxwvascqwhqaoqkpng.supabase.co" />
-        
+
         {/* Luxury Skin CSS disabled — paired with luxury-skin.js which is disabled */}
-        
+
         <Script
           crossOrigin="anonymous"
           src="//unpkg.com/same-runtime/dist/index.global.js"
@@ -110,7 +127,7 @@ export default function RootLayout({
           `}
         </Script>
         <noscript>
-          <img height="1" width="1" style={{display:'none'}}
+          <img height="1" width="1" style={{ display: 'none' }}
             src="https://www.facebook.com/tr?id=865852876334331&ev=PageView&noscript=1"
           />
         </noscript>
@@ -127,6 +144,7 @@ export default function RootLayout({
               </Suspense>
               <MainLayout>{children}</MainLayout>
               <ToastContainer />
+              <InstallPrompt />
             </CartProvider>
           </AuthProvider>
         </ToastProvider>
