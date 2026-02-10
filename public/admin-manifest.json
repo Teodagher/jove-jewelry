@@ -3,7 +3,7 @@
     "short_name": "Jové Admin",
     "description": "Admin dashboard for Maison Jové jewelry management",
     "start_url": "/admin",
-    "scope": "/admin/",
+    "scope": "/admin",
     "display": "standalone",
     "orientation": "any",
     "background_color": "#1F2937",
