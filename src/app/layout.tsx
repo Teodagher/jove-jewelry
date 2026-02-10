@@ -82,7 +82,7 @@ export default function RootLayout({
       <head>
         {/* PWA Meta Tags */}
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
-        <meta name="theme-color" content="#D4AF37" />
+        <meta name="theme-color" content="#FAF9F7" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -107,8 +107,7 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/splash/apple-splash-1170-2532.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
 
         {/* Preconnect to Supabase storage for faster image loading */}
-        <link rel="preconnect" href="https://ndqxwvascqwhqaoqkpng.supabase.co" />
-        <link rel="dns-prefetch" href="https://ndqxwvascqwhqaoqkpng.supabase.co" />
+        <link rel="preconnect" href="https://ndqxwvascqwhqaoqkpng.supabase.co" crossOrigin="anonymous" />
 
         {/* Luxury Skin CSS disabled — paired with luxury-skin.js which is disabled */}
 

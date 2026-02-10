@@ -24,13 +24,8 @@
     scroll-behavior: smooth;
   }
 
-  /* Safe area insets for notched devices */
-  body {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-  }
+  /* Safe area insets for notched devices - applied to specific elements, not body */
+  /* Body background should remain white */
 }
 
 /* PWA-specific styles */
@@ -94,6 +89,7 @@
   display: none;
   /* Chrome, Safari and Opera */
 }
+
 /* Safe area utilities */
 .safe-area-top {
   padding-top: env(safe-area-inset-top);
