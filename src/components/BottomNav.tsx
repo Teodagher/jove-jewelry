@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Sparkles, ShoppingCart, User, Menu } from 'lucide-react';
+import { House, Sparkle, ShoppingCart, User, DotsThreeOutline } from '@phosphor-icons/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -69,8 +69,8 @@ export default function BottomNav() {
     };
 
     const navItems = [
-        { href: '/', icon: Home, label: 'Home' },
-        { href: '/customize', icon: Sparkles, label: 'Customize' },
+        { href: '/', icon: House, label: 'Home' },
+        { href: '/customize', icon: Sparkle, label: 'Customize' },
         { href: '/cart', icon: ShoppingCart, label: 'Cart', badge: itemCount },
         { href: user ? '/account' : '/auth/login', icon: User, label: 'Account' },
     ];
@@ -83,21 +83,18 @@ export default function BottomNav() {
 
     return (
         <>
-            {/* Bottom Navigation Bar */}
-            <motion.nav
-                initial={{ y: 0 }}
-                animate={{ y: isVisible ? 0 : 100 }}
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
+            {/* Bottom Navigation Bar - Always visible */}
+            <nav
                 className="fixed bottom-0 left-0 right-0 z-50 md:hidden"
                 style={{
-                    paddingBottom: 'env(safe-area-inset-bottom)',
+                    paddingBottom: 'max(env(safe-area-inset-bottom), 12px)',
                 }}
             >
                 {/* Backdrop blur effect */}
                 <div className="absolute inset-0 bg-maison-ivory/95 backdrop-blur-lg border-t border-maison-warm/50" />
 
-                {/* Navigation items */}
-                <div className="relative flex items-center justify-around px-2 py-2">
+                {/* Navigation items - Increased height */}
+                <div className="relative flex items-center justify-around px-2 py-3">
                     {navItems.map((item) => {
                         const Icon = item.icon;
                         const active = isActive(item.href);
@@ -106,13 +103,13 @@ export default function BottomNav() {
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className="flex flex-col items-center justify-center min-w-[60px] py-2 px-3 relative group"
+                                className="flex flex-col items-center justify-center min-w-[68px] py-3 px-3 relative group"
                             >
                                 {/* Icon */}
                                 <div className="relative">
                                     <Icon
-                                        size={22}
-                                        strokeWidth={1.5}
+                                        size={24}
+                                        weight="regular"
                                         className={`transition-colors duration-300 ${active ? 'text-maison-gold' : 'text-maison-charcoal group-hover:text-maison-gold'
                                             }`}
                                     />
@@ -136,7 +133,7 @@ export default function BottomNav() {
 
                                 {/* Label */}
                                 <span
-                                    className={`text-[10px] mt-1 font-light tracking-wide transition-colors duration-300 ${active ? 'text-maison-gold' : 'text-maison-charcoal/70 group-hover:text-maison-gold'
+                                    className={`text-[11px] mt-1.5 font-light tracking-wide transition-colors duration-300 ${active ? 'text-maison-gold' : 'text-maison-charcoal/70 group-hover:text-maison-gold'
                                         }`}
                                 >
                                     {item.label}
@@ -148,23 +145,23 @@ export default function BottomNav() {
                     {/* More button */}
                     <button
                         onClick={() => setShowMoreMenu(!showMoreMenu)}
-                        className="flex flex-col items-center justify-center min-w-[60px] py-2 px-3 relative group"
+                        className="flex flex-col items-center justify-center min-w-[68px] py-3 px-3 relative group"
                     >
-                        <Menu
-                            size={22}
-                            strokeWidth={1.5}
+                        <DotsThreeOutline
+                            size={24}
+                            weight="regular"
                             className={`transition-colors duration-300 ${showMoreMenu ? 'text-maison-gold' : 'text-maison-charcoal group-hover:text-maison-gold'
                                 }`}
                         />
                         <span
-                            className={`text-[10px] mt-1 font-light tracking-wide transition-colors duration-300 ${showMoreMenu ? 'text-maison-gold' : 'text-maison-charcoal/70 group-hover:text-maison-gold'
+                            className={`text-[11px] mt-1.5 font-light tracking-wide transition-colors duration-300 ${showMoreMenu ? 'text-maison-gold' : 'text-maison-charcoal/70 group-hover:text-maison-gold'
                                 }`}
                         >
                             More
                         </span>
                     </button>
                 </div>
-            </motion.nav>
+            </nav>
 
             {/* More Menu Overlay */}
             <AnimatePresence>
@@ -187,7 +184,7 @@ export default function BottomNav() {
                             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
                             className="fixed bottom-0 left-0 right-0 z-50 bg-maison-ivory rounded-t-2xl shadow-2xl md:hidden"
                             style={{
-                                paddingBottom: 'calc(env(safe-area-inset-bottom) + 80px)',
+                                paddingBottom: 'calc(max(env(safe-area-inset-bottom), 12px) + 88px)',
                             }}
                         >
                             {/* Handle bar */}

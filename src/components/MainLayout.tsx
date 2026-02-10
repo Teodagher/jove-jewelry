@@ -44,7 +44,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </>
       )}
       {/* Add bottom padding on mobile ONLY when in PWA standalone mode */}
-      <div className={!isAdminRoute && isStandalone ? 'pb-20 md:pb-0' : ''}>
+      <div className={!isAdminRoute && isStandalone ? 'pb-24 md:pb-0' : ''}>
         {children}
       </div>
       {mounted && !isAdminRoute && <BottomNav />}

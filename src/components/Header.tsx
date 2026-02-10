@@ -190,7 +190,10 @@ export default function Header() {
     <>
       {/* Valentine's Promo Banner - only when style is active */}
       {siteStyle === 'valentines' && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-rose-500 via-rose-400 to-rose-500 text-white text-center py-2 px-4">
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-rose-500 via-rose-400 to-rose-500 text-white text-center py-2 px-4"
+          style={{ paddingTop: 'max(env(safe-area-inset-top), 8px)' }}
+        >
           <p className="text-xs md:text-sm font-medium tracking-wide">
             ♥ Order before 11 Feb to get it in time for Valentine&apos;s Day ♥
           </p>
@@ -199,11 +202,14 @@ export default function Header() {
 
       {/* Main header */}
       <header
-        className={`fixed left-0 right-0 z-50 transition-all duration-500 ${siteStyle === 'valentines' ? 'top-[32px] md:top-[36px]' : 'top-0'
-          } ${isScrolled
-            ? 'bg-maison-ivory/95 backdrop-blur-md shadow-sm'
-            : 'bg-maison-ivory'
+        className={`fixed left-0 right-0 z-50 transition-all duration-500 ${isScrolled
+          ? 'bg-maison-ivory/95 backdrop-blur-md shadow-sm'
+          : 'bg-maison-ivory'
           }`}
+        style={{
+          top: siteStyle === 'valentines' ? 'calc(max(env(safe-area-inset-top), 8px) + 32px)' : '0',
+          paddingTop: siteStyle === 'valentines' ? '0' : 'env(safe-area-inset-top)',
+        }}
       >
         {/* Top accent line */}
         <div className="h-px bg-gradient-to-r from-transparent via-maison-gold/40 to-transparent" />
@@ -611,7 +617,12 @@ export default function Header() {
       </AnimatePresence>
 
       {/* Spacer for fixed header (+ banner when Valentine's active) */}
-      <div className={siteStyle === 'valentines' ? 'h-[104px] md:h-[116px]' : 'h-18 md:h-20'} />
+      <div
+        className={siteStyle === 'valentines' ? 'h-[104px]' : 'h-16 md:h-20'}
+        style={{
+          paddingTop: siteStyle === 'valentines' ? 'env(safe-area-inset-top)' : '0'
+        }}
+      />
 
       {/* Email Confirmed Modal */}
       <AnimatePresence>
