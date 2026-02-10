@@ -14,7 +14,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
-  const isAdminRoute = pathname?.startsWith('/admin') || pathname?.startsWith('/install-admin');
+  const isAdminRoute = false; // Always false in (shop) route group
 
   // Wait for the component to mount to avoid hydration issues with cart context
   useEffect(() => {

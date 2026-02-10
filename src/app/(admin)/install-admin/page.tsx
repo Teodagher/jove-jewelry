@@ -4,45 +4,6 @@ import Link from 'next/link'
 import { useEffect } from 'react'
 
 export default function InstallAdminPage() {
-    // Set metadata dynamically since this is a client component
-    useEffect(() => {
-        document.title = 'Install Admin App - Maison Jové';
-
-        // Set theme color
-        let themeColorMeta = document.querySelector('meta[name="theme-color"]') as HTMLMetaElement;
-        if (!themeColorMeta) {
-            themeColorMeta = document.createElement('meta');
-            themeColorMeta.name = 'theme-color';
-            document.head.appendChild(themeColorMeta);
-        }
-        themeColorMeta.content = '#111827';
-
-        // Set manifest
-        let manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
-        if (!manifestLink) {
-            manifestLink = document.createElement('link');
-            manifestLink.rel = 'manifest';
-            document.head.appendChild(manifestLink);
-        }
-        manifestLink.href = '/admin-manifest.json';
-
-        // Set icons
-        let iconLink = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
-        if (!iconLink) {
-            iconLink = document.createElement('link');
-            iconLink.rel = 'icon';
-            document.head.appendChild(iconLink);
-        }
-        iconLink.href = '/admin-icon.png';
-
-        let appleTouchIcon = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement;
-        if (!appleTouchIcon) {
-            appleTouchIcon = document.createElement('link');
-            appleTouchIcon.rel = 'apple-touch-icon';
-            document.head.appendChild(appleTouchIcon);
-        }
-        appleTouchIcon.href = '/icons/admin-apple-touch-icon.png';
-    }, []);
 
     return (
         <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-screen fixed inset-0 z-[100] overflow-y-auto">

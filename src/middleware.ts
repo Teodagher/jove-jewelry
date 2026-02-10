@@ -23,8 +23,8 @@ const MARKET_DOMAIN_MAP: Record<Market, string> = {
  * EU country codes
  */
 const EU_COUNTRIES = [
-  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 
-  'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR',
+  'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL',
   'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE',
   'GB', 'CH', 'NO', 'IS' // UK, Switzerland, Norway, Iceland
 ]
@@ -36,10 +36,10 @@ function getMarketFromDomain(hostname: string): Market {
 
 function getTargetDomainForGeo(country?: string): string | null {
   if (!country) return null
-  
+
   // Lebanon users stay on maisonjove.com
   if (country === 'LB') return 'maisonjove.com'
-  
+
   // All other countries go to maisonjove.com.au
   return 'maisonjove.com.au'
 }
@@ -50,25 +50,25 @@ function getTargetDomainForGeo(country?: string): string | null {
  */
 function getMarketForPricing(country?: string): Market {
   if (!country) return 'intl' // Default to international (USD + Stripe)
-  
+
   // Lebanon - USD + Cash on Delivery available
   if (country === 'LB') return 'lb'
-  
+
   // Australia - AUD
   if (country === 'AU') return 'au'
-  
+
   // UAE (Dubai, Abu Dhabi) - AED
   if (country === 'AE') return 'ae'
-  
+
   // Saudi Arabia - SAR
   if (country === 'SA') return 'sa'
-  
+
   // Qatar - QAR
   if (country === 'QA') return 'qa'
-  
+
   // European countries - EUR
   if (EU_COUNTRIES.includes(country)) return 'eu'
-  
+
   // All other countries - USD (international)
   return 'intl'
 }
@@ -83,6 +83,7 @@ export async function middleware(request: NextRequest) {
   // Skip market logic for admin routes, API routes, and static files
   if (
     pathname.startsWith('/admin') ||
+    pathname.startsWith('/install-admin') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
     pathname.match(/\.(ico|png|jpg|jpeg|svg|gif|webp)$/)
@@ -137,13 +138,13 @@ export async function middleware(request: NextRequest) {
 
   // No redirect needed - set market based on: query override > existing cookie > geo > domain default
   let market: Market
-  
+
   // Valid market values for override
   const validMarkets: Market[] = ['lb', 'au', 'eu', 'ae', 'sa', 'qa', 'intl']
-  
+
   // Check for existing market cookie (user selection in admin takes priority)
   const existingMarketCookie = request.cookies.get('market')?.value
-  
+
   if (marketOverride && validMarkets.includes(marketOverride as Market)) {
     // Query parameter override (for testing)
     market = marketOverride as Market

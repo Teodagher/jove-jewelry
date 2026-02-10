@@ -1,20 +1,19 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import "./mobile.css";
+import "../globals.css";
+import "../mobile.css";
 import Script from "next/script";
 import { Suspense } from "react";
-import ServiceWorkerRegister from "../components/ServiceWorkerRegister";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import ToastContainer from "@/components/ToastContainer";
 import MainLayout from "@/components/MainLayout";
-import ClarityInit from "./ClarityInit";
+import ClarityInit from "../ClarityInit";
 import { RedirectNotification } from "@/components/RedirectNotification";
 import InstallPrompt from "@/components/InstallPrompt";
 import OfflineIndicator from "@/components/OfflineIndicator";
-import DynamicManifest from "@/components/DynamicManifest";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -152,7 +151,6 @@ export default function RootLayout({
               <MainLayout>{children}</MainLayout>
               <ToastContainer />
               <OfflineIndicator />
-              <DynamicManifest />
               {/* Install Prompt - Temporarily disabled */}
               {/* <InstallPrompt /> */}
             </CartProvider>
