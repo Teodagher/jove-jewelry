@@ -31,6 +31,7 @@ import {
   Mail
 } from 'lucide-react';
 import { hasAdminAccess, canAccessPath, getHighestRole, ROLES } from '@/lib/roles';
+import AdminInstallPrompt from '../AdminInstallPrompt';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -92,13 +93,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [marketSelectorOpen, setMarketSelectorOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  
+
   // Load saved market on mount
   useEffect(() => {
     const savedMarket = getMarketClient();
     setSelectedMarket(savedMarket);
   }, []);
-  
+
   // Handle market change
   const handleMarketChange = (market: Market) => {
     setSelectedMarket(market);
@@ -131,7 +132,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         .single() as { data: { roles: string[] | null } | null };
 
       const roles = userData?.roles || [];
-      
+
       if (hasAdminAccess(roles)) {
         setUser(authUser);
         setUserRoles(roles);
@@ -200,7 +201,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   // Filter navigation based on user roles
-  const filteredNavigation = navigation.filter(item => 
+  const filteredNavigation = navigation.filter(item =>
     canAccessPath(userRoles, item.href)
   );
 
@@ -310,7 +311,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               );
             })}
           </div>
-          
+
           {/* Website Style Selector */}
           <div className="mt-6 pt-6 border-t border-gray-200">
             <WebsiteStyleSelector />
@@ -333,21 +334,21 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </svg>
               </div>
             </button>
-            
+
             {marketSelectorOpen && (
               <div className="mt-2 ml-3 space-y-1">
                 {ADMIN_MARKETS.map((market) => {
                   const info = MARKET_INFO[market];
                   const isSelected = selectedMarket === market;
-                  
+
                   return (
                     <button
                       key={market}
                       onClick={() => handleMarketChange(market)}
                       className={`
                         flex items-center gap-2 w-full px-3 py-2 text-sm rounded-lg transition-colors duration-200
-                        ${isSelected 
-                          ? 'bg-zinc-900 text-white' 
+                        ${isSelected
+                          ? 'bg-zinc-900 text-white'
                           : 'text-gray-600 hover:bg-gray-100'
                         }
                       `}
@@ -416,6 +417,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </main>
       </div>
+
+      {/* Admin Install Prompt */}
+      <AdminInstallPrompt />
     </div>
   );
 }

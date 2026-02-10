@@ -13,6 +13,7 @@ import MainLayout from "@/components/MainLayout";
 import ClarityInit from "./ClarityInit";
 import { RedirectNotification } from "@/components/RedirectNotification";
 import InstallPrompt from "@/components/InstallPrompt";
+import OfflineIndicator from "@/components/OfflineIndicator";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -149,6 +150,7 @@ export default function RootLayout({
               </Suspense>
               <MainLayout>{children}</MainLayout>
               <ToastContainer />
+              <OfflineIndicator />
               {/* Install Prompt - Temporarily disabled */}
               {/* <InstallPrompt /> */}
             </CartProvider>
