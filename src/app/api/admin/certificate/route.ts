@@ -485,9 +485,10 @@ export async function GET(request: Request) {
         }
       }
 
-      // Fallback to product base image
+      // Fallback chain: variant URL -> preview_image_url -> base_image_url
       if (!imageUrl) {
-        imageUrl = productData?.base_image_url || item.preview_image_url || null
+        // preview_image_url from order_items is most reliable (set at order time)
+        imageUrl = item.preview_image_url || productData?.base_image_url || null
         console.log('[Certificate GET] Used fallback imageUrl:', imageUrl)
       }
       

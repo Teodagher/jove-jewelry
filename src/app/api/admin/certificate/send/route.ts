@@ -418,22 +418,18 @@ if (productData?.type && Object.keys(customizationData).length > 0) {
 
 // Comprehensive fallback image selection
 if (!productImageUrl) {
-  // Priority order:
-  // 1. Base image from product data 
-  // 2. Preview image from line item
-  // 3. First found variant image for the item
-  // 4. Static fallback image
+  // Priority order (preview_image_url is most reliable - set at order time):
+  // 1. Preview image from line item (specific variant)
+  // 2. Base image from product data (generic product image)
+  // 3. Static fallback image
   productImageUrl = 
-    productData?.base_image_url || 
     item.preview_image_url || 
-    (productData?.type 
-      ? await generateVariantImageUrl(supabase, productData.type, customizationData)
-      : 'https://maisonjove.com.au/default-jewelry.jpg'
-    )
+    productData?.base_image_url || 
+    'https://maisonjove.com.au/default-jewelry.jpg'
 
   console.log('[Certificate Email] Fallback Image Selection:', {
-    baseImageUrl: productData?.base_image_url,
     previewImageUrl: item.preview_image_url,
+    baseImageUrl: productData?.base_image_url,
     finalImageUrl: productImageUrl
   })
 }
