@@ -103,45 +103,21 @@ async function generateVariantImageUrl(
     }
 
     // Dual-stone logic: when first_stone is diamond, skip it from filename
-    // (matches DynamicFilenameService behavior)
-    const extractStone = (id: string): string => {
-      // Updated logic to always return the most descriptive stone name
-      if (id && id.includes('_')) {
-        const parts = id.split('_');
-        
-        // Prioritize two-word stones including full descriptors
-        if (parts.length >= 2) {
-          const twoWord = parts.slice(-2).join('_');
-          const descriptiveStones = [
-            'blue_sapphire', 
-            'pink_sapphire', 
-            'yellow_sapphire', 
-            'lab_grown_diamond', 
-            'lab_grown_emerald', 
-            'lab_grown_ruby',
-            'lab_grown_sapphire',
-            'white_sapphire'
-          ];
-          
-          if (descriptiveStones.includes(twoWord)) {
-            return twoWord;
-          }
-        }
-        
-        // Fallback to last part if no match
-        return parts[parts.length - 1];
-      }
-      return id;
+    // (matches DynamicFilenameService behavior - diamond is the default/base)
+    const isDiamond = (optionId: string): boolean => {
+      const lower = optionId.toLowerCase();
+      return lower === 'diamond' || lower.endsWith('_diamond') || lower.includes('diamond');
     };
 
-    // Always include stones, regardless of type
-    if (firstStoneOption) {
-      const firstStoneSlug = mappingMap.get(firstStoneOption.option_id) || extractStone(firstStoneOption.option_id);
+    // Only include first_stone if it's NOT diamond
+    if (firstStoneOption && !isDiamond(firstStoneOption.option_id)) {
+      const firstStoneSlug = mappingMap.get(firstStoneOption.option_id) || firstStoneOption.option_id;
       filenameParts.push(firstStoneSlug);
     }
 
+    // Always include second stone
     if (secondStoneOption) {
-      const secondStoneSlug = mappingMap.get(secondStoneOption.option_id) || extractStone(secondStoneOption.option_id);
+      const secondStoneSlug = mappingMap.get(secondStoneOption.option_id) || secondStoneOption.option_id;
       filenameParts.push(secondStoneSlug);
     }
 
@@ -266,13 +242,13 @@ export async function POST(request: Request) {
     const item = orderItems[lineItemIndex]
     const customizationData = item.customization_data || {}
 
-    // Get product info
+    // Get product info - jewelry_type is the type string (e.g., "bracelet"), not a UUID
     let productData: { type?: string; name?: string; base_image_url?: string } | null = null
     if (item.jewelry_type) {
       const { data: product } = await (supabase
         .from('jewelry_items') as any)
         .select('type, name, base_image_url')
-        .eq('id', item.jewelry_type)
+        .eq('type', item.jewelry_type)
         .single()
       productData = product
     }
@@ -434,13 +410,13 @@ export async function GET(request: Request) {
     const items = await Promise.all((orderItems || []).map(async (item: any, index: number) => {
       let imageUrl: string | null = null
 
-      // Get product info to resolve the jewelry type
+      // Get product info to resolve the jewelry type - jewelry_type is the type string, not UUID
       let productData: { type?: string; base_image_url?: string } | null = null
       if (item.jewelry_type) {
         const { data: product } = await (supabase
           .from('jewelry_items') as any)
           .select('type, base_image_url')
-          .eq('id', item.jewelry_type)
+          .eq('type', item.jewelry_type)
           .single()
         productData = product
       }
