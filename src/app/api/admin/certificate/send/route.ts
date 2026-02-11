@@ -338,11 +338,14 @@ export async function POST(request: Request) {
 
     const item = orderItems[lineItemIndex]
 
+    // DEBUG: Log entire item to see what's available
+    console.log('[Certificate Email] FULL ITEM:', JSON.stringify(item, null, 2))
+
     // Get product info - jewelry_type can be either a UUID or a type string
     let productData: { type?: string; name?: string; base_image_url?: string } | null = null
 
-    console.log('[Certificate Email] item.jewelry_type:', item.jewelry_type)
-    console.log('[Certificate Email] item.preview_image_url:', item.preview_image_url)
+    console.log('[Certificate Email] item.jewelry_type:', item?.jewelry_type)
+    console.log('[Certificate Email] item.preview_image_url:', item?.preview_image_url)
     
     if (item.jewelry_type) {
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.jewelry_type)
