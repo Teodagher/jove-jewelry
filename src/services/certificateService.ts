@@ -240,6 +240,7 @@ function generateCertificateId(orderNumber: string, lineItemIndex: number, purch
 
 // Fetch image and convert to base64 (converts WebP to PNG for jsPDF compatibility)
 async function fetchImageAsBase64(url: string, cropToSquare: boolean = false): Promise<{ base64: string; format: 'PNG' | 'JPEG' } | null> {
+  console.log('[fetchImageAsBase64] Starting fetch for:', url)
   try {
     // Try the original URL first
     let response = await fetch(url, {
@@ -247,6 +248,7 @@ async function fetchImageAsBase64(url: string, cropToSquare: boolean = false): P
         'Accept': 'image/*',
       },
     })
+    console.log('[fetchImageAsBase64] Initial response:', response.status, response.statusText)
     
     // If WebP fails, try to find PNG/JPEG version
     if (!response.ok && url.toLowerCase().includes('.webp')) {
@@ -303,11 +305,13 @@ async function fetchImageAsBase64(url: string, cropToSquare: boolean = false): P
     // Convert WebP to PNG using sharp (jsPDF doesn't support WebP)
     if (!cropToSquare && isWebP) {
       try {
+        console.log('[fetchImageAsBase64] Converting WebP to PNG...')
         const convertedBuffer = await sharp(buffer).png().toBuffer()
         buffer = Buffer.from(convertedBuffer)
         format = 'PNG'
+        console.log('[fetchImageAsBase64] WebP converted successfully')
       } catch (convertError) {
-        console.error('Error converting WebP to PNG:', convertError)
+        console.error('[fetchImageAsBase64] Error converting WebP to PNG:', convertError)
         return null
       }
     }
@@ -396,9 +400,12 @@ export async function generateCertificatePDF(data: CertificateData): Promise<Cer
   
   // Try to fetch and embed the actual product image
   let imageAdded = false
+  console.log('[Certificate PDF] productImageUrl:', data.productImageUrl)
   if (data.productImageUrl) {
     try {
+      console.log('[Certificate PDF] Fetching image...')
       const imageData = await fetchImageAsBase64(data.productImageUrl, true)
+      console.log('[Certificate PDF] Image fetch result:', imageData ? `Got ${imageData.format}, ${imageData.base64.length} chars` : 'null')
       if (imageData) {
         // Add padding inside the box
         const imagePadding = 4
@@ -413,10 +420,13 @@ export async function generateCertificatePDF(data: CertificateData): Promise<Cer
           imageDisplaySize
         )
         imageAdded = true
+        console.log('[Certificate PDF] Image added successfully')
       }
     } catch (error) {
-      console.error('Error adding image to PDF:', error)
+      console.error('[Certificate PDF] Error adding image to PDF:', error)
     }
+  } else {
+    console.log('[Certificate PDF] No productImageUrl provided')
   }
   
   // Fallback if no image
