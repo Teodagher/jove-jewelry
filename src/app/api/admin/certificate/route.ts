@@ -251,15 +251,29 @@ export async function POST(request: Request) {
     const item = orderItems[lineItemIndex]
     const customizationData = item.customization_data || {}
 
-    // Get product info - jewelry_type is the type string (e.g., "bracelet"), not a UUID
+    // Get product info - jewelry_type can be either a UUID or a type string
     let productData: { type?: string; name?: string; base_image_url?: string } | null = null
     if (item.jewelry_type) {
-      const { data: product } = await (supabase
-        .from('jewelry_items') as any)
-        .select('type, name, base_image_url')
-        .eq('type', item.jewelry_type)
-        .single()
-      productData = product
+      // Check if it's a UUID (contains dashes and is 36 chars)
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.jewelry_type)
+      
+      if (isUuid) {
+        // Query by id
+        const { data: product } = await (supabase
+          .from('jewelry_items') as any)
+          .select('type, name, base_image_url')
+          .eq('id', item.jewelry_type)
+          .single()
+        productData = product
+      } else {
+        // Query by type string
+        const { data: product } = await (supabase
+          .from('jewelry_items') as any)
+          .select('type, name, base_image_url')
+          .eq('type', item.jewelry_type)
+          .single()
+        productData = product
+      }
     }
 
     // Determine the best image URL for this specific variant
@@ -419,15 +433,26 @@ export async function GET(request: Request) {
     const items = await Promise.all((orderItems || []).map(async (item: any, index: number) => {
       let imageUrl: string | null = null
 
-      // Get product info to resolve the jewelry type - jewelry_type is the type string, not UUID
+      // Get product info - jewelry_type can be either a UUID or a type string
       let productData: { type?: string; base_image_url?: string } | null = null
       if (item.jewelry_type) {
-        const { data: product } = await (supabase
-          .from('jewelry_items') as any)
-          .select('type, base_image_url')
-          .eq('type', item.jewelry_type)
-          .single()
-        productData = product
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.jewelry_type)
+        
+        if (isUuid) {
+          const { data: product } = await (supabase
+            .from('jewelry_items') as any)
+            .select('type, base_image_url')
+            .eq('id', item.jewelry_type)
+            .single()
+          productData = product
+        } else {
+          const { data: product } = await (supabase
+            .from('jewelry_items') as any)
+            .select('type, base_image_url')
+            .eq('type', item.jewelry_type)
+            .single()
+          productData = product
+        }
       }
 
       const customizationData = item.customization_data || {}
