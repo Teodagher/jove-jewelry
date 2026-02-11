@@ -28,7 +28,8 @@ import {
   FolderOpen,
   Sparkles,
   ShieldCheck,
-  Mail
+  Mail,
+  Gem
 } from 'lucide-react';
 import { hasAdminAccess, canAccessPath, getHighestRole, ROLES } from '@/lib/roles';
 import AdminInstallPrompt from '../AdminInstallPrompt';
@@ -82,6 +83,19 @@ const navigation = [
   { name: 'Giveaways', href: '/admin/giveaways', icon: Gift },
   { name: 'Product Descriptions', href: '/admin/descriptions', icon: FileText },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+  // JOVÉ LAB - Isolated bespoke design admin
+  {
+    name: 'JOVÉ LAB',
+    href: '/admin/jove-lab',
+    icon: Gem,
+    highlight: true,
+    children: [
+      { name: 'Templates', href: '/admin/jove-lab/templates' },
+      { name: 'Option Library', href: '/admin/jove-lab/options' },
+      { name: 'Pricing', href: '/admin/jove-lab/pricing' },
+      { name: 'Leads', href: '/admin/jove-lab/leads' },
+    ]
+  },
 ];
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
@@ -268,29 +282,45 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               {filteredNavigation.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
-
+                const isHighlight = 'highlight' in item && item.highlight;
+              
                 return (
                   <div key={item.name}>
+                    {/* Divider before highlighted items */}
+                    {isHighlight && (
+                      <div className="my-4 border-t border-gray-200" />
+                    )}
                     <Link
                       href={item.href}
                       onClick={() => setSidebarOpen(false)}
                       className={`
-                      group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200
-                      ${active
-                          ? 'bg-zinc-100 text-zinc-900'
-                          : 'text-gray-600 jove-bg-accent-hover hover:text-gray-900'
+                        group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors duration-200
+                        ${active
+                          ? isHighlight
+                            ? 'bg-amber-100 text-amber-900'
+                            : 'bg-zinc-100 text-zinc-900'
+                          : isHighlight
+                            ? 'text-amber-700 hover:bg-amber-50'
+                            : 'text-gray-600 jove-bg-accent-hover hover:text-gray-900'
                         }
-                    `}
+                      `}
                     >
                       <Icon className={`
-                      mr-3 h-5 w-5 flex-shrink-0
-                      ${active ? 'text-zinc-900' : 'text-gray-400 group-hover:text-gray-500'}
-                    `} />
+                        mr-3 h-5 w-5 flex-shrink-0
+                        ${active 
+                          ? isHighlight ? 'text-amber-600' : 'text-zinc-900' 
+                          : isHighlight ? 'text-amber-500' : 'text-gray-400 group-hover:text-gray-500'}
+                      `} />
                       {item.name}
+                      {isHighlight && (
+                        <span className="ml-auto text-[10px] font-semibold uppercase tracking-wider text-amber-500">
+                          Lab
+                        </span>
+                      )}
                     </Link>
 
                     {/* Sub-navigation for items with children */}
-                    {item.children && (pathname.startsWith('/admin/pricing') || pathname.startsWith('/admin/website-customization') || pathname.startsWith('/admin/email')) && (
+                    {item.children && (pathname.startsWith('/admin/pricing') || pathname.startsWith('/admin/website-customization') || pathname.startsWith('/admin/email') || pathname.startsWith('/admin/jove-lab')) && pathname.startsWith(item.href) && (
                       <div className="ml-8 mt-1 space-y-1">
                         {item.children.map((child) => (
                           <Link
@@ -298,12 +328,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             href={child.href}
                             onClick={() => setSidebarOpen(false)}
                             className={`
-                            block px-3 py-2 text-sm rounded-lg transition-colors duration-200
-                            ${pathname === child.href
+                              block px-3 py-2 text-sm rounded-lg transition-colors duration-200
+                              ${pathname === child.href
                                 ? 'bg-zinc-50 text-zinc-900 font-medium'
                                 : 'text-gray-500 jove-bg-accent-hover hover:text-gray-700'
                               }
-                          `}
+                            `}
                           >
                             {child.name}
                           </Link>

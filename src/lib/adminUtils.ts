@@ -70,7 +70,7 @@ export async function getAllUsers(): Promise<User[]> {
 /**
  * Promote user to admin (admin only)
  */
-export async function promoteToAdmin(userId: string): Promise<boolean> {
+export async function promoteToAdmin(userId: string, role: 'admin' | 'admin_designer' = 'admin'): Promise<boolean> {
   try {
     const { data, error } = await (supabase as any)
       .from('users')
@@ -83,11 +83,11 @@ export async function promoteToAdmin(userId: string): Promise<boolean> {
     }
 
     const currentRoles = (data as any).roles || [];
-    if (currentRoles.includes('admin')) {
-      return true; // Already an admin
+    if (currentRoles.includes(role)) {
+      return true; // Already has the role
     }
 
-    const newRoles = [...currentRoles, 'admin'];
+    const newRoles = [...currentRoles, role];
 
     const { error: updateError } = await (supabase as any)
       .from('users')
@@ -100,7 +100,7 @@ export async function promoteToAdmin(userId: string): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Error promoting user to admin:', error);
+    console.error(`Error promoting user to ${role}:`, error);
     throw error;
   }
 }
@@ -108,7 +108,7 @@ export async function promoteToAdmin(userId: string): Promise<boolean> {
 /**
  * Remove admin role from user (admin only)
  */
-export async function removeAdminRole(userId: string): Promise<boolean> {
+export async function removeAdminRole(userId: string, role: 'admin' | 'admin_designer' = 'admin'): Promise<boolean> {
   try {
     const { data, error } = await (supabase as any)
       .from('users')
@@ -121,7 +121,7 @@ export async function removeAdminRole(userId: string): Promise<boolean> {
     }
 
     const currentRoles = (data as any).roles || [];
-    const newRoles = currentRoles.filter((role: string) => role !== 'admin');
+    const newRoles = currentRoles.filter((r: string) => r !== role);
 
     const { error: updateError } = await (supabase as any)
       .from('users')
@@ -134,7 +134,7 @@ export async function removeAdminRole(userId: string): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Error removing admin role:', error);
+    console.error(`Error removing ${role} role:`, error);
     throw error;
   }
 }
@@ -142,7 +142,7 @@ export async function removeAdminRole(userId: string): Promise<boolean> {
 /**
  * Create a new admin user (for initial setup)
  */
-export async function createAdminUser(email: string, password: string, fullName?: string): Promise<boolean> {
+export async function createAdminUser(email: string, password: string, fullName?: string, role: 'admin' | 'admin_designer' = 'admin'): Promise<boolean> {
   try {
     // This should be called from a secure context (server-side or admin panel)
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -161,13 +161,13 @@ export async function createAdminUser(email: string, password: string, fullName?
 
     if (authData.user) {
       // The trigger will create the user record automatically
-      // Now we need to promote them to admin
-      await promoteToAdmin(authData.user.id);
+      // Now we need to promote them to the specified role
+      await promoteToAdmin(authData.user.id, role);
     }
 
     return true;
   } catch (error) {
-    console.error('Error creating admin user:', error);
+    console.error(`Error creating ${role} user:`, error);
     throw error;
   }
 }
