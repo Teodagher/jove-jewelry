@@ -431,68 +431,15 @@ export async function GET(request: Request) {
 
     // Resolve customized product images for each item
     const items = await Promise.all((orderItems || []).map(async (item: any, index: number) => {
-      let imageUrl: string | null = null
+      // SIMPLIFIED: preview_image_url is most reliable (set at order time with exact variant)
+      const imageUrl = item.preview_image_url || null
       
-      console.log('[Certificate GET] Processing item:', {
+      console.log('[Certificate GET] ITEM:', {
+        id: item.id,
         jewelry_type: item.jewelry_type,
-        preview_image_url: item.preview_image_url
+        preview_image_url: item.preview_image_url,
+        imageUrl
       })
-
-      // Get product info - jewelry_type can be either a UUID or a type string
-      let productData: { type?: string; base_image_url?: string } | null = null
-      if (item.jewelry_type) {
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.jewelry_type)
-        console.log('[Certificate GET] isUuid:', isUuid)
-        
-        if (isUuid) {
-          const { data: product, error } = await (supabase
-            .from('jewelry_items') as any)
-            .select('type, base_image_url')
-            .eq('id', item.jewelry_type)
-            .single()
-          console.log('[Certificate GET] UUID lookup:', { product, error: error?.message })
-          productData = product
-        } else {
-          const { data: product, error } = await (supabase
-            .from('jewelry_items') as any)
-            .select('type, base_image_url')
-            .eq('type', item.jewelry_type)
-            .single()
-          console.log('[Certificate GET] type lookup:', { product, error: error?.message })
-          productData = product
-        }
-      }
-
-      const customizationData = item.customization_data || {}
-
-      if (productData?.type && Object.keys(customizationData).length > 0) {
-        // Generate variant image URL using the same logic as POST handler
-        const variantImageUrl = await generateVariantImageUrl(
-          supabase,
-          productData.type,
-          customizationData
-        )
-
-        if (variantImageUrl) {
-          // Try gallery image first (higher quality)
-          const variantKey = extractVariantKeyFromUrl(variantImageUrl)
-          if (variantKey) {
-            const galleryImage = await getVariantPrimaryImage(supabase, variantKey)
-            imageUrl = galleryImage || variantImageUrl
-          } else {
-            imageUrl = variantImageUrl
-          }
-        }
-      }
-
-      // Fallback chain: variant URL -> preview_image_url -> base_image_url
-      if (!imageUrl) {
-        // preview_image_url from order_items is most reliable (set at order time)
-        imageUrl = item.preview_image_url || productData?.base_image_url || null
-        console.log('[Certificate GET] Used fallback imageUrl:', imageUrl)
-      }
-      
-      console.log('[Certificate GET] FINAL imageUrl for item:', imageUrl)
 
       return {
         index,
