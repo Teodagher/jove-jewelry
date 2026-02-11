@@ -342,31 +342,39 @@ export async function POST(request: Request) {
     let productImageUrl: string | undefined = undefined
     let productData: { type?: string; name?: string; base_image_url?: string } | null = null
 
+    console.log('[Certificate Email] item.jewelry_type:', item.jewelry_type)
+    console.log('[Certificate Email] item.preview_image_url:', item.preview_image_url)
+    
     if (item.jewelry_type) {
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.jewelry_type)
+      console.log('[Certificate Email] isUuid:', isUuid)
       
       if (isUuid) {
-        const { data: product } = await (supabase
+        const { data: product, error } = await (supabase
           .from('jewelry_items') as any)
           .select('type, name, base_image_url')
           .eq('id', item.jewelry_type)
           .single()
+        console.log('[Certificate Email] UUID lookup result:', { product, error: error?.message })
         if (product) {
           productData = product
           productImageUrl = product.base_image_url || undefined
         }
       } else {
-        const { data: product } = await (supabase
+        const { data: product, error } = await (supabase
           .from('jewelry_items') as any)
           .select('type, name, base_image_url')
           .eq('type', item.jewelry_type)
           .single()
+        console.log('[Certificate Email] type lookup result:', { product, error: error?.message })
         if (product) {
           productData = product
           productImageUrl = product.base_image_url || undefined
         }
       }
     }
+    
+    console.log('[Certificate Email] productData after lookup:', productData)
 
     // Fetch full product image using variant generation logic
 const customizationData = item.customization_data || {}
@@ -445,6 +453,8 @@ if (!productImageUrl) {
       lineItemIndex,
       specifications: parseCustomizationToSpecs(item.customization_data || {})
     }
+
+    console.log('[Certificate Email] FINAL productImageUrl being passed to PDF:', productImageUrl)
 
     // Generate PDF
     const result = await generateCertificatePDF(certificateData)

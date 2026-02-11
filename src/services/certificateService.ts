@@ -431,10 +431,12 @@ export async function generateCertificatePDF(data: CertificateData): Promise<Cer
   
   // Fallback if no image
   if (!imageAdded) {
-    // Diamond icon placeholder
-    doc.setFontSize(32)
-    doc.setTextColor(204, 204, 204)
-    doc.text('◆', pageWidth / 2, yPos + imageBoxSize / 2 + 8, { align: 'center' })
+    // Simple placeholder text (Helvetica doesn't support special characters well)
+    doc.setFontSize(12)
+    doc.setTextColor(180, 180, 180)
+    doc.text('Image', pageWidth / 2, yPos + imageBoxSize / 2 - 2, { align: 'center' })
+    doc.text('Unavailable', pageWidth / 2, yPos + imageBoxSize / 2 + 6, { align: 'center' })
+    console.log('[Certificate PDF] Using fallback placeholder - no image was added')
   }
   
   yPos += imageBoxSize + 15
