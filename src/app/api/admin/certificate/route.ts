@@ -128,10 +128,19 @@ async function generateVariantImageUrl(
     }
 
     const baseFilename = filenameParts.join('-');
-    // Handle already-plural types to avoid double pluralization
-    const folder = ['rings', 'bracelets', 'earrings'].includes(jewelryType) 
-      ? jewelryType 
-      : `${jewelryType}s`;
+    // Map jewelry type to storage folder (handles plural forms and special cases)
+    const folderMap: Record<string, string> = {
+      'bracelet': 'bracelets',
+      'necklace': 'necklaces',
+      'earrings': 'earringss', // Typo in storage folder name
+      'ring': 'rings',
+      'lock-bracelet': 'lock-bracelets',
+      'bond-bracelet': 'bond-bracelets',
+      'interlinked-bracelet': 'interlinked-bracelets',
+      'the-meridian-mark': 'the-meridian-marks',
+      'tennis-bracelet': 'tennis-bracelets',
+    };
+    const folder = folderMap[jewelryType] || `${jewelryType}s`;
 
     // List files in the folder to find the actual filename (handles different extensions)
     const { data: files } = await supabase
