@@ -339,7 +339,6 @@ export async function POST(request: Request) {
     const item = orderItems[lineItemIndex]
 
     // Get product info - jewelry_type can be either a UUID or a type string
-    let productImageUrl: string | undefined = undefined
     let productData: { type?: string; name?: string; base_image_url?: string } | null = null
 
     console.log('[Certificate Email] item.jewelry_type:', item.jewelry_type)
@@ -358,7 +357,6 @@ export async function POST(request: Request) {
         console.log('[Certificate Email] UUID lookup result:', { product, error: error?.message })
         if (product) {
           productData = product
-          productImageUrl = product.base_image_url || undefined
         }
       } else {
         const { data: product, error } = await (supabase
@@ -369,70 +367,20 @@ export async function POST(request: Request) {
         console.log('[Certificate Email] type lookup result:', { product, error: error?.message })
         if (product) {
           productData = product
-          productImageUrl = product.base_image_url || undefined
         }
       }
     }
     
     console.log('[Certificate Email] productData after lookup:', productData)
 
-    // Fetch full product image using variant generation logic
-const customizationData = item.customization_data || {}
-if (productData?.type && Object.keys(customizationData).length > 0) {
-  console.log('[Certificate Email] Customization Data:', JSON.stringify(customizationData, null, 2));
-  console.log('[Certificate Email] Jewelry Type:', productData.type);
-  
-  const variantImageUrl = await generateVariantImageUrl(
-    supabase,
-    productData.type,
-    customizationData
-  )
-
-  console.log('[Certificate Email] Generated Variant Image URL:', variantImageUrl);
-
-  if (variantImageUrl) {
-    const variantKey = extractVariantKeyFromUrl(variantImageUrl)
+    // SIMPLIFIED IMAGE SELECTION - preview_image_url is the most reliable source
+    // It's set at order time with the exact variant the customer ordered
+    const productImageUrl = 
+      item.preview_image_url || 
+      productData?.base_image_url || 
+      'https://maisonjove.com.au/default-jewelry.jpg'
     
-    console.log('[Certificate Email] Extracted Variant Key:', variantKey);
-    
-    if (variantKey) {
-      const galleryImage = await getVariantPrimaryImage(supabase, variantKey)
-      
-      console.log('[Certificate Email] Gallery Image Result:', galleryImage);
-      
-      if (galleryImage) {
-        productImageUrl = galleryImage
-        console.log('[Certificate Email] Using gallery image:', productImageUrl);
-      } else {
-        productImageUrl = variantImageUrl
-        console.log('[Certificate Email] Using variant image:', productImageUrl);
-      }
-    } else {
-      productImageUrl = variantImageUrl
-      console.log('[Certificate Email] No variant key, using generated URL:', productImageUrl);
-    }
-  } else {
-    console.log('[Certificate Email] No variant image URL generated');
-  }
-}
-
-// Comprehensive fallback image selection
-if (!productImageUrl) {
-  // Priority order (preview_image_url is most reliable - set at order time):
-  // 1. Preview image from line item (specific variant)
-  // 2. Base image from product data (generic product image)
-  // 3. Static fallback image
-  productImageUrl = 
-    item.preview_image_url || 
-    productData?.base_image_url || 
-    'https://maisonjove.com.au/default-jewelry.jpg'
-
-  console.log('[Certificate Email] Fallback Image Selection:', {
-    previewImageUrl: item.preview_image_url,
-    baseImageUrl: productData?.base_image_url,
-    finalImageUrl: productImageUrl
-  })
-}
+    console.log('[Certificate Email] FINAL productImageUrl:', productImageUrl)
 
     const productName = formatProductName(item.jewelry_type, productData?.name || item.product_name)
     const orderNumber = order.order_number || order.id.slice(0, 8).toUpperCase()
