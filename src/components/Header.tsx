@@ -31,6 +31,7 @@ export default function Header() {
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
   const [siteStyle, setSiteStyle] = useState<string>('original')
   const [showEmailConfirmed, setShowEmailConfirmed] = useState(false)
+  const [isStandalone, setIsStandalone] = useState(false)
   const { itemCount } = useCart()
   const { user, signOut } = useAuth()
   const searchParams = useSearchParams()
@@ -44,7 +45,21 @@ export default function Header() {
       router.replace('/', { scroll: false })
     }
   }, [searchParams, router])
-  
+
+  // Check if running in standalone mode (PWA)
+  useEffect(() => {
+    const checkStandalone = () => {
+      const isInStandaloneMode =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone === true ||
+        document.referrer.includes('android-app://');
+
+      setIsStandalone(isInStandaloneMode);
+    };
+
+    checkStandalone();
+  }, []);
+
   // Fetch site style
   useEffect(() => {
     fetch('/api/admin/site-style')
@@ -76,23 +91,23 @@ export default function Header() {
         // Cast to our interface
         const typedData = data as ProductCategory[]
         setCategories(typedData)
-        
+
         // Check if parent_id exists in the data
         const hasParentId = typedData.length > 0 && 'parent_id' in typedData[0]
-        
+
         if (hasParentId) {
           // Build hierarchy - top level categories have null/undefined parent_id
           // Only show categories marked show_in_menu (default true if not set)
           const menuCategories = typedData.filter(c => c.show_in_menu !== false)
           const topLevel = menuCategories.filter(c => !c.parent_id)
           const children = menuCategories.filter(c => c.parent_id)
-          
+
           // Attach children to their parents
           const categoriesWithChildren = topLevel.map(parent => ({
             ...parent,
             children: children.filter(c => c.parent_id === parent.id)
           }))
-          
+
           setTopLevelCategories(categoriesWithChildren)
         } else {
           // No parent_id column yet - treat all as top-level without children
@@ -131,7 +146,7 @@ export default function Header() {
   // Render desktop nav item - handles both parent categories (with dropdowns) and standalone links
   const renderDesktopNavItem = (category: ProductCategory) => {
     const hasChildren = category.children && category.children.length > 0
-    
+
     if (hasChildren) {
       return (
         <div key={category.id} className="relative group">
@@ -139,7 +154,7 @@ export default function Header() {
             <span>{category.name.toUpperCase()}</span>
             <ChevronDown size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:rotate-180" />
           </button>
-          
+
           {/* Dropdown Menu */}
           <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
             <div className="bg-maison-ivory border border-maison-warm shadow-lg min-w-[200px]">
@@ -175,7 +190,10 @@ export default function Header() {
     <>
       {/* Valentine's Promo Banner - only when style is active */}
       {siteStyle === 'valentines' && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-rose-500 via-rose-400 to-rose-500 text-white text-center py-2 px-4">
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-rose-500 via-rose-400 to-rose-500 text-white text-center py-2 px-4"
+          style={{ paddingTop: 'max(env(safe-area-inset-top), 8px)' }}
+        >
           <p className="text-xs md:text-sm font-medium tracking-wide">
             ♥ Order before 11 Feb to get it in time for Valentine&apos;s Day ♥
           </p>
@@ -183,32 +201,92 @@ export default function Header() {
       )}
 
       {/* Main header */}
-      <header 
-        className={`fixed left-0 right-0 z-50 transition-all duration-500 ${
-          siteStyle === 'valentines' ? 'top-[32px] md:top-[36px]' : 'top-0'
-        } ${
-          isScrolled 
-            ? 'bg-maison-ivory/95 backdrop-blur-md shadow-sm' 
-            : 'bg-maison-ivory'
-        }`}
+      <header
+        className={`fixed left-0 right-0 z-50 transition-all duration-500 ${isScrolled
+          ? 'bg-maison-ivory/95 backdrop-blur-md shadow-sm'
+          : 'bg-maison-ivory'
+          }`}
+        style={{
+          top: siteStyle === 'valentines' ? 'calc(max(env(safe-area-inset-top), 8px) + 32px)' : '0',
+          paddingTop: siteStyle === 'valentines' ? '0' : 'env(safe-area-inset-top)',
+        }}
       >
         {/* Top accent line */}
         <div className="h-px bg-gradient-to-r from-transparent via-maison-gold/40 to-transparent" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-18 md:h-20">
-            
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 text-maison-charcoal hover:text-maison-gold transition-colors duration-300"
-              aria-label="Toggle menu"
-            >
-              {isMenuOpen ? <X size={22} strokeWidth={1} /> : <Menu size={22} strokeWidth={1} />}
-            </button>
 
-            {/* Logo */}
-            <Link href="/" className="flex flex-col items-start group">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 md:h-20">
+
+            {/* Mobile: Show hamburger menu when NOT in PWA standalone mode */}
+            {!isStandalone && (
+              <>
+                <button
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="md:hidden p-2 text-maison-charcoal hover:text-maison-gold transition-colors duration-300"
+                  aria-label="Toggle menu"
+                >
+                  {isMenuOpen ? <X size={22} strokeWidth={1} /> : <Menu size={22} strokeWidth={1} />}
+                </button>
+
+                {/* Mobile Web: Centered logo */}
+                <Link href="/" className="flex md:hidden flex-col items-center group absolute left-1/2 -translate-x-1/2">
+                  <span className="font-serif text-base font-light text-maison-black tracking-[0.2em] transition-colors duration-300 group-hover:text-maison-gold whitespace-nowrap">
+                    MAISON JOVÉ
+                  </span>
+                  <span className="text-[8px] text-maison-graphite/70 font-light tracking-[0.3em]">
+                    FINE JEWELLERY
+                  </span>
+                </Link>
+
+                {/* Mobile Web: Cart Icon */}
+                <Link
+                  href="/cart"
+                  className="md:hidden p-2 text-maison-charcoal hover:text-maison-gold transition-colors duration-300 relative"
+                >
+                  <ShoppingCart size={20} strokeWidth={1.5} />
+                  {itemCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-maison-gold text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+                      {itemCount}
+                    </span>
+                  )}
+                </Link>
+              </>
+            )}
+
+            {/* Mobile PWA: Centered logo with spacer (only in standalone mode) */}
+            {isStandalone && (
+              <div className="flex md:hidden items-center justify-between w-full">
+                {/* Spacer for balance */}
+                <div className="w-10" />
+
+                {/* Logo - centered */}
+                <Link href="/" className="flex flex-col items-center group">
+                  <span className="font-serif text-base font-light text-maison-black tracking-[0.2em] transition-colors duration-300 group-hover:text-maison-gold whitespace-nowrap">
+                    MAISON JOVÉ
+                  </span>
+                  <span className="text-[8px] text-maison-graphite/70 font-light tracking-[0.3em]">
+                    FINE JEWELLERY
+                  </span>
+                </Link>
+
+                {/* Cart Icon */}
+                <Link
+                  href="/cart"
+                  className="p-2 text-maison-charcoal hover:text-maison-gold transition-colors duration-300 relative"
+                  aria-label="Cart"
+                >
+                  <ShoppingCart size={20} strokeWidth={1.5} />
+                  {itemCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-maison-gold text-maison-black text-[10px] font-medium rounded-full h-4 w-4 flex items-center justify-center">
+                      {itemCount}
+                    </span>
+                  )}
+                </Link>
+              </div>
+            )}
+
+            {/* Logo - Desktop only */}
+            <Link href="/" className="hidden md:flex flex-col items-start group">
               <span className="font-serif text-lg md:text-xl font-light text-maison-black tracking-[0.2em] transition-colors duration-300 group-hover:text-maison-gold whitespace-nowrap">
                 MAISON JOVÉ
               </span>
@@ -225,7 +303,7 @@ export default function Header() {
                   <span>JEWELLERY</span>
                   <ChevronDown size={14} strokeWidth={1.5} className="transition-transform duration-300 group-hover:rotate-180" />
                 </button>
-                
+
                 {/* Dropdown Menu */}
                 <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
                   <div className="bg-maison-ivory border border-maison-warm shadow-lg min-w-[220px]">
@@ -270,16 +348,16 @@ export default function Header() {
 
               {/* Valentine's Edit - Only when Valentine's style is active */}
               {siteStyle === 'valentines' && (
-                <Link 
-                  href="/valentines" 
+                <Link
+                  href="/valentines"
                   className="text-sm font-light tracking-wider text-rose-500 hover:text-rose-600 transition-colors duration-300 flex items-center gap-1"
                 >
                   <span>♥</span> VALENTINE&apos;S EDIT
                 </Link>
               )}
 
-              <Link 
-                href="/customize" 
+              <Link
+                href="/customize"
                 className="text-sm font-light tracking-wider text-maison-charcoal hover:text-maison-gold transition-colors duration-300"
               >
                 CUSTOMISE
@@ -292,8 +370,8 @@ export default function Header() {
                 EDUCATION
               </Link>
 
-              <Link 
-                href="/#our-work" 
+              <Link
+                href="/#our-work"
                 className="text-sm font-light tracking-wider text-maison-charcoal hover:text-maison-gold transition-colors duration-300"
               >
                 OUR WORK
@@ -307,9 +385,9 @@ export default function Header() {
               </Link>
             </nav>
 
-            {/* Right side icons */}
-            <div className="flex items-center gap-4 md:gap-6">
-              {/* Account Icon */}
+            {/* Right side icons - Desktop only for account, cart visible on both */}
+            <div className="hidden md:flex items-center gap-4 md:gap-6">
+              {/* Account Icon - Desktop only */}
               <div className="relative account-menu-container">
                 <button
                   onClick={() => user ? setIsAccountMenuOpen(!isAccountMenuOpen) : openAuthModal('login')}
@@ -364,9 +442,9 @@ export default function Header() {
                 </AnimatePresence>
               </div>
 
-              {/* Cart Icon */}
-              <Link 
-                href="/cart" 
+              {/* Cart Icon - Desktop */}
+              <Link
+                href="/cart"
                 className="p-2 text-maison-charcoal hover:text-maison-gold transition-colors duration-300 relative"
                 aria-label="Cart"
               >
@@ -393,9 +471,8 @@ export default function Header() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className={`fixed left-0 right-0 bg-maison-ivory border-b border-maison-warm z-40 md:hidden overflow-hidden ${
-              siteStyle === 'valentines' ? 'top-[105px]' : 'top-[73px]'
-            }`}
+            className={`fixed left-0 right-0 bg-maison-ivory border-b border-maison-warm z-40 md:hidden overflow-hidden ${siteStyle === 'valentines' ? 'top-[105px]' : 'top-[73px]'
+              }`}
           >
             <nav className="px-6 py-8 space-y-6">
               {/* Jewellery dropdown with all categories */}
@@ -407,13 +484,13 @@ export default function Header() {
                   <span className="font-serif text-lg font-light tracking-wider text-maison-charcoal">
                     Jewellery
                   </span>
-                  <ChevronDown 
-                    size={18} 
+                  <ChevronDown
+                    size={18}
                     strokeWidth={1.5}
                     className={`text-maison-graphite transition-transform duration-300 ${isMobileDropdownOpen ? 'rotate-180' : ''}`}
                   />
                 </button>
-                
+
                 <AnimatePresence>
                   {isMobileDropdownOpen && (
                     <motion.div
@@ -565,7 +642,12 @@ export default function Header() {
       </AnimatePresence>
 
       {/* Spacer for fixed header (+ banner when Valentine's active) */}
-      <div className={siteStyle === 'valentines' ? 'h-[104px] md:h-[116px]' : 'h-18 md:h-20'} />
+      <div
+        className={siteStyle === 'valentines' ? 'h-[104px]' : 'h-16 md:h-20'}
+        style={{
+          paddingTop: siteStyle === 'valentines' ? 'env(safe-area-inset-top)' : '0'
+        }}
+      />
 
       {/* Email Confirmed Modal */}
       <AnimatePresence>

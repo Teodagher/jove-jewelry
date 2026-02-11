@@ -1,0 +1,83 @@
+{
+    "name": "Maison Jové Admin",
+    "short_name": "Jové Admin",
+    "description": "Admin dashboard for Maison Jové jewelry management",
+    "start_url": "/admin",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "any",
+    "background_color": "#1F2937",
+    "theme_color": "#111827",
+    "icons": [
+        {
+            "src": "/icons/admin-icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/admin-icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/admin-icon-maskable-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/icons/admin-icon-maskable-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "categories": [
+        "business",
+        "productivity"
+    ],
+    "shortcuts": [
+        {
+            "name": "Orders",
+            "short_name": "Orders",
+            "description": "View and manage orders",
+            "url": "/admin/orders",
+            "icons": [
+                {
+                    "src": "/icons/admin-icon-192x192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Products",
+            "short_name": "Products",
+            "description": "Manage products",
+            "url": "/admin/product-management",
+            "icons": [
+                {
+                    "src": "/icons/admin-icon-192x192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Analytics",
+            "short_name": "Analytics",
+            "description": "View analytics",
+            "url": "/admin/analytics",
+            "icons": [
+                {
+                    "src": "/icons/admin-icon-192x192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        }
+    ],
+    "prefer_related_applications": false,
+    "related_applications": [],
+    "lang": "en-US",
+    "dir": "ltr"
+}

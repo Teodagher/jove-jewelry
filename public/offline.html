@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - Maison Jové</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #FAF9F7 0%, #F5F3EF 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-center;
+      padding: 20px;
+    }
+
+    .container {
+      text-align: center;
+      max-width: 500px;
+    }
+
+    .icon {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 30px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-center;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .icon svg {
+      width: 60px;
+      height: 60px;
+      color: #D4AF37;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 300;
+      color: #1a1a1a;
+      margin-bottom: 16px;
+      letter-spacing: 0.05em;
+    }
+
+    p {
+      font-size: 16px;
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }
+
+    .features {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      margin: 30px 0;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .feature {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .feature:last-child {
+      border-bottom: none;
+    }
+
+    .feature-icon {
+      width: 24px;
+      height: 24px;
+      color: #D4AF37;
+      flex-shrink: 0;
+    }
+
+    .feature-text {
+      text-align: left;
+      font-size: 14px;
+      color: #444;
+    }
+
+    .retry-button {
+      display: inline-block;
+      padding: 14px 32px;
+      background: #D4AF37;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .retry-button:hover {
+      background: #C4A027;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(212, 175, 55, 0.3);
+    }
+
+    .status {
+      margin-top: 20px;
+      padding: 12px;
+      background: #FFF3CD;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #856404;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .checking {
+      animation: pulse 2s ease-in-out infinite;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+          d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+      </svg>
+    </div>
+
+    <h1>You're Offline</h1>
+    <p>Don't worry! You can still browse previously viewed pages and products while offline.</p>
+
+    <div class="features">
+      <div class="feature">
+        <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span class="feature-text">Browse cached products and pages</span>
+      </div>
+      <div class="feature">
+        <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span class="feature-text">View your cart items</span>
+      </div>
+      <div class="feature">
+        <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        <span class="feature-text">Explore customization options</span>
+      </div>
+      <div class="feature">
+        <svg class="feature-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span class="feature-text">Changes will sync when you're back online</span>
+      </div>
+    </div>
+
+    <button class="retry-button" onclick="location.reload()">
+      Try Again
+    </button>
+
+    <div class="status checking" id="status">
+      Checking connection...
+    </div>
+  </div>
+
+  <script>
+    // Check connection status
+    function updateStatus() {
+      const status = document.getElementById('status');
+      if (navigator.onLine) {
+        status.textContent = '✓ Connection restored! Reloading...';
+        status.style.background = '#D4EDDA';
+        status.style.color = '#155724';
+        status.classList.remove('checking');
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        status.textContent = 'Still offline. Waiting for connection...';
+        status.classList.add('checking');
+      }
+    }
+
+    // Listen for online event
+    window.addEventListener('online', updateStatus);
+    window.addEventListener('offline', updateStatus);
+
+    // Check every 3 seconds
+    setInterval(updateStatus, 3000);
+
+    // Initial check
+    setTimeout(updateStatus, 500);
+  </script>
+</body>
+
+</html>

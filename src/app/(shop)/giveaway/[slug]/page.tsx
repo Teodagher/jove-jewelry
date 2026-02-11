@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import GiveawaySpinner from '../../../components/GiveawaySpinner';
+import GiveawaySpinner from '@/components/GiveawaySpinner';
 
 interface Lead {
   id: string;
