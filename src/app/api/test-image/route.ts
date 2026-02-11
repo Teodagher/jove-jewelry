@@ -1,7 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server'
 import sharp from 'sharp'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const orderId = searchParams.get('orderId')
+  
+  // If orderId provided, test the full flow
+  if (orderId) {
+    const supabase = await createClient()
+    
+    // Get order and items
+    const { data: order, error: orderError } = await (supabase
+      .from('orders') as any)
+      .select('*')
+      .eq('order_number', orderId)
+      .single()
+    
+    if (orderError || !order) {
+      return NextResponse.json({ error: 'Order not found', orderError })
+    }
+    
+    const { data: items } = await (supabase
+      .from('order_items') as any)
+      .select('*')
+      .eq('order_id', order.id)
+    
+    const item = items?.[0]
+    if (!item) {
+      return NextResponse.json({ error: 'No items found' })
+    }
+    
+    return NextResponse.json({
+      order: {
+        id: order.id,
+        order_number: order.order_number
+      },
+      item: {
+        jewelry_type: item.jewelry_type,
+        preview_image_url: item.preview_image_url,
+        customization_data: item.customization_data
+      }
+    })
+  }
+  
   const testUrl = 'https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/rings/ring-emerald-yellow_gold.webp'
   
   const results: string[] = []
