@@ -36,32 +36,22 @@ async function generateVariantImageUrl(
       filenameParts.push(slug);
     }
 
-    // Dual-stone logic: when first_stone is diamond, skip it from filename
-    const extractStone = (id: string): string => {
-      if (id && id.includes('_')) {
-        const parts = id.split('_');
-        if (parts.length >= 2) {
-          const twoWord = parts.slice(-2).join('_');
-          if (['blue_sapphire', 'pink_sapphire', 'yellow_sapphire'].includes(twoWord)) return twoWord;
-        }
-        const last = parts[parts.length - 1];
-        if (['ruby', 'emerald', 'diamond', 'sapphire'].includes(last)) return last;
-      }
-      return id;
+    // Helper to check if option is diamond (should be skipped from filename)
+    const isDiamond = (optionId: string): boolean => {
+      const lower = optionId.toLowerCase();
+      return lower === 'diamond' || lower.endsWith('_diamond') || lower.includes('diamond');
     };
 
-    const actualFirstStone = firstStoneOption ? extractStone(firstStoneOption.option_id) : '';
+    // Only include first_stone if it's NOT diamond
+    if (firstStoneOption && !isDiamond(firstStoneOption.option_id)) {
+      const firstStoneSlug = mappingMap.get(firstStoneOption.option_id) || firstStoneOption.option_id;
+      filenameParts.push(firstStoneSlug);
+    }
 
-    if (firstStoneOption && actualFirstStone !== 'diamond' && secondStoneOption) {
-      // Both stones, first is not diamond
-      filenameParts.push(mappingMap.get(firstStoneOption.option_id) || firstStoneOption.option_id);
-      filenameParts.push(mappingMap.get(secondStoneOption.option_id) || secondStoneOption.option_id);
-    } else if (secondStoneOption) {
-      // First stone is diamond (skipped) or absent, include second stone only
-      filenameParts.push(mappingMap.get(secondStoneOption.option_id) || secondStoneOption.option_id);
-    } else if (firstStoneOption) {
-      // Only first stone exists, include it regardless
-      filenameParts.push(mappingMap.get(firstStoneOption.option_id) || firstStoneOption.option_id);
+    // Always include second stone if present
+    if (secondStoneOption) {
+      const secondStoneSlug = mappingMap.get(secondStoneOption.option_id) || secondStoneOption.option_id;
+      filenameParts.push(secondStoneSlug);
     }
 
     // Add metal
@@ -71,10 +61,19 @@ async function generateVariantImageUrl(
     }
 
     const baseFilename = filenameParts.join('-');
-    // Handle already-plural types to avoid double pluralization
-    const folder = ['rings', 'bracelets', 'earrings'].includes(jewelryType) 
-      ? jewelryType 
-      : `${jewelryType}s`;
+    // Map jewelry type to storage folder
+    const folderMap: Record<string, string> = {
+      'bracelet': 'bracelets',
+      'necklace': 'necklaces',
+      'earrings': 'earringss', // Typo in storage folder name
+      'ring': 'rings',
+      'lock-bracelet': 'lock-bracelets',
+      'bond-bracelet': 'bond-bracelets',
+      'interlinked-bracelet': 'interlinked-bracelets',
+      'the-meridian-mark': 'the-meridian-marks',
+      'tennis-bracelet': 'tennis-bracelets',
+    };
+    const folder = folderMap[jewelryType] || `${jewelryType}s`;
 
     // List files in the folder to find the actual filename (handles different extensions)
     const { data: files } = await supabase
@@ -339,20 +338,33 @@ export async function POST(request: Request) {
 
     const item = orderItems[lineItemIndex]
 
-    // Get product info
+    // Get product info - jewelry_type can be either a UUID or a type string
     let productImageUrl: string | undefined = undefined
     let productData: { type?: string; name?: string; base_image_url?: string } | null = null
 
     if (item.jewelry_type) {
-      const { data: product } = await (supabase
-        .from('jewelry_items') as any)
-        .select('type, name, base_image_url')
-        .eq('id', item.jewelry_type)
-        .single()
-
-      if (product) {
-        productData = product
-        productImageUrl = product.base_image_url || undefined
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.jewelry_type)
+      
+      if (isUuid) {
+        const { data: product } = await (supabase
+          .from('jewelry_items') as any)
+          .select('type, name, base_image_url')
+          .eq('id', item.jewelry_type)
+          .single()
+        if (product) {
+          productData = product
+          productImageUrl = product.base_image_url || undefined
+        }
+      } else {
+        const { data: product } = await (supabase
+          .from('jewelry_items') as any)
+          .select('type, name, base_image_url')
+          .eq('type', item.jewelry_type)
+          .single()
+        if (product) {
+          productData = product
+          productImageUrl = product.base_image_url || undefined
+        }
       }
     }
 
