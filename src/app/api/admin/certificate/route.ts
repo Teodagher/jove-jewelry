@@ -105,30 +105,44 @@ async function generateVariantImageUrl(
     // Dual-stone logic: when first_stone is diamond, skip it from filename
     // (matches DynamicFilenameService behavior)
     const extractStone = (id: string): string => {
+      // Updated logic to always return the most descriptive stone name
       if (id && id.includes('_')) {
         const parts = id.split('_');
+        
+        // Prioritize two-word stones including full descriptors
         if (parts.length >= 2) {
           const twoWord = parts.slice(-2).join('_');
-          if (['blue_sapphire', 'pink_sapphire', 'yellow_sapphire'].includes(twoWord)) return twoWord;
+          const descriptiveStones = [
+            'blue_sapphire', 
+            'pink_sapphire', 
+            'yellow_sapphire', 
+            'lab_grown_diamond', 
+            'lab_grown_emerald', 
+            'lab_grown_ruby',
+            'lab_grown_sapphire',
+            'white_sapphire'
+          ];
+          
+          if (descriptiveStones.includes(twoWord)) {
+            return twoWord;
+          }
         }
-        const last = parts[parts.length - 1];
-        if (['ruby', 'emerald', 'diamond', 'sapphire'].includes(last)) return last;
+        
+        // Fallback to last part if no match
+        return parts[parts.length - 1];
       }
       return id;
     };
 
-    const actualFirstStone = firstStoneOption ? extractStone(firstStoneOption.option_id) : '';
+    // Always include stones, regardless of type
+    if (firstStoneOption) {
+      const firstStoneSlug = mappingMap.get(firstStoneOption.option_id) || extractStone(firstStoneOption.option_id);
+      filenameParts.push(firstStoneSlug);
+    }
 
-    if (firstStoneOption && actualFirstStone !== 'diamond' && secondStoneOption) {
-      // Both stones, first is not diamond
-      filenameParts.push(mappingMap.get(firstStoneOption.option_id) || firstStoneOption.option_id);
-      filenameParts.push(mappingMap.get(secondStoneOption.option_id) || secondStoneOption.option_id);
-    } else if (secondStoneOption) {
-      // First stone is diamond (skipped) or absent, include second stone only
-      filenameParts.push(mappingMap.get(secondStoneOption.option_id) || secondStoneOption.option_id);
-    } else if (firstStoneOption) {
-      // Only first stone exists, include it regardless
-      filenameParts.push(mappingMap.get(firstStoneOption.option_id) || firstStoneOption.option_id);
+    if (secondStoneOption) {
+      const secondStoneSlug = mappingMap.get(secondStoneOption.option_id) || extractStone(secondStoneOption.option_id);
+      filenameParts.push(secondStoneSlug);
     }
 
     // Add metal
