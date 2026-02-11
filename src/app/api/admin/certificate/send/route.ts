@@ -378,10 +378,28 @@ export async function POST(request: Request) {
 
     // SIMPLIFIED IMAGE SELECTION - preview_image_url is the most reliable source
     // It's set at order time with the exact variant the customer ordered
-    const productImageUrl = 
-      item.preview_image_url || 
-      productData?.base_image_url || 
-      'https://maisonjove.com.au/default-jewelry.jpg'
+    let productImageUrl = item.preview_image_url || productData?.base_image_url || null
+    
+    // If still no image and we know the product type, try to generate a variant URL
+    if (!productImageUrl && item.jewelry_type && item.customization_data) {
+      const type = productData?.type || item.jewelry_type
+      const customization = item.customization_data || {}
+      
+      // Try to construct a variant URL based on customization
+      const metal = customization.metal || 'yellow_gold'
+      const stone = customization.second_stone || customization.first_stone || 'diamond'
+      
+      // Known variant URL pattern
+      const variantUrl = `https://ndqxwvascqwhqaoqkpng.supabase.co/storage/v1/object/public/customization-item/${type}s/${type}-${stone}-${metal.replace('_', '')}.webp`
+      
+      console.log('[Certificate Email] Trying constructed variant URL:', variantUrl)
+      productImageUrl = variantUrl
+    }
+    
+    // Final fallback
+    if (!productImageUrl) {
+      productImageUrl = 'https://maisonjove.com.au/default-jewelry.jpg'
+    }
     
     console.log('[Certificate Email] FINAL productImageUrl:', productImageUrl)
 
