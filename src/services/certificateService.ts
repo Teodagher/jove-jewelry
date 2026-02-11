@@ -288,7 +288,9 @@ async function fetchImageAsBase64(url: string, cropToSquare: boolean = false): P
     // Crop to square (center crop, like object-fit: cover) and convert to PNG
     if (cropToSquare) {
       try {
+        console.log('[fetchImageAsBase64] Cropping to square with sharp...')
         const metadata = await sharp(buffer).metadata()
+        console.log('[fetchImageAsBase64] Image metadata:', metadata.width, 'x', metadata.height, metadata.format)
         if (metadata.width && metadata.height) {
           const size = Math.min(metadata.width, metadata.height)
           buffer = Buffer.from(await sharp(buffer)
@@ -296,14 +298,25 @@ async function fetchImageAsBase64(url: string, cropToSquare: boolean = false): P
             .png()
             .toBuffer())
           format = 'PNG'
+          console.log('[fetchImageAsBase64] Crop successful, converted to PNG')
         }
       } catch (cropError) {
-        console.error('Error cropping image:', cropError)
+        console.error('[fetchImageAsBase64] Error cropping image:', cropError)
+        // If crop fails but it's WebP, we still need to convert
+        if (isWebP) {
+          try {
+            console.log('[fetchImageAsBase64] Crop failed, trying simple WebP->PNG conversion...')
+            buffer = Buffer.from(await sharp(buffer).png().toBuffer())
+            format = 'PNG'
+            console.log('[fetchImageAsBase64] Simple conversion successful')
+          } catch (convertError) {
+            console.error('[fetchImageAsBase64] WebP conversion also failed:', convertError)
+            return null
+          }
+        }
       }
-    }
-
-    // Convert WebP to PNG using sharp (jsPDF doesn't support WebP)
-    if (!cropToSquare && isWebP) {
+    } else if (isWebP) {
+      // Convert WebP to PNG using sharp (jsPDF doesn't support WebP)
       try {
         console.log('[fetchImageAsBase64] Converting WebP to PNG...')
         const convertedBuffer = await sharp(buffer).png().toBuffer()
