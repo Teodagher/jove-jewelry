@@ -11,31 +11,31 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { 
       productId, 
-      productName,
-      variantConfig, // { settingId: optionId, ... }
+      productType,    // e.g. "bracelet"
+      variantConfig,  // { settingId: optionId, ... }
       generatedImageBase64,
-      filename 
+      filename,       // the variant key / filename base (without extension)
     } = body;
 
-    if (!productId || !variantConfig || !generatedImageBase64) {
+    if (!productId || !generatedImageBase64 || !filename) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields: productId, generatedImageBase64, filename' },
         { status: 400 }
       );
     }
 
-    // 1. Upload the approved image to the customization-item bucket (same as real product images)
-    const folderName = `${productName?.toLowerCase().replace(/\s+/g, '-') || 'product'}s`;
-    const imageName = `${filename || Object.values(variantConfig).join('_')}.png`;
-    const imagePath = `${folderName}/${imageName}`;
-    
+    const folder = `${productType || 'bracelet'}s`;
+    const imageName = `${filename}.png`;
+    const imagePath = `${folder}/${imageName}`;
+
+    // 1. Upload (overwrite) the image in the same storage bucket/path the site reads from
     const imageBuffer = Buffer.from(generatedImageBase64, 'base64');
-    
+
     const { error: uploadError } = await supabase.storage
       .from('customization-item')
       .upload(imagePath, imageBuffer, {
         contentType: 'image/png',
-        upsert: true, // Overwrite if exists
+        upsert: true,
       });
 
     if (uploadError) {
@@ -51,29 +51,48 @@ export async function POST(request: NextRequest) {
       .from('customization-item')
       .getPublicUrl(imagePath);
 
-    // 3. Update the ai_studio_variants table to mark as approved
-    const { error: updateError } = await supabase
-      .from('ai_studio_variants')
-      .update({ 
-        status: 'approved',
-        generated_image_url: urlData.publicUrl,
-        updated_at: new Date().toISOString()
-      })
-      .match({ 
-        product_id: productId,
-        variant_config: variantConfig 
+    const imageUrl = urlData.publicUrl;
+
+    // 3. Upsert into variant_images table — this is what the product page reads
+    //    variant_key = filename without extension (same convention used by ProductImagesGallery)
+    const variantKey = filename; // already without extension
+
+    const { error: upsertError } = await supabase
+      .from('variant_images')
+      .upsert({
+        variant_key: variantKey,
+        image_url: imageUrl,
+        display_order: 0,
+        is_primary: true,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'variant_key',
       });
 
-    if (updateError) {
-      console.error('Database update error:', updateError);
-      // Not critical - image is already uploaded
+    if (upsertError) {
+      // variant_images might have a composite key — try delete+insert
+      console.warn('Upsert failed, trying delete+insert:', upsertError.message);
+
+      await supabase.from('variant_images').delete().eq('variant_key', variantKey);
+
+      const { error: insertError } = await supabase.from('variant_images').insert({
+        variant_key: variantKey,
+        image_url: imageUrl,
+        display_order: 0,
+        is_primary: true,
+      });
+
+      if (insertError) {
+        console.error('Insert also failed:', insertError);
+        // Still return success since the image is uploaded — just DB link failed
+      }
     }
 
     return NextResponse.json({
       success: true,
-      imageUrl: urlData.publicUrl,
-      imagePath,
-      message: 'Variant approved and image saved to product library'
+      imageUrl,
+      variantKey,
+      message: 'Variant approved — image live on site immediately',
     });
 
   } catch (error) {

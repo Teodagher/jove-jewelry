@@ -249,7 +249,7 @@ export default function AIStudioPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productId: selectedProduct.id,
-          productName: selectedProduct.type || selectedProduct.name,
+          productType: selectedProduct.type || 'bracelet',
           variantConfig: (variant as any).variantConfigMap || {},
           generatedImageBase64: variant.generatedImageBase64,
           filename: (variant as any).filename,
