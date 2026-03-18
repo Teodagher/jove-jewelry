@@ -19,6 +19,8 @@ export interface GeneratedVariant {
   originalImageBase64: string;
   generatedImageBase64: string;
   variantConfig: VariantConfig;
+  variantConfigMap?: Record<string, string>; // { settingId: optionId }
+  filename?: string;
   promptUsed: string;
   status: 'pending' | 'approved' | 'rejected';
   label?: string; // Optional custom label from database options

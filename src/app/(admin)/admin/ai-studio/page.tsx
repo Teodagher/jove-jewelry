@@ -209,6 +209,12 @@ export default function AIStudioPage() {
         // Build a label from options
         const label = r.combination.options.map(opt => opt.optionName).join(' • ');
         
+        // Build variant config as { settingId: optionId }
+        const variantConfigMap: Record<string, string> = {};
+        r.combination.options.forEach(opt => {
+          variantConfigMap[opt.settingId] = opt.optionId;
+        });
+        
         return {
           id: `batch_${Date.now()}_${i}`,
           originalImageBase64: referenceImage?.split(',')[1] || referenceImage || '',
@@ -220,6 +226,8 @@ export default function AIStudioPage() {
             background: 'white-seamless' as const,
             outputFormat: '1:1' as const,
           },
+          variantConfigMap, // Store the actual setting->option mapping
+          filename: r.combination.filename,
           promptUsed: r.combination.prompt,
           status: 'pending' as const,
           label, // Custom label with option names
@@ -231,10 +239,38 @@ export default function AIStudioPage() {
 
   // Review actions
   const handleApprove = useCallback(async (id: string) => {
-    setGeneratedVariants(prev => 
-      prev.map(v => v.id === id ? { ...v, status: 'approved' as const } : v)
-    );
-  }, []);
+    const variant = generatedVariants.find(v => v.id === id);
+    if (!variant || !selectedProduct) return;
+
+    // Call API to save approved image to product library
+    try {
+      const response = await fetch('/api/ai-studio/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: selectedProduct.id,
+          productName: selectedProduct.type || selectedProduct.name,
+          variantConfig: (variant as any).variantConfigMap || {},
+          generatedImageBase64: variant.generatedImageBase64,
+          filename: (variant as any).filename,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setGeneratedVariants(prev => 
+          prev.map(v => v.id === id ? { ...v, status: 'approved' as const } : v)
+        );
+        // Could show a toast notification here
+        console.log('Variant approved and saved:', data.imageUrl);
+      } else {
+        setError(`Failed to approve: ${data.error}`);
+      }
+    } catch (err) {
+      setError(`Failed to approve: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  }, [generatedVariants, selectedProduct]);
 
   const handleReject = useCallback((id: string) => {
     setGeneratedVariants(prev => 

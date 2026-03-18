@@ -42,21 +42,34 @@ const batchJobs = new Map<string, {
 // Generate prompt from variant options
 function buildPromptFromOptions(options: VariantOption[]): string {
   const changes = options.map(opt => {
-    return `Change the ${opt.settingTitle.toLowerCase()} to ${opt.optionName}`;
+    const setting = opt.settingTitle.toLowerCase();
+    if (setting.includes('stone') || setting.includes('gem')) {
+      return `Change ONLY the color of the ${setting} to ${opt.optionName} (keep the exact same cut, shape, size, and facets)`;
+    } else if (setting.includes('metal')) {
+      return `Change ONLY the metal color to ${opt.optionName} (keep the exact same texture, finish, and reflections)`;
+    } else if (setting.includes('cord') || setting.includes('leather') || setting.includes('strap')) {
+      return `Change ONLY the color of the ${setting} to ${opt.optionName} (keep the exact same texture, weave, and material)`;
+    }
+    return `Change ONLY the color/finish of the ${setting} to ${opt.optionName}`;
   });
 
-  return `You are a professional product photographer and jewelry retoucher. 
-Edit this jewelry product image with the following changes:
+  return `CRITICAL: This is a COLOR-ONLY edit. You must preserve the EXACT original jewelry piece.
 
+CHANGES TO MAKE:
 ${changes.join('\n')}
 
-Important guidelines:
-- Maintain the exact same camera angle, lighting, and composition
-- Keep the overall style and quality of the original image
-- Make the changes look natural and photorealistic
-- Preserve all other details of the jewelry piece
-- Ensure professional product photography quality
-- Keep the background clean and consistent`;
+STRICT REQUIREMENTS - DO NOT VIOLATE:
+1. DO NOT change the jewelry design, shape, structure, or proportions AT ALL
+2. DO NOT change the texture, pattern, or material appearance (only the color)
+3. DO NOT change the camera angle, lighting setup, or composition
+4. DO NOT change the background or shadows
+5. DO NOT add or remove any elements
+6. DO NOT change the size or position of any component
+7. KEEP the exact same bracelet/necklace weave pattern and texture
+8. KEEP the exact same stone cut, facets, and sparkle pattern
+9. KEEP the exact same metal finish type (polished stays polished, matte stays matte)
+
+Think of this as a professional color correction - the ONLY thing changing is the hue/color of the specified elements. Everything else must be pixel-perfect identical to the original.`;
 }
 
 // Generate filename from options
