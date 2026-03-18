@@ -1,31 +1,44 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { VariantConfig } from '@/lib/ai-studio/types';
-import { getVariantSummary } from '@/lib/ai-studio/prompts';
 import { Loader2, CheckCircle2, XCircle, Clock } from 'lucide-react';
 
-interface QueueItem {
-  id: string;
-  variantConfig: VariantConfig;
-  status: 'pending' | 'generating' | 'completed' | 'failed';
+interface VariantOption {
+  settingId: string;
+  settingTitle: string;
+  optionId: string;
+  optionName: string;
+}
+
+interface VariantCombination {
+  options: VariantOption[];
+  filename: string;
+  prompt: string;
+}
+
+interface BatchResult {
+  combination: VariantCombination;
+  status: 'pending' | 'completed' | 'failed';
   generatedImageBase64?: string;
   error?: string;
 }
 
 interface GenerationQueueProps {
   batchId: string | null;
-  onComplete?: (results: QueueItem[]) => void;
-  onItemComplete?: (item: QueueItem) => void;
+  onComplete?: (results: BatchResult[]) => void;
 }
 
-export default function GenerationQueue({ batchId, onComplete, onItemComplete }: GenerationQueueProps) {
-  const [queue, setQueue] = useState<QueueItem[]>([]);
+export default function GenerationQueue({ batchId, onComplete }: GenerationQueueProps) {
+  const [queue, setQueue] = useState<BatchResult[]>([]);
   const [progress, setProgress] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [total, setTotal] = useState(0);
   const [completed, setCompleted] = useState(0);
   const [failed, setFailed] = useState(0);
+
+  const getLabel = (result: BatchResult) => {
+    return result.combination.options.map(opt => opt.optionName).join(' • ');
+  };
 
   const pollBatchStatus = useCallback(async () => {
     if (!batchId) return;
@@ -40,44 +53,27 @@ export default function GenerationQueue({ batchId, onComplete, onItemComplete }:
         setFailed(data.failed);
         setProgress(data.progress);
         setIsComplete(data.isComplete);
-        
-        // Map results to queue items
-        const items: QueueItem[] = data.results.map((r: {
-          variantConfig: VariantConfig;
-          status: 'pending' | 'completed' | 'failed';
-          generatedImageBase64?: string;
-          error?: string;
-        }, i: number) => ({
-          id: `${batchId}-${i}`,
-          variantConfig: r.variantConfig,
-          status: r.status === 'pending' ? 'pending' : r.status,
-          generatedImageBase64: r.generatedImageBase64,
-          error: r.error,
-        }));
-        
-        setQueue(items);
-        
-        // Notify about completed items
-        items.forEach((item, i) => {
-          if (item.status === 'completed' && onItemComplete) {
-            const prevItem = queue[i];
-            if (!prevItem || prevItem.status !== 'completed') {
-              onItemComplete(item);
-            }
-          }
-        });
+        setQueue(data.results || []);
         
         if (data.isComplete && onComplete) {
-          onComplete(items);
+          onComplete(data.results || []);
         }
       }
     } catch (error) {
       console.error('Error polling batch status:', error);
     }
-  }, [batchId, onComplete, onItemComplete, queue]);
+  }, [batchId, onComplete]);
 
   useEffect(() => {
-    if (!batchId) return;
+    if (!batchId) {
+      setQueue([]);
+      setProgress(0);
+      setIsComplete(false);
+      setTotal(0);
+      setCompleted(0);
+      setFailed(0);
+      return;
+    }
     
     // Initial poll
     pollBatchStatus();
@@ -140,18 +136,15 @@ export default function GenerationQueue({ batchId, onComplete, onItemComplete }:
 
       {/* Queue items */}
       <div className="max-h-64 overflow-y-auto divide-y divide-zinc-100">
-        {queue.map((item) => (
+        {queue.map((item, index) => (
           <div
-            key={item.id}
+            key={index}
             className="flex items-center gap-3 p-3 hover:bg-zinc-50 transition-colors"
           >
             {/* Status icon */}
             <div className="flex-shrink-0">
               {item.status === 'pending' && (
                 <Clock className="w-5 h-5 text-zinc-400" />
-              )}
-              {item.status === 'generating' && (
-                <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />
               )}
               {item.status === 'completed' && (
                 <CheckCircle2 className="w-5 h-5 text-green-500" />
@@ -164,7 +157,7 @@ export default function GenerationQueue({ batchId, onComplete, onItemComplete }:
             {/* Variant info */}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-zinc-900 truncate">
-                {getVariantSummary(item.variantConfig)}
+                {getLabel(item)}
               </p>
               {item.error && (
                 <p className="text-xs text-red-600 truncate">{item.error}</p>

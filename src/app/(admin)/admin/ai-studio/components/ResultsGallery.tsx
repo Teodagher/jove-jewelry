@@ -21,6 +21,7 @@ export interface GeneratedVariant {
   variantConfig: VariantConfig;
   promptUsed: string;
   status: 'pending' | 'approved' | 'rejected';
+  label?: string; // Optional custom label from database options
 }
 
 interface ResultsGalleryProps {
@@ -41,10 +42,14 @@ export default function ResultsGallery({
   const [selectedVariant, setSelectedVariant] = useState<GeneratedVariant | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'compare'>('grid');
 
+  const getLabel = (variant: GeneratedVariant) => {
+    return variant.label || getVariantSummary(variant.variantConfig);
+  };
+
   const handleDownload = (variant: GeneratedVariant) => {
     const link = document.createElement('a');
     link.href = `data:image/png;base64,${variant.generatedImageBase64}`;
-    link.download = `${getVariantSummary(variant.variantConfig).replace(/[•\s]+/g, '_')}.png`;
+    link.download = `${getLabel(variant).replace(/[•\s]+/g, '_')}.png`;
     link.click();
   };
 
@@ -115,7 +120,7 @@ export default function ResultsGallery({
                 ) : (
                   <img
                     src={`data:image/png;base64,${variant.generatedImageBase64}`}
-                    alt={getVariantSummary(variant.variantConfig)}
+                    alt={getLabel(variant)}
                     className="w-full h-full object-contain"
                   />
                 )}
@@ -143,7 +148,7 @@ export default function ResultsGallery({
               {/* Info and actions */}
               <div className="p-3">
                 <p className="text-xs font-medium text-zinc-900 truncate mb-2">
-                  {getVariantSummary(variant.variantConfig)}
+                  {getLabel(variant)}
                 </p>
                 
                 {/* Action buttons */}
@@ -212,7 +217,7 @@ export default function ResultsGallery({
               <ImageCompare
                 originalImage={`data:image/png;base64,${variant.originalImageBase64}`}
                 generatedImage={`data:image/png;base64,${variant.generatedImageBase64}`}
-                label={getVariantSummary(variant.variantConfig)}
+                label={getLabel(variant)}
               />
               
               {/* Actions */}
@@ -285,12 +290,12 @@ export default function ResultsGallery({
           >
             <img
               src={`data:image/png;base64,${selectedVariant.generatedImageBase64}`}
-              alt={getVariantSummary(selectedVariant.variantConfig)}
+              alt={getLabel(selectedVariant)}
               className="max-w-full max-h-[85vh] object-contain"
             />
             <div className="mt-4 text-center">
               <p className="text-white font-medium">
-                {getVariantSummary(selectedVariant.variantConfig)}
+                {getLabel(selectedVariant)}
               </p>
             </div>
           </div>

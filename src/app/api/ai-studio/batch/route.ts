@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateImage } from '@/lib/ai-studio/gemini';
-import { buildPrompt, getVariantFilename } from '@/lib/ai-studio/prompts';
-import { BatchGenerationRequest, VariantConfig, ProductCategory } from '@/lib/ai-studio/types';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ndqxwvascqwhqaoqkpng.supabase.co';
@@ -9,55 +7,163 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJ
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+// Types
+interface VariantOption {
+  settingId: string;
+  settingTitle: string;
+  optionId: string;
+  optionName: string;
+}
+
+interface VariantCombination {
+  options: VariantOption[];
+  filename: string;
+  prompt: string;
+}
+
+interface BatchResult {
+  combination: VariantCombination;
+  status: 'pending' | 'completed' | 'failed';
+  generatedImageBase64?: string;
+  error?: string;
+}
+
 // Store for batch job progress (in-memory for simplicity)
 // In production, this should be stored in database or Redis
 const batchJobs = new Map<string, {
   total: number;
   completed: number;
   failed: number;
-  results: Array<{
-    variantConfig: VariantConfig;
-    status: 'pending' | 'completed' | 'failed';
-    generatedImageBase64?: string;
-    error?: string;
-    promptUsed?: string;
-  }>;
+  productId: string;
+  productName: string;
+  results: BatchResult[];
 }>();
+
+// Generate prompt from variant options
+function buildPromptFromOptions(options: VariantOption[]): string {
+  const changes = options.map(opt => {
+    return `Change the ${opt.settingTitle.toLowerCase()} to ${opt.optionName}`;
+  });
+
+  return `You are a professional product photographer and jewelry retoucher. 
+Edit this jewelry product image with the following changes:
+
+${changes.join('\n')}
+
+Important guidelines:
+- Maintain the exact same camera angle, lighting, and composition
+- Keep the overall style and quality of the original image
+- Make the changes look natural and photorealistic
+- Preserve all other details of the jewelry piece
+- Ensure professional product photography quality
+- Keep the background clean and consistent`;
+}
+
+// Generate filename from options
+function buildFilenameFromOptions(productSlug: string, options: VariantOption[]): string {
+  const slugs = options.map(opt => opt.optionId.replace(/[^a-z0-9]/gi, '_').toLowerCase());
+  return `${productSlug}_${slugs.join('_')}`;
+}
+
+// Generate cartesian product of all option combinations
+function generateCombinations(
+  productSlug: string,
+  settings: Array<{ settingId: string; settingTitle: string; options: Array<{ optionId: string; optionName: string }> }>
+): VariantCombination[] {
+  if (settings.length === 0) return [];
+
+  const result: VariantCombination[] = [];
+
+  function combine(index: number, current: VariantOption[]): void {
+    if (index === settings.length) {
+      const filename = buildFilenameFromOptions(productSlug, current);
+      const prompt = buildPromptFromOptions(current);
+      result.push({
+        options: [...current],
+        filename,
+        prompt,
+      });
+      return;
+    }
+
+    const setting = settings[index];
+    for (const option of setting.options) {
+      combine(index + 1, [
+        ...current,
+        {
+          settingId: setting.settingId,
+          settingTitle: setting.settingTitle,
+          optionId: option.optionId,
+          optionName: option.optionName,
+        },
+      ]);
+    }
+  }
+
+  combine(0, []);
+  return result;
+}
 
 // Start batch generation
 export async function POST(request: NextRequest) {
   try {
-    const body: BatchGenerationRequest = await request.json();
+    const body = await request.json();
     
-    const { productName, category, originalImageBase64, variants } = body;
+    const { productId, productName, productSlug, originalImageBase64, enabledSettings } = body;
     
-    if (!productName || !category || !originalImageBase64 || !variants || variants.length === 0) {
+    // Validate required fields
+    if (!productId || !productName || !originalImageBase64 || !enabledSettings) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields: productId, productName, originalImageBase64, enabledSettings' },
         { status: 400 }
       );
     }
-    
+
+    // enabledSettings is: { settingId: { title: string, options: [{ id, name }] } }
+    const settingsArray = Object.entries(enabledSettings).map(([settingId, data]: [string, unknown]) => {
+      const settingData = data as { title: string; options: Array<{ id: string; name: string }> };
+      return {
+        settingId,
+        settingTitle: settingData.title,
+        options: settingData.options.map(opt => ({
+          optionId: opt.id,
+          optionName: opt.name,
+        })),
+      };
+    });
+
+    // Generate all combinations
+    const combinations = generateCombinations(productSlug || productName, settingsArray);
+
+    if (combinations.length === 0) {
+      return NextResponse.json(
+        { error: 'No variant combinations to generate' },
+        { status: 400 }
+      );
+    }
+
     // Create batch job
     const batchId = `batch_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     
     batchJobs.set(batchId, {
-      total: variants.length,
+      total: combinations.length,
       completed: 0,
       failed: 0,
-      results: variants.map(v => ({
-        variantConfig: v,
-        status: 'pending',
+      productId,
+      productName,
+      results: combinations.map(combo => ({
+        combination: combo,
+        status: 'pending' as const,
       })),
     });
     
     // Start processing in background
-    processVariants(batchId, productName, category, originalImageBase64, variants);
+    processVariants(batchId, productId, productName, originalImageBase64, combinations);
     
     return NextResponse.json({
       success: true,
       batchId,
-      total: variants.length,
+      total: combinations.length,
     });
     
   } catch (error) {
@@ -105,56 +211,51 @@ export async function GET(request: NextRequest) {
 // Process variants in background
 async function processVariants(
   batchId: string,
+  productId: string,
   productName: string,
-  category: ProductCategory,
   originalImageBase64: string,
-  variants: VariantConfig[]
+  combinations: VariantCombination[]
 ) {
   const job = batchJobs.get(batchId);
   if (!job) return;
   
   // Process variants sequentially to avoid rate limiting
-  for (let i = 0; i < variants.length; i++) {
-    const variant = variants[i];
+  for (let i = 0; i < combinations.length; i++) {
+    const combo = combinations[i];
     
     try {
-      const prompt = buildPrompt(category, variant);
+      console.log(`[Batch ${batchId}] Processing variant ${i + 1}/${combinations.length}: ${combo.filename}`);
       
-      console.log(`[Batch ${batchId}] Processing variant ${i + 1}/${variants.length}`);
-      
-      const result = await generateImage(originalImageBase64, prompt);
+      const result = await generateImage(originalImageBase64, combo.prompt);
       
       if (result.success) {
         job.results[i] = {
-          variantConfig: variant,
+          combination: combo,
           status: 'completed',
           generatedImageBase64: result.imageBase64,
-          promptUsed: prompt,
         };
         job.completed++;
         
         // Save to database
         await saveVariantToDatabase(
+          productId,
           productName,
-          category,
+          combo,
           originalImageBase64,
-          result.imageBase64,
-          variant,
-          prompt
+          result.imageBase64
         );
       } else {
         job.results[i] = {
-          variantConfig: variant,
+          combination: combo,
           status: 'failed',
           error: result.error,
-          promptUsed: prompt,
         };
         job.failed++;
       }
     } catch (error) {
       console.error(`[Batch ${batchId}] Error processing variant ${i + 1}:`, error);
       job.results[i] = {
-        variantConfig: variant,
+        combination: combo,
         status: 'failed',
         error: error instanceof Error ? error.message : 'Unknown error',
       };
@@ -162,7 +263,7 @@ async function processVariants(
     }
     
     // Small delay between requests to avoid rate limiting
-    if (i < variants.length - 1) {
+    if (i < combinations.length - 1) {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
   }
@@ -172,20 +273,15 @@ async function processVariants(
 
 // Save variant to database
 async function saveVariantToDatabase(
+  productId: string,
   productName: string,
-  category: ProductCategory,
+  combination: VariantCombination,
   originalImageBase64: string,
-  generatedImageBase64: string,
-  variantConfig: VariantConfig,
-  promptUsed: string
+  generatedImageBase64: string
 ) {
   try {
-    // Create original image URL (just use a placeholder since we have base64)
-    const originalImageUrl = `data:image/png;base64,${originalImageBase64.substring(0, 50)}...`;
-    
     // Upload generated image
-    const variantId = getVariantFilename(variantConfig);
-    const fileName = `${productName}/${variantId}-${Date.now()}.png`;
+    const fileName = `${productName}/${combination.filename}-${Date.now()}.png`;
     const imageBuffer = Buffer.from(generatedImageBase64, 'base64');
     
     // Ensure bucket exists
@@ -215,16 +311,23 @@ async function saveVariantToDatabase(
       .from('ai-studio-variants')
       .getPublicUrl(fileName);
     
+    // Build variant config from combination options
+    const variantConfig: Record<string, string> = {};
+    for (const opt of combination.options) {
+      variantConfig[opt.settingId] = opt.optionId;
+    }
+
     // Save to database
     await supabase
       .from('ai_studio_variants')
       .insert({
+        product_id: productId,
         product_name: productName,
-        category,
-        original_image_url: originalImageUrl,
+        original_image_url: `data:image/png;base64,${originalImageBase64.substring(0, 50)}...`,
         generated_image_url: urlData.publicUrl,
         variant_config: variantConfig,
-        prompt_used: promptUsed,
+        variant_options: combination.options,
+        prompt_used: combination.prompt,
         status: 'pending',
       });
       
