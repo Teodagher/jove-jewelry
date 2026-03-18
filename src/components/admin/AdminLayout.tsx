@@ -29,7 +29,8 @@ import {
   Sparkles,
   ShieldCheck,
   Mail,
-  Gem
+  Gem,
+  Wand2
 } from 'lucide-react';
 import { hasAdminAccess, canAccessPath, getHighestRole, ROLES } from '@/lib/roles';
 import AdminInstallPrompt from '../AdminInstallPrompt';
@@ -83,6 +84,8 @@ const navigation = [
   { name: 'Giveaways', href: '/admin/giveaways', icon: Gift },
   { name: 'Product Descriptions', href: '/admin/descriptions', icon: FileText },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+  // AI Variant Studio
+  { name: 'AI Variant Studio', href: '/admin/ai-studio', icon: Wand2, highlight: true },
   // JOVÉ LAB - Isolated bespoke design admin
   {
     name: 'JOVÉ LAB',
