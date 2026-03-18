@@ -1,9 +1,9 @@
 // Gemini API Client for AI Studio
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_IMAGE_API || process.env.GEMINI_API_KEY;
 
 if (!GEMINI_API_KEY) {
-  console.error('GEMINI_API_KEY environment variable is not set');
+  console.error('GEMINI_IMAGE_API environment variable is not set');
 }
 const GEMINI_MODEL = 'gemini-2.5-flash-image';
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
