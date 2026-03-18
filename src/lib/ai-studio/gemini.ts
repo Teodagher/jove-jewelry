@@ -1,7 +1,7 @@
 // Gemini API Client for AI Studio
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyC8k6FjLdQoAUWdWouXATIvNTqr-dsYAy4';
-const GEMINI_MODEL = 'gemini-2.0-flash-exp-image-generation';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyAFdexHatZT2G2E879nWEx8r66tIjj5_Sk';
+const GEMINI_MODEL = 'gemini-2.5-flash-image';
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 export interface GeminiGenerationConfig {
